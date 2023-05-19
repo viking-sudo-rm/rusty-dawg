@@ -1,0 +1,13 @@
+[package]
+name = "rusty-dawg"
+version = "0.1.0"
+
+[dependencies]
+bit-struct = "0.3.2"
+kdam = "0.3.0"
+petgraph = "0.6.3"
+serde = "1.0.163"
+serde_json = "1.0.96"
+substring = "1.4.5"
+type-layout = "0.2.0"
+ux = "0.1.5"
