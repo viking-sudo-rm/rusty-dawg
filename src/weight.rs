@@ -21,10 +21,11 @@ pub struct BasicWeight {
     length2: u32,
     failure1: u8,
     failure2: u32,
+    solid: bool,
 }
 
 impl BasicWeight {
-    pub fn create(_index: u64, length: u64, failure: Option<NodeIndex>) -> Self {
+    pub fn new(length: u64, failure: Option<NodeIndex>, solid: bool) -> Self {
         Self {
             length1: (length >> 32) as u8,
             length2: length as u32,
@@ -36,11 +37,20 @@ impl BasicWeight {
                 Some(f) => f.index() as u32,
                 None => u32::MAX,
             },
+            solid: solid,
         }
     }
 
+    pub fn initial() -> Self {
+        Self::new(0, None, true)
+    }
+
     pub fn extend(last: &Self) -> Self {
-        return Self::create(0, last.get_length() + 1, None);
+        Self::new(last.get_length() + 1, None, true)
+    }
+
+    pub fn split(state: &Self, next_state: &Self) -> Self {
+        Self::new(state.get_length() + 1, next_state.get_failure(), false)
     }
 
     pub fn get_length(&self) -> u64 {
@@ -71,6 +81,10 @@ impl BasicWeight {
                 self.failure2 = u32::MAX;
             }
         }
+    }
+
+    pub fn is_solid(&self) -> bool {
+        self.solid
     }
 
     // pub fn update(&mut self) {}
@@ -134,13 +148,13 @@ mod tests {
 
     #[test]
     fn test_length() {
-        let weight = BasicWeight::create(0, 53, None);
+        let weight = BasicWeight::new(53, None, false);
         assert_eq!(weight.get_length(), 53);
     }
 
     #[test]
     fn test_length_overflow() {
-        let weight = BasicWeight::create(0, 1 << 35, None);
+        let weight = BasicWeight::new(1 << 35, None, false);
         assert_eq!(weight.get_length(), 1 << 35);
     }
 
