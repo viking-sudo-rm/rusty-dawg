@@ -21,11 +21,12 @@ pub struct BasicWeight {
     length2: u32,
     failure1: u8,
     failure2: u32,
-    solid: bool,
+    // solid: bool,
+    count: u32,
 }
 
 impl BasicWeight {
-    pub fn new(length: u64, failure: Option<NodeIndex>, solid: bool) -> Self {
+    pub fn new(length: u64, failure: Option<NodeIndex>, count: u64) -> Self {
         Self {
             length1: (length >> 32) as u8,
             length2: length as u32,
@@ -37,20 +38,21 @@ impl BasicWeight {
                 Some(f) => f.index() as u32,
                 None => u32::MAX,
             },
-            solid: solid,
+            // solid: solid,
+            count: count as u32,
         }
     }
 
     pub fn initial() -> Self {
-        Self::new(0, None, true)
+        Self::new(0, None, 0)
     }
 
     pub fn extend(last: &Self) -> Self {
-        Self::new(last.get_length() + 1, None, true)
+        Self::new(last.get_length() + 1, None, 0)
     }
 
     pub fn split(state: &Self, next_state: &Self) -> Self {
-        Self::new(state.get_length() + 1, next_state.get_failure(), false)
+        Self::new(state.get_length() + 1, next_state.get_failure(), next_state.get_count())
     }
 
     pub fn get_length(&self) -> u64 {
@@ -83,11 +85,17 @@ impl BasicWeight {
         }
     }
 
-    pub fn is_solid(&self) -> bool {
-        self.solid
+    // pub fn is_solid(&self) -> bool {
+    //     self.solid
+    // }
+
+    pub fn increment_count(&mut self) {
+        self.count += 1;
     }
 
-    // pub fn update(&mut self) {}
+    pub fn get_count(&self) -> u64 {
+        self.count as u64
+    }
 }
 
 // #[derive(Debug)]
@@ -148,13 +156,13 @@ mod tests {
 
     #[test]
     fn test_length() {
-        let weight = BasicWeight::new(53, None, false);
+        let weight = BasicWeight::new(53, None, 0);
         assert_eq!(weight.get_length(), 53);
     }
 
     #[test]
     fn test_length_overflow() {
-        let weight = BasicWeight::new(1 << 35, None, false);
+        let weight = BasicWeight::new(1 << 35, None, 0);
         assert_eq!(weight.get_length(), 1 << 35);
     }
 

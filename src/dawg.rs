@@ -27,7 +27,7 @@ impl Dawg {
         // let weight = Weight::create::<W>(0, 0, None);
         let mut dawg = Graph::<BasicWeight, char>::new();
         let initial = dawg.add_node(BasicWeight::initial());
-        // let initial = dawg.add_node(BasicWeight::create(0, 0, None));
+        dawg[initial].increment_count();
         Dawg {dawg: dawg, initial: initial}
     }
 
@@ -125,6 +125,15 @@ impl Dawg {
                 }
             },
         }
+
+        // Increment counts of all suffixes along the failure path.
+        let mut opt_ptr = Some(new);
+        while opt_ptr.is_some() {
+            let ptr = opt_ptr.unwrap();
+            (&mut self.dawg[ptr]).increment_count();
+            opt_ptr = self.dawg[ptr].get_failure();
+        }
+
         return new;
     }
 
@@ -206,8 +215,6 @@ impl Dawg {
         return max_length;
     }
 
-    // TODO: Get counts.
-
     // TODO: Can build full substring vector for query.
 
     pub fn get_weight(&self, state: NodeIndex) -> &BasicWeight {
@@ -236,7 +243,7 @@ impl Dawg {
 mod tests {
 
     use Dawg;
-    // use Dot;
+    use Dot;
     use NodeIndex;
 
     #[test]
@@ -244,7 +251,7 @@ mod tests {
         let mut dawg = Dawg::new();
         dawg.build("bab");
         dawg.recompute_lengths();
-        // println!("{:?}", Dot::new(&dawg.dawg));
+
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_length(), 0);
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_length(), 1);
         assert_eq!(dawg.dawg[NodeIndex::new(2)].get_length(), 1);
@@ -254,6 +261,11 @@ mod tests {
         assert_eq!(dawg.get_max_factor_length("bb"), 1);
         assert_eq!(dawg.get_max_factor_length("ba"), 2);
         assert_eq!(dawg.get_max_factor_length("z"), 0);
+
+        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
+        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 2);
+        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
+        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
     }
 
     #[test]
@@ -266,6 +278,13 @@ mod tests {
         assert_eq!(dawg.get_max_factor_length("ca"), 2);
         assert_eq!(dawg.get_max_factor_length("z"), 0);
         assert_eq!(dawg.get_max_factor_length("zzbcazz"), 3);
+
+        // println!("{:?}", Dot::new(dawg.get_graph()));
+
+        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 6);
+        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 2);
+        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 2);
+        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
     }
 
     #[test]

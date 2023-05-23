@@ -16,7 +16,6 @@ extern crate bitvec;
 
 mod dawg;
 mod weight;
-mod inverse_failures;
 mod stat_utils;
 
 // use std::cmp::max;
@@ -31,7 +30,6 @@ use petgraph::dot::Dot;
 
 use dawg::Dawg;
 use weight::BasicWeight;
-use inverse_failures::InverseFailuresMap;
 
 // For serializing JSON.
 use serde::{Serialize};
@@ -73,7 +71,7 @@ impl Evaluator<'_> {
         }
     }
 
-    pub fn evaluate(&mut self, dawg: &Dawg, counts: &Vec<usize>, idx: usize) {
+    pub fn evaluate(&mut self, dawg: &Dawg, idx: usize) {
         // println!("=== eval@{} ===", idx);
         // println!("counts: {:?}", counts);
         // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -91,9 +89,10 @@ impl Evaluator<'_> {
             state = opt_state.unwrap();
             cum_length += length;
             if state.index() != 0 {
-                cum_count += counts[state.index()];
+                cum_count += dawg.get_weight(state).get_count();
+                // cum_count += counts[state.index()];
             }
-            cum_entropy += get_entropy(state, dawg, counts);
+            cum_entropy += get_entropy(state, dawg);
             num_tokens += 1;
         }
     
@@ -125,18 +124,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test = text.substring(length - 10000, length);
 
     let mut dawg = Dawg::new();
-    let mut map = InverseFailuresMap::new(2 * length);
-    let mut counts = vec![0; 2 * length];
     let mut evaluator = Evaluator::new(test);
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.chars()).enumerate() {
         last = dawg.extend(token, last);
-        if idx % 100000 == 0 {
+        if idx % 10000 == 0 {
             // FIXME: Use right lengths here? Shouldn't matter too much.
-            map.clear();
-            map.build(&dawg);
-            map.compute_counts(&dawg, &mut counts);
-            evaluator.evaluate(&dawg, &counts, idx);
+            evaluator.evaluate(&dawg, idx);
         }
     }
     println!("DAWG built!");
@@ -156,7 +150,6 @@ mod tests {
 
     use Dawg;
     use Evaluator;
-    use InverseFailuresMap;
 
     #[test]
     fn test_timeseries_short() {
@@ -167,18 +160,12 @@ mod tests {
         let train = "abb";
         let test = "abc";
         let mut dawg = Dawg::new();
-        let mut map = InverseFailuresMap::new(2 * train.len());
-        let mut counts = vec![0; 2 * train.len()];
         let mut evaluator = Evaluator::new(test);
         let mut last = dawg.get_initial();
         for (idx, token) in train.chars().enumerate() {
             last = dawg.extend(token, last);
-            map.clear();
-            map.build(&dawg);
-            map.compute_counts(&dawg, &mut counts);
-            evaluator.evaluate(&dawg, &counts, idx);
+            evaluator.evaluate(&dawg, idx);
         }
-        dawg.recompute_lengths(); // FIXME
         assert_eq!(evaluator.suffix_lengths, vec![1./3., 1., 1.]);
         assert_eq!(evaluator.suffix_counts, vec![1./3., 2./3., 2./3.]);
     }
@@ -191,19 +178,12 @@ mod tests {
         let train = "aa";
         let test = "aaa";
         let mut dawg = Dawg::new();
-        let mut map = InverseFailuresMap::new(2 * train.len());
-        let mut counts = vec![0; 2 * train.len()];
         let mut evaluator = Evaluator::new(test);
         let mut last = dawg.get_initial();
         for (idx, token) in train.chars().enumerate() {
             last = dawg.extend(token, last);
-            map.clear();
-            map.build(&dawg);
-            counts = vec![0; 2 * train.len()];
-            map.compute_counts(&dawg, &mut counts);
-            evaluator.evaluate(&dawg, &counts, idx);
+            evaluator.evaluate(&dawg, idx);
         }
-        dawg.recompute_lengths();  // FIXME
         assert_eq!(evaluator.suffix_lengths, vec![1., 5./3.]);
         assert_eq!(evaluator.suffix_counts, vec![1., 4./3.]);
     }
