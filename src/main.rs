@@ -49,6 +49,7 @@ struct Evaluator<'a> {
     suffix_counts: Vec<f32>,
     suffix_entropies: Vec<f32>,
     test_ppls: Vec<f32>,
+    test_ppls_kn: Vec<f32>,
     states_per_token: Vec<f32>,
     edges_per_token: Vec<f32>,
 }
@@ -61,6 +62,7 @@ impl Evaluator<'_> {
         let suffix_counts = Vec::new();
         let suffix_entropies = Vec::new();
         let test_ppls = Vec::new();
+        let test_ppls_kn = Vec::new();
         let states_per_token = Vec::new();
         let edges_per_token = Vec::new();
         Evaluator {
@@ -71,6 +73,7 @@ impl Evaluator<'_> {
             suffix_counts: suffix_counts,
             suffix_entropies: suffix_entropies,
             test_ppls: test_ppls,
+            test_ppls_kn: test_ppls_kn,
             states_per_token: states_per_token,
             edges_per_token: edges_per_token,
         }
@@ -85,14 +88,16 @@ impl Evaluator<'_> {
         let mut cum_count = 0;
         let mut cum_entropy = 0.;
         let mut cum_test_ppl = 0.;
+        let mut cum_test_ppl_kn = 0.;
         let mut num_tokens = 0;
     
-        let mut opt_state = None;
+        let mut opt_state;
         let mut state = dawg.get_initial();
         let mut length = 0;
         for token in self.test.chars() {
             // Predict the perplexity of the next token before updating the state.
             cum_test_ppl += -get_probability_simple_smoothing(dawg, state, token).log2();
+            cum_test_ppl_kn += -get_probability_kn(dawg, state, token, 0.1).log2();
 
             (opt_state, length) = dawg.transition_and_count(state, token, length);
             state = opt_state.unwrap();
@@ -110,6 +115,7 @@ impl Evaluator<'_> {
         self.suffix_counts.push((cum_count as f32) / (num_tokens as f32));
         self.suffix_entropies.push((cum_entropy as f32) / (num_tokens as f32));
         self.test_ppls.push((cum_test_ppl as f32) / (num_tokens as f32));
+        self.test_ppls_kn.push((cum_test_ppl_kn as f32) / (num_tokens as f32));
         self.states_per_token.push((dawg.node_count() as f32) / (idx as f32));
         self.edges_per_token.push((dawg.edge_count() as f32) / (idx as f32));
     }

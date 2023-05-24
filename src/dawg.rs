@@ -203,7 +203,7 @@ impl Dawg {
 
     // Return the length of the largest substring of query that appears in the corpus.
     pub fn get_max_factor_length(&self, query: &str) -> u64 {
-        let mut opt_state = None;
+        let mut opt_state;
         let mut state = self.initial;
         let mut length = 0;
         let mut max_length = 0;
@@ -240,8 +240,8 @@ impl Dawg {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
-
     use Dawg;
     use Dot;
     use NodeIndex;
