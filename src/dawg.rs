@@ -159,7 +159,7 @@ impl Dawg {
         }
     }
 
-    fn transition(&self, state: NodeIndex, token: char, use_failures: bool) -> Option<NodeIndex> {
+    pub fn transition(&self, state: NodeIndex, token: char, use_failures: bool) -> Option<NodeIndex> {
         // TODO(willm): Could implement binary search over sorted edges here.
         for edge in self.dawg.edges(state) {
             if token == *edge.weight() {

@@ -38,34 +38,39 @@ use std::io::Write;
 
 use kdam::tqdm;
 
-use stat_utils::get_entropy;
+use stat_utils::*;
 
 #[derive(Serialize)]
 struct Evaluator<'a> {
+    train: &'a str,
     test: &'a str,
     indices: Vec<usize>,
     suffix_lengths: Vec<f32>,
     suffix_counts: Vec<f32>,
     suffix_entropies: Vec<f32>,
+    test_ppls: Vec<f32>,
     states_per_token: Vec<f32>,
     edges_per_token: Vec<f32>,
 }
 
 impl Evaluator<'_> {
 
-    pub fn new<'a>(test: &'a str) -> Evaluator<'a> {
-        let mut indices = Vec::new();
-        let mut suffix_lengths = Vec::new();
-        let mut suffix_counts = Vec::new();
-        let mut suffix_entropies = Vec::new();
-        let mut states_per_token = Vec::new();
-        let mut edges_per_token = Vec::new();
+    pub fn new<'a>(train: &'a str, test: &'a str) -> Evaluator<'a> {
+        let indices = Vec::new();
+        let suffix_lengths = Vec::new();
+        let suffix_counts = Vec::new();
+        let suffix_entropies = Vec::new();
+        let test_ppls = Vec::new();
+        let states_per_token = Vec::new();
+        let edges_per_token = Vec::new();
         Evaluator {
+            train: train,  // A subset of train to evaluate min PPL on.
             test: test,
             indices: indices,
             suffix_lengths: suffix_lengths,
             suffix_counts: suffix_counts,
             suffix_entropies: suffix_entropies,
+            test_ppls: test_ppls,
             states_per_token: states_per_token,
             edges_per_token: edges_per_token,
         }
@@ -79,12 +84,16 @@ impl Evaluator<'_> {
         let mut cum_length = 0;
         let mut cum_count = 0;
         let mut cum_entropy = 0.;
+        let mut cum_test_ppl = 0.;
         let mut num_tokens = 0;
     
         let mut opt_state = None;
         let mut state = dawg.get_initial();
         let mut length = 0;
         for token in self.test.chars() {
+            // Predict the perplexity of the next token before updating the state.
+            cum_test_ppl += -get_probability_simple_smoothing(dawg, state, token).log2();
+
             (opt_state, length) = dawg.transition_and_count(state, token, length);
             state = opt_state.unwrap();
             cum_length += length;
@@ -92,7 +101,7 @@ impl Evaluator<'_> {
                 cum_count += dawg.get_weight(state).get_count();
                 // cum_count += counts[state.index()];
             }
-            cum_entropy += get_entropy(state, dawg);
+            cum_entropy += get_entropy(dawg, state);
             num_tokens += 1;
         }
     
@@ -100,6 +109,7 @@ impl Evaluator<'_> {
         self.suffix_lengths.push((cum_length as f32) / (num_tokens as f32));
         self.suffix_counts.push((cum_count as f32) / (num_tokens as f32));
         self.suffix_entropies.push((cum_entropy as f32) / (num_tokens as f32));
+        self.test_ppls.push((cum_test_ppl as f32) / (num_tokens as f32));
         self.states_per_token.push((dawg.node_count() as f32) / (idx as f32));
         self.edges_per_token.push((dawg.edge_count() as f32) / (idx as f32));
     }
@@ -121,10 +131,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     stdin.lock().read_to_string(&mut text).expect("Couldn't read");
     let length = text.len();
     let train = text.substring(0, length - 10000);
+    let train_subset = text.substring(0, 10000);
     let test = text.substring(length - 10000, length);
 
     let mut dawg = Dawg::new();
-    let mut evaluator = Evaluator::new(test);
+    let mut evaluator = Evaluator::new(train_subset, test);
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.chars()).enumerate() {
         last = dawg.extend(token, last);
@@ -160,7 +171,7 @@ mod tests {
         let train = "abb";
         let test = "abc";
         let mut dawg = Dawg::new();
-        let mut evaluator = Evaluator::new(test);
+        let mut evaluator = Evaluator::new(train, test);
         let mut last = dawg.get_initial();
         for (idx, token) in train.chars().enumerate() {
             last = dawg.extend(token, last);
@@ -178,7 +189,7 @@ mod tests {
         let train = "aa";
         let test = "aaa";
         let mut dawg = Dawg::new();
-        let mut evaluator = Evaluator::new(test);
+        let mut evaluator = Evaluator::new(train, test);
         let mut last = dawg.get_initial();
         for (idx, token) in train.chars().enumerate() {
             last = dawg.extend(token, last);
