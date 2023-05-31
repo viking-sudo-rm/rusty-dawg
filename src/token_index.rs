@@ -5,6 +5,7 @@ pub struct TokenIndex {
     token_to_index: HashMap<String, usize>,
     index_to_token: Vec<String>,
     count: usize,
+    unk: usize,
 }
 
 impl TokenIndex {
@@ -12,7 +13,11 @@ impl TokenIndex {
     pub fn new() -> Self {
         let token_to_index = HashMap::new();
         let index_to_token = Vec::new();
-        TokenIndex {token_to_index, index_to_token, count: 0}
+        let mut index = TokenIndex {token_to_index, index_to_token, count: 0, unk: 0};
+        index.add("<unk>");
+        index.add("<bos>");
+        index.add("<eos>");
+        index
     }
 
     pub fn add(&mut self, token: &str) -> usize {
@@ -29,15 +34,18 @@ impl TokenIndex {
         }
     }
 
-    pub fn token_to_index(&self, token: &str) -> Option<usize> {
+    pub fn index(&self, token: &str) -> usize {
         match self.token_to_index.get(token) {
-            Some(ptr) => Some(*ptr),
-            None => None,
+            Some(ptr) => *ptr,
+            None => self.unk,
         }
     }
 
-    pub fn index_to_token(&self, index: usize) -> &str {
-        self.index_to_token[index].as_str()
+    pub fn token(&self, index: usize) -> &str {
+        if index < self.count {
+            return self.index_to_token[index].as_str();
+        }
+        return self.token(self.unk);
     }
 
 }
@@ -49,14 +57,18 @@ mod tests {
     #[test]
     fn test_token_index() {
         let mut token_index = TokenIndex::new();
-        assert_eq!(token_index.add("hello"), 0);
-        assert_eq!(token_index.add("hello"), 0);
-        assert_eq!(token_index.add("world"), 1);
-        assert_eq!(token_index.add("hello"), 0);
-        assert_eq!(token_index.token_to_index("hello").unwrap(), 0);
-        assert_eq!(token_index.index_to_token(0), "hello");
-        assert_eq!(token_index.token_to_index("world").unwrap(), 1);
-        assert_eq!(token_index.index_to_token(1), "world");
+        assert_eq!(token_index.add("hello"), 3);
+        assert_eq!(token_index.add("hello"), 3);
+        assert_eq!(token_index.add("world"), 4);
+        assert_eq!(token_index.add("hello"), 3);
+        assert_eq!(token_index.index("hello"), 3);
+        assert_eq!(token_index.token(3), "hello");
+        assert_eq!(token_index.index("world"), 4);
+        assert_eq!(token_index.token(4), "world");
+        assert_eq!(token_index.token(0), "<unk>");
+        assert_eq!(token_index.token(342), "<unk>");
+        assert_eq!(token_index.index("<unk>"), 0);
+        assert_eq!(token_index.index("universe"), 0);
     }
 
 }

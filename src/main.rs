@@ -39,6 +39,7 @@ use kdam::tqdm;
 use stat_utils::*;
 use dawg::Dawg;
 use weight::BasicWeight;
+use token_index::TokenIndex;
 
 #[derive(Serialize)]
 struct Evaluator<'a, E: Eq + serde::Serialize + Copy> {
@@ -176,10 +177,8 @@ impl<E: Eq + serde::Serialize + Copy> Evaluator<'_, E> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    type E = char;
     println!("sizeof(edge): {}B", size_of::<E>());
     println!("sizeof(node): {}B", size_of::<BasicWeight>());
-    let n_test = 10000;
 
     let train_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.train.raw";
     let test_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.valid.raw";
@@ -187,34 +186,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let train_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.train.raw";
     // let test_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.valid.raw";
     // let out_path = "/Users/willm/Desktop/wikitext103.json";
-
     let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
-    let mut train: Vec<char> = train_raw.chars().collect();
-    let mut test: Vec<char> = fs::read_to_string(test_path).expect("Error loading test").chars().collect();
+    let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
 
-    // Add EOS symbols.
-    const EOS: char = '⁂';
-    train.push(EOS);
-    test.push(EOS);
+    // Load at character level.
+    // type E = char;
+    // let mut train: Vec<char> = train_raw.chars().collect();
+    // let mut test: Vec<char> = test_raw.chars().collect();
+    // let eos = '⁂';
 
+    // Load at word level.
+    type E = usize;
+    let mut index = TokenIndex::new();
+    let mut train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let eos = index.index("<eos>");
+
+    train.push(eos);
+    test.push(eos);
+    let n_test = 10000;
     let old_test_len = test.len();
     test = (&test[0..n_test]).to_vec();
     let eval_threshold = train.len() / 20;
 
-    // let stdin = io::stdin();
-    // let mut text = String::new();
-    // stdin.lock().read_to_string(&mut text).expect("Couldn't read");
-    // // let tokens: Vec<usize> = text.split_whitespace().map(|x| index.add(x)).collect();
-    // let tokens: Vec<E> = text.chars().collect();
-    // let length = tokens.len();
-    // let train = (&tokens[0..length - test_size]).to_vec();
-    // let train_subset = (&tokens[0..test_size]).to_vec();
-    // let test = (&tokens[length - test_size..length]).to_vec();
-
     println!("#(train): {}", train.len());
     println!("#(test): {}/{}", test.len(), old_test_len);
 
-    // let mut index = TokenIndex::new();
     // let tokens: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     // println!("#(train words): {}", tokens.len());
 

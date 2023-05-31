@@ -147,6 +147,7 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
 
     fn _zero_lengths(&mut self, state: NodeIndex) {
         self.dawg[state].set_length(0);
+        // FIXME: Use Walker object here.
         let next_states: Vec<_> = self.dawg.neighbors(state).collect();
         for next_state in next_states {
             self._zero_lengths(next_state);
