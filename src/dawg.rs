@@ -6,39 +6,41 @@
 // 
 
 use std::cmp::max;
+use std::cmp::Eq;
 
 use weight::BasicWeight;
 
-use petgraph::Graph;
-use petgraph::graph::NodeIndex;
+// use petgraph::Graph;
+// use petgraph::graph::NodeIndex;
+use custom_graph::{Graph,NodeIndex};
 use petgraph::visit::EdgeRef;
 
 use kdam::tqdm;
 
-pub struct Dawg {
-    dawg: Graph<BasicWeight, char>,
+pub struct Dawg<E: Eq + serde::Serialize + Copy> {
+    dawg: Graph<BasicWeight, E>,
     initial: NodeIndex,
 }
 
-impl Dawg {
+impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
 
-    pub fn new() -> Dawg {
+    pub fn new() -> Dawg<E> {
         //dawg: &'a mut Graph<BasicWeight, char>
         // let weight = Weight::create::<W>(0, 0, None);
-        let mut dawg = Graph::<BasicWeight, char>::new();
+        let mut dawg = Graph::<BasicWeight, E>::new();
         let initial = dawg.add_node(BasicWeight::initial());
         dawg[initial].increment_count();
         Dawg {dawg: dawg, initial: initial}
     }
 
-    pub fn build(&mut self, text: &str) {
+    pub fn build(&mut self, text: Vec<E>) {
         let mut last = self.initial;
-        for token in tqdm!(text.chars()) {
-            last = self.extend(token, last);
+        for token in text.iter() {
+            last = self.extend(*token, last);
         }
     }
 
-    pub fn extend(&mut self, token: char, last: NodeIndex) -> NodeIndex {
+    pub fn extend(&mut self, token: E, last: NodeIndex) -> NodeIndex {
         let new = self.dawg.add_node(BasicWeight::extend(&self.dawg[last]));
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
@@ -137,6 +139,7 @@ impl Dawg {
         return new;
     }
 
+    // Set the lengths field to store min factor length instead of max factor length.
     pub fn recompute_lengths(&mut self) {
         self._zero_lengths(self.initial);
         self._recompute_lengths(self.initial, 0);
@@ -159,7 +162,22 @@ impl Dawg {
         }
     }
 
-    pub fn transition(&self, state: NodeIndex, token: char, use_failures: bool) -> Option<NodeIndex> {
+    // Compute the min factor length of this state dynamically.
+    pub fn get_length(&self, mut state: NodeIndex) -> u64 {
+        let mut count = 0;
+        loop {
+            match self.dawg[state].get_failure() {
+                Some(fstate) => {
+                    state = fstate;
+                    count += 1;
+                },
+                None => {break},
+            }
+        }
+        count
+    }
+
+    pub fn transition(&self, state: NodeIndex, token: E, use_failures: bool) -> Option<NodeIndex> {
         // TODO(willm): Could implement binary search over sorted edges here.
         for edge in self.dawg.edges(state) {
             if token == *edge.weight() {
@@ -182,7 +200,7 @@ impl Dawg {
     }
 
     //Return the length of the largest matching suffix.
-    pub fn transition_and_count(&self, state: NodeIndex, token: char, length: u64) -> (Option<NodeIndex>, u64) {
+    pub fn transition_and_count(&self, state: NodeIndex, token: E, length: u64) -> (Option<NodeIndex>, u64) {
         // TODO(willm): Could implement binary search over sorted edges here.
         for edge in self.dawg.edges(state) {
             if token == *edge.weight() {
@@ -202,12 +220,12 @@ impl Dawg {
     }
 
     // Return the length of the largest substring of query that appears in the corpus.
-    pub fn get_max_factor_length(&self, query: &str) -> u64 {
+    pub fn get_max_factor_length(&self, query: Vec<E>) -> u64 {
         let mut opt_state;
         let mut state = self.initial;
         let mut length = 0;
         let mut max_length = 0;
-        for token in query.chars() {
+        for token in query {
             (opt_state, length) = self.transition_and_count(state, token, length);
             state = opt_state.unwrap();
             max_length = max(max_length, length);
@@ -233,7 +251,7 @@ impl Dawg {
         self.dawg.edge_count()
     }
 
-    pub fn get_graph(&self) -> &Graph<BasicWeight, char> {
+    pub fn get_graph(&self) -> &Graph<BasicWeight, E> {
         &self.dawg
     }
 
@@ -242,14 +260,14 @@ impl Dawg {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use petgraph::dot::Dot;
     use Dawg;
-    use Dot;
-    use NodeIndex;
+    use custom_graph::NodeIndex;
 
     #[test]
     fn test_build_bab() {
         let mut dawg = Dawg::new();
-        dawg.build("bab");
+        dawg.build("bab".chars().collect());
         dawg.recompute_lengths();
 
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_length(), 0);
@@ -257,10 +275,10 @@ mod tests {
         assert_eq!(dawg.dawg[NodeIndex::new(2)].get_length(), 1);
         assert_eq!(dawg.dawg[NodeIndex::new(3)].get_length(), 2);
 
-        assert_eq!(dawg.get_max_factor_length("ab"), 2);
-        assert_eq!(dawg.get_max_factor_length("bb"), 1);
-        assert_eq!(dawg.get_max_factor_length("ba"), 2);
-        assert_eq!(dawg.get_max_factor_length("z"), 0);
+        assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
+        assert_eq!(dawg.get_max_factor_length("bb".chars().collect()), 1);
+        assert_eq!(dawg.get_max_factor_length("ba".chars().collect()), 2);
+        assert_eq!(dawg.get_max_factor_length("z".chars().collect()), 0);
 
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 2);
@@ -271,13 +289,13 @@ mod tests {
     #[test]
     fn test_build_abcab() {
         let mut dawg = Dawg::new();
-        dawg.build("abcab");
+        dawg.build("abcab".chars().collect());
         dawg.recompute_lengths();
-        assert_eq!(dawg.get_max_factor_length("ab"), 2);
-        assert_eq!(dawg.get_max_factor_length("abc"), 3);
-        assert_eq!(dawg.get_max_factor_length("ca"), 2);
-        assert_eq!(dawg.get_max_factor_length("z"), 0);
-        assert_eq!(dawg.get_max_factor_length("zzbcazz"), 3);
+        assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
+        assert_eq!(dawg.get_max_factor_length("abc".chars().collect()), 3);
+        assert_eq!(dawg.get_max_factor_length("ca".chars().collect()), 2);
+        assert_eq!(dawg.get_max_factor_length("z".chars().collect()), 0);
+        assert_eq!(dawg.get_max_factor_length("zzbcazz".chars().collect()), 3);
 
         // println!("{:?}", Dot::new(dawg.get_graph()));
 
@@ -285,6 +303,17 @@ mod tests {
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 2);
         assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 2);
         assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
+    }
+
+    #[test]
+    fn test_build_abb() {
+        let mut dawg = Dawg::new();
+        dawg.build("abb".chars().collect());
+        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
+        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 1);
+        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
+        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
+        assert_eq!(dawg.dawg[NodeIndex::new(4)].get_count(), 2);
     }
 
     #[test]
@@ -299,12 +328,23 @@ mod tests {
         and a statistically significant trend away from the older and
         relatively isolated rural communities **h urbanization appears to be";
         let mut dawg = Dawg::new();
-        dawg.build(corpus);
+        dawg.build(corpus.chars().collect());
         dawg.recompute_lengths();
-        assert_eq!(dawg.get_max_factor_length("How"), 3);
-        assert_eq!(dawg.get_max_factor_length("However,"), 8);
-        assert_eq!(dawg.get_max_factor_length("static~However, the farce"), 15);
-        assert_eq!(dawg.get_max_factor_length("However, the zzz"), 13);
+        assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);
+        assert_eq!(dawg.get_max_factor_length("However,".chars().collect()), 8);
+        assert_eq!(dawg.get_max_factor_length("static~However, the farce".chars().collect()), 15);
+        assert_eq!(dawg.get_max_factor_length("However, the zzz".chars().collect()), 13);
+    }
+
+    #[test]
+    fn test_get_length() {
+        let mut dawg = Dawg::new();
+        dawg.build("ab".chars().collect());
+        let state = NodeIndex::new(2);
+        assert_eq!(dawg.dawg[state].get_length(), 2);
+        assert_eq!(dawg.get_length(state), 1);
+        dawg.recompute_lengths();
+        assert_eq!(dawg.dawg[state].get_length(), 1);
     }
 
 }

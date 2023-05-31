@@ -10,5 +10,5 @@ cargo build
 To build the DAG on the Brown corpus:
 
 ```
-cat ~/Desktop/brown.txt | ./target/debug/rusty-dawg
+./target/debug/rusty-dawg
 ```

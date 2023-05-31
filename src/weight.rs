@@ -1,7 +1,8 @@
 extern crate petgraph;
 extern crate type_layout;
 
-use petgraph::graph::NodeIndex;
+// use petgraph::graph::NodeIndex;
+use custom_graph::NodeIndex;
 
 pub trait Weight {
     fn create<W: Weight>(index: u64, length: u64, failure: Option<NodeIndex>) -> W;
