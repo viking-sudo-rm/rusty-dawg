@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
-pub struct TokenIndex {
+pub struct TokenIndex<E> {
     // TODO: Could optimize this to only store each string once.
-    token_to_index: HashMap<String, usize>,
+    // TODO: Make token type generic.
+    token_to_index: HashMap<String, E>,
     index_to_token: Vec<String>,
-    count: usize,
-    unk: usize,
+    pub count: usize,
+    unk: E,
 }
 
-impl TokenIndex {
+impl TokenIndex<usize> {
 
     pub fn new() -> Self {
         let token_to_index = HashMap::new();
@@ -48,6 +49,10 @@ impl TokenIndex {
         return self.token(self.unk);
     }
 
+    pub fn eos(&self) -> usize {
+        2
+    }
+
 }
 
 #[cfg(test)]
@@ -56,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_token_index() {
-        let mut token_index = TokenIndex::new();
+        let mut token_index: TokenIndex<usize> = TokenIndex::new();
         assert_eq!(token_index.add("hello"), 3);
         assert_eq!(token_index.add("hello"), 3);
         assert_eq!(token_index.add("world"), 4);

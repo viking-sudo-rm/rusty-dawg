@@ -35,7 +35,7 @@ impl<E: Eq + Ord + serde::Serialize + Copy + Debug> Dawg<E> {
         Dawg {dawg: dawg, initial: initial}
     }
 
-    pub fn build(&mut self, text: Vec<E>) {
+    pub fn build(&mut self, text: &Vec<E>) {
         let mut last = self.initial;
         for token in text.iter() {
             last = self.extend(*token, last);
@@ -268,7 +268,7 @@ mod tests {
     #[test]
     fn test_build_bab() {
         let mut dawg = Dawg::new();
-        dawg.build("bab".chars().collect());
+        dawg.build(&"bab".chars().collect());
 
         let q0 = NodeIndex::new(0);
         let q1 = NodeIndex::new(1);
@@ -294,7 +294,7 @@ mod tests {
     #[test]
     fn test_build_abcab() {
         let mut dawg = Dawg::new();
-        dawg.build("abcab".chars().collect());
+        dawg.build(&"abcab".chars().collect());
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
         assert_eq!(dawg.get_max_factor_length("abc".chars().collect()), 3);
@@ -313,7 +313,7 @@ mod tests {
     #[test]
     fn test_build_abb() {
         let mut dawg = Dawg::new();
-        dawg.build("abb".chars().collect());
+        dawg.build(&"abb".chars().collect());
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 1);
         assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
@@ -333,7 +333,7 @@ mod tests {
         and a statistically significant trend away from the older and
         relatively isolated rural communities **h urbanization appears to be";
         let mut dawg = Dawg::new();
-        dawg.build(corpus.chars().collect());
+        dawg.build(&corpus.chars().collect());
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);
         assert_eq!(dawg.get_max_factor_length("However,".chars().collect()), 8);
@@ -344,7 +344,7 @@ mod tests {
     #[test]
     fn test_get_length() {
         let mut dawg = Dawg::new();
-        dawg.build("ab".chars().collect());
+        dawg.build(&"ab".chars().collect());
         let state = NodeIndex::new(2);
         assert_eq!(dawg.dawg[state].get_length(), 2);
         assert_eq!(dawg.get_length(state), 1);

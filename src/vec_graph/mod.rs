@@ -58,6 +58,10 @@ impl<N, E: Eq + Ord + Copy, Ix: IndexType> Graph<N, E, Ix> {
         self.nodes[a.index()].edges.iter()
     }
 
+    pub fn n_edges(&self, a: NodeIndex<Ix>) -> usize {
+        self.nodes[a.index()].edges.len()
+    }
+
     pub fn neighbors(&self, a: NodeIndex<Ix>) -> Neighbors<E, Ix> {
         Neighbors::new(&self.nodes[a.index()])
     }
@@ -242,6 +246,8 @@ mod tests {
         assert_eq!(graph.edge_target(q1, 2), Some(q2));
         assert_eq!(graph.edge_target(q1, 3), Some(q3));
         assert_eq!(graph.edge_target(q1, 7), None);
+
+        assert_eq!(graph.n_edges(q1), 3);
     }
 
     #[test]
