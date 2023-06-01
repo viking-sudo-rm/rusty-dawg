@@ -1,10 +1,13 @@
+use std::cmp::Ord;
+use std::fmt::Debug;
+
 // use petgraph::graph::NodeIndex;
-use custom_graph::NodeIndex;
+use vec_graph::indexing::NodeIndex;
 use dawg::Dawg;
 
 // use petgraph::dot::Dot;
 
-pub fn get_entropy<E: Eq + serde::Serialize + Copy>(dawg: &Dawg<E>, state: NodeIndex) -> f32 {
+pub fn get_entropy<E: Eq + Ord + serde::Serialize + Copy + Debug>(dawg: &Dawg<E>, state: NodeIndex) -> f32 {
     // let denom = counts[state.index()];
     // println!("{:?}", Dot::new(dawg.get_graph()));
 
@@ -31,7 +34,7 @@ pub fn get_entropy<E: Eq + serde::Serialize + Copy>(dawg: &Dawg<E>, state: NodeI
     sum_prob
 }
 
-pub fn get_probability_exact<E: Eq + serde::Serialize + Copy>(dawg: &Dawg<E>, state: NodeIndex, label: E) -> f32 {
+pub fn get_probability_exact<E: Eq + Ord + serde::Serialize + Copy + Debug>(dawg: &Dawg<E>, state: NodeIndex, label: E) -> f32 {
     let denom = dawg.get_weight(state).get_count();
     let num = match dawg.transition(state, label, false) {
         Some(next_state) => dawg.get_weight(next_state).get_count(),
@@ -41,7 +44,7 @@ pub fn get_probability_exact<E: Eq + serde::Serialize + Copy>(dawg: &Dawg<E>, st
 }
 
 // TODO: Wrap into some kind of objects with hyperparameters (smoothing, backoff, etc.)
-pub fn get_probability_simple_smoothing<E: Eq + serde::Serialize + Copy>(dawg: &Dawg<E>, state: NodeIndex, label: E) -> f32 {
+pub fn get_probability_simple_smoothing<E: Eq + Ord + serde::Serialize + Copy + Debug>(dawg: &Dawg<E>, state: NodeIndex, label: E) -> f32 {
     let smooth_denom = dawg.get_weight(state).get_count() + 256;
     let smooth_num = match dawg.transition(state, label, false) {
         Some(next_state) => dawg.get_weight(next_state).get_count() + 1,
@@ -51,7 +54,7 @@ pub fn get_probability_simple_smoothing<E: Eq + serde::Serialize + Copy>(dawg: &
 }
 
 // Backoff with Kneser-Ney smoothing
-pub fn get_probability_kn<E: Eq + serde::Serialize + Copy + Sized>(dawg: &Dawg<E>, mut state: NodeIndex, label: E, delta: f32, max_n: u64) -> f32 {    
+pub fn get_probability_kn<E: Eq + Ord + serde::Serialize + Copy + Sized + Debug>(dawg: &Dawg<E>, mut state: NodeIndex, label: E, delta: f32, max_n: u64) -> f32 {    
     if max_n != 0 {
         let graph = dawg.get_graph();
         // TODO: Can make this more efficient by computing once and passing.
@@ -88,7 +91,7 @@ pub fn get_probability_kn<E: Eq + serde::Serialize + Copy + Sized>(dawg: &Dawg<E
 mod tests {
     use petgraph::dot::Dot;
     use Dawg;
-    use custom_graph::NodeIndex;
+    use vec_graph::indexing::NodeIndex;
     use stat_utils::*;
 
     #[test]

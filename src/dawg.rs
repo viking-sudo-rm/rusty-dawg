@@ -6,23 +6,25 @@
 // 
 
 use std::cmp::max;
-use std::cmp::Eq;
+use std::cmp::{Eq, Ord};
+use std::fmt::Debug;
+use std::collections::LinkedList;
+
+use vec_graph::dot::Dot;
 
 use weight::BasicWeight;
 
 // use petgraph::Graph;
 // use petgraph::graph::NodeIndex;
-use custom_graph::{Graph,NodeIndex};
-use petgraph::visit::EdgeRef;
+use vec_graph::Graph;
+use vec_graph::indexing::NodeIndex;
 
-use kdam::tqdm;
-
-pub struct Dawg<E: Eq + serde::Serialize + Copy> {
+pub struct Dawg<E: Eq + Ord + serde::Serialize + Copy + Debug> {
     dawg: Graph<BasicWeight, E>,
     initial: NodeIndex,
 }
 
-impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
+impl<E: Eq + Ord + serde::Serialize + Copy + Debug> Dawg<E> {
 
     pub fn new() -> Dawg<E> {
         //dawg: &'a mut Graph<BasicWeight, char>
@@ -45,15 +47,14 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
         let mut opt_next_state: Option<NodeIndex> = None;
-        // println!("last: {:?}", last);
+
         loop {
-            let state = opt_state.unwrap();
-            self.dawg.add_edge(state, new, token);
-            opt_state = self.dawg[state].get_failure();
+            let q = opt_state.unwrap();
+            self.dawg.add_edge(q, new, token);
+            opt_state = self.dawg[q].get_failure();
             match opt_state {
                 Some(state) => {
                     opt_next_state = self.transition(state, token, false);
-                    // println!("next: {:?}", opt_next_state);
                     if opt_next_state.is_some() {
                         break;
                     }
@@ -62,49 +63,33 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
             }
         }
     
-        // println!("===============");
-        // println!("Token: {}", token);
-        // println!("New: {:?}", new);
-        // println!("State: {:?}", opt_state);
-        // if opt_state.is_some() {
-        //     println!("Fail: {:?}", dawg[opt_state.unwrap()].failure);
-        // }
-        // println!("\n\n");
-    
         match opt_state {
             // There is no valid failure state for the new state.
-            None => self.dawg[new].set_failure(Some(self.initial)),
+            None => (&mut self.dawg[new]).set_failure(Some(self.initial)),
     
             // Found a failure state to fail to.
             Some(mut state) => {
                 let next_state = opt_next_state.unwrap();
                 if self.dawg[state].get_length() + 1 == self.dawg[next_state].get_length() {
                     // Fail to an existing state.
-                    self.dawg[new].set_failure(Some(next_state));
+                    (&mut self.dawg[new]).set_failure(Some(next_state));
                 }
                 
                 else {
                     // Split a state and fail to the clone of it.
                     let clone = self.dawg.add_node(BasicWeight::split(&self.dawg[state], &self.dawg[next_state]));
-                    // let clone = self.dawg.add_node(BasicWeight::create(
-                    //     0,
-                    //     self.dawg[state].get_length() + 1,
-                    //     self.dawg[next_state].get_failure(),
-                    // ));
-                    // TODO: Could possibly avoid collecting here.
                     let edges: Vec<_> = self.dawg.edges(next_state).map(|edge| (edge.target(), *edge.weight())).collect();
                     for (target, weight) in edges {
                         self.dawg.add_edge(clone, target, weight);
                     }
-                    self.dawg[new].set_failure(Some(clone));
-                    self.dawg[next_state].set_failure(Some(clone));
+                    (&mut self.dawg[new]).set_failure(Some(clone));
+                    (&mut self.dawg[next_state]).set_failure(Some(clone));
     
                     // Reroute edges along failure chain.
                     let mut next_state_ = next_state;
                     loop {
                         if next_state_ == next_state {
-                            let edge = self.dawg.find_edge(state, next_state_).unwrap();
-                            self.dawg.remove_edge(edge);
+                            self.dawg.remove_edge(state, token);
                         }
                         self.dawg.add_edge(state, clone, token);
     
@@ -142,24 +127,32 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
     // Set the lengths field to store min factor length instead of max factor length.
     pub fn recompute_lengths(&mut self) {
         self._zero_lengths(self.initial);
-        self._recompute_lengths(self.initial, 0);
+        println!("{:?}", Dot::new(&self.dawg));
+        let mut queue: LinkedList<(NodeIndex, u64)> = LinkedList::new();
+        queue.push_back((self.initial, 0));
+
+        loop {
+            match queue.pop_front() {
+                Some((state, length)) => {
+                    if self.dawg[state].get_length() != 0 {
+                        continue;
+                    }
+                    (&mut self.dawg[state]).set_length(length);
+                    for next_state in self.dawg.neighbors(state) {
+                        queue.push_back((next_state, length + 1));
+                    }
+                },
+                None => break
+            }
+        }
     }
 
     fn _zero_lengths(&mut self, state: NodeIndex) {
-        self.dawg[state].set_length(0);
+        (&mut self.dawg[state]).set_length(0);
         // FIXME: Use Walker object here.
         let next_states: Vec<_> = self.dawg.neighbors(state).collect();
         for next_state in next_states {
             self._zero_lengths(next_state);
-        }    }
-
-    fn _recompute_lengths(&mut self, state: NodeIndex, length: u64) {
-        self.dawg[state].set_length(length);
-        let next_states: Vec<_> = self.dawg.neighbors(state).collect();
-        for next_state in next_states {
-            if self.dawg[next_state].get_length() == 0 {
-                self._recompute_lengths(next_state, length + 1);
-            }
         }
     }
 
@@ -179,12 +172,16 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
     }
 
     pub fn transition(&self, state: NodeIndex, token: E, use_failures: bool) -> Option<NodeIndex> {
-        // TODO(willm): Could implement binary search over sorted edges here.
         for edge in self.dawg.edges(state) {
             if token == *edge.weight() {
                 return Some(edge.target());
             }
         }
+        // let next_state = self.dawg.edge_target(state, token);
+        // if next_state.is_some() {
+        //     println!("{}, {:?} -> {}", state.index(), token, next_state.unwrap().index());
+        //     return next_state;
+        // }
     
         if !use_failures {
             return None;
@@ -202,11 +199,14 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
 
     //Return the length of the largest matching suffix.
     pub fn transition_and_count(&self, state: NodeIndex, token: E, length: u64) -> (Option<NodeIndex>, u64) {
-        // TODO(willm): Could implement binary search over sorted edges here.
-        for edge in self.dawg.edges(state) {
-            if token == *edge.weight() {
-                return (Some(edge.target()), length + 1);
-            }
+        // for edge in self.dawg.edges(state) {
+        //     if token == *edge.weight() {
+        //         return (Some(edge.target()), length + 1);
+        //     }
+        // }
+        let next_state = self.dawg.edge_target(state, token);
+        if next_state.is_some() {
+            return (next_state, length + 1);
         }
     
         let fail_state = self.dawg[state].get_failure();
@@ -261,30 +261,34 @@ impl<E: Eq + serde::Serialize + Copy> Dawg<E> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use petgraph::dot::Dot;
+    use vec_graph::dot::Dot;
     use Dawg;
-    use custom_graph::NodeIndex;
+    use vec_graph::indexing::NodeIndex;
 
     #[test]
     fn test_build_bab() {
         let mut dawg = Dawg::new();
         dawg.build("bab".chars().collect());
-        dawg.recompute_lengths();
 
-        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_length(), 0);
-        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_length(), 1);
-        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_length(), 1);
-        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_length(), 2);
+        let q0 = NodeIndex::new(0);
+        let q1 = NodeIndex::new(1);
+        let q2 = NodeIndex::new(2);
+        let q3 = NodeIndex::new(3);
 
-        assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
-        assert_eq!(dawg.get_max_factor_length("bb".chars().collect()), 1);
-        assert_eq!(dawg.get_max_factor_length("ba".chars().collect()), 2);
-        assert_eq!(dawg.get_max_factor_length("z".chars().collect()), 0);
+        assert_eq!(dawg.dawg.edge_target(q0, 'b'), Some(q1));
+        assert_eq!(dawg.dawg.edge_target(q0, 'a'), Some(q2));
+        assert_eq!(dawg.dawg.edge_target(q1, 'a'), Some(q2));
+        assert_eq!(dawg.dawg.edge_target(q2, 'b'), Some(q3));
 
-        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
-        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 2);
-        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
-        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
+        assert_eq!(dawg.dawg[q0].get_failure(), None);
+        assert_eq!(dawg.dawg[q1].get_failure(), Some(q0));
+        assert_eq!(dawg.dawg[q2].get_failure(), Some(q0));
+        assert_eq!(dawg.dawg[q3].get_failure(), Some(q1));
+
+        assert_eq!(dawg.dawg[q0].get_count(), 4);
+        assert_eq!(dawg.dawg[q1].get_count(), 2);
+        assert_eq!(dawg.dawg[q2].get_count(), 1);
+        assert_eq!(dawg.dawg[q3].get_count(), 1);
     }
 
     #[test]

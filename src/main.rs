@@ -18,7 +18,9 @@ mod dawg;
 mod weight;
 mod stat_utils;
 mod token_index;
-mod custom_graph;
+mod vec_graph;
+
+use vec_graph::*;
 
 // use std::cmp::max;
 // use std::io::{self, Read};
@@ -26,6 +28,7 @@ use std::mem::size_of;
 use std::marker::Copy;
 use std::fs;
 use std::collections::HashMap;
+use std::fmt::Debug;
 // use std::vec;
 // use substring::Substring;
 
@@ -33,6 +36,7 @@ use std::collections::HashMap;
 use serde::{Serialize};
 use std::fs::File;
 use std::io::Write;
+use std::cmp::Ord;
 
 use kdam::tqdm;
 
@@ -42,14 +46,14 @@ use weight::BasicWeight;
 use token_index::TokenIndex;
 
 #[derive(Serialize)]
-struct Evaluator<'a, E: Eq + serde::Serialize + Copy> {
+struct Evaluator<'a, E: Eq + serde::Serialize + Copy + Debug> {
     #[serde(skip)]
     test: &'a Vec<E>,
     indices: Vec<usize>,
     metrics: HashMap<&'a str, Vec<f32>>,
 }
 
-impl<E: Eq + serde::Serialize + Copy> Evaluator<'_, E> {
+impl<E: Eq + Ord + serde::Serialize + Copy + Debug> Evaluator<'_, E> {
 
     pub fn new<'a>(test: &'a Vec<E>) -> Evaluator<'a, E> {
         let indices = Vec::new();
@@ -201,6 +205,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let eos = index.index("<eos>");
+
+    // 
+    // FIXME: Issue is no probability mass on <unk>!
+    // 
 
     train.push(eos);
     test.push(eos);
