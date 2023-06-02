@@ -20,6 +20,10 @@ mod stat_utils;
 mod token_index;
 mod vec_graph;
 mod evaluator;
+mod lms;
+
+use lms::LM;
+use lms::kn_lm::KNLM;
 
 // use std::cmp::max;
 // use std::io::{self, Read};
@@ -43,12 +47,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sizeof(edge): {}B", size_of::<E>());
     println!("sizeof(node): {}B", size_of::<BasicWeight>());
 
-    // let train_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.train.raw";
-    // let test_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.valid.raw";
-    // let out_path = "/Users/willm/Desktop/wikitext2.json";
-    let train_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.train.raw";
-    let test_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.valid.raw";
-    let out_path = "/Users/willm/Desktop/wikitext103.json";
+    let train_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.train.raw";
+    let test_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.valid.raw";
+    let out_path = "/Users/willm/Desktop/wikitext2.json";
+    // let train_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.train.raw";
+    // let test_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.valid.raw";
+    // let out_path = "/Users/willm/Desktop/wikitext103.json";
 
     let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
     let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
@@ -66,9 +70,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     train.push(eos);
     test.push(eos);
-    let n_test = 10000;
     let old_test_len = test.len();
-    test = (&test[0..n_test]).to_vec();
+    // let n_test = 10000;
+    // test = (&test[0..n_test]).to_vec();
     let eval_threshold = train.len() / 20;
 
     println!("#(train): {}", train.len());
@@ -77,15 +81,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let tokens: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     // println!("#(train words): {}", tokens.len());
 
-    let mut lms: Vec<LM> = Vec::new();
+    let mut lms: Vec<Box<dyn LM>> = Vec::new();
     for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
-        let mut maxgram = LM::new(&index, *delta, -1);
-        maxgram.set_name(format!("maxgram_kn-{}", delta));
-        lms.push(maxgram);
-
-        let mut ngram = LM::new(&index, *delta, 4);
-        ngram.set_name(format!("ngram_kn-{}", delta));
-        lms.push(ngram);
+        let maxgram = KNLM::new(format!("maxgram_kn-{}", delta), *delta, -1);
+        lms.push(Box::new(maxgram));
+        let ngram = KNLM::new(format!("ngram_kn-{}", delta), *delta, 4);
+        lms.push(Box::new(ngram));
     }
     let mut evaluator = Evaluator::new(&lms, &test);
 

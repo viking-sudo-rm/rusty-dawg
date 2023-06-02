@@ -10,12 +10,14 @@ use std::io::Write;
 use stat_utils::*;
 use dawg::Dawg;
 
+use lms::LM;
+
 // TODO: 
 #[derive(Serialize)]
 pub struct Evaluator<'a, E>
 where E: Eq + serde::Serialize + Copy + Debug {
     #[serde(skip)]
-    lms: &'a Vec<LM<'a>>,
+    lms: &'a Vec<Box<dyn LM>>,
     #[serde(skip)]
     test: &'a Vec<E>,
     indices: Vec<usize>,
@@ -45,7 +47,7 @@ where E: Eq + serde::Serialize + Copy + Debug {
 // TODO: Generic case
 impl Evaluator<'_, usize> {
 
-    pub fn new<'a>(lms: &'a Vec<LM<'a>>, test: &'a Vec<usize>) -> Evaluator<'a, usize> {
+    pub fn new<'a>(lms: &'a Vec<Box<dyn LM>>, test: &'a Vec<usize>) -> Evaluator<'a, usize> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
@@ -55,7 +57,7 @@ impl Evaluator<'_, usize> {
         metrics.insert("suffix_counts", Vec::new());
         metrics.insert("suffix_entropies", Vec::new());
         for lm in lms.iter() {
-            metrics.insert(lm.name.as_str(), Vec::new());
+            metrics.insert(lm.get_name(), Vec::new());
         }
 
         Evaluator {lms, test, indices, metrics}
@@ -73,7 +75,7 @@ impl Evaluator<'_, usize> {
 
         let mut cum_ppls: HashMap<&str, f32> = HashMap::new();
         for lm in self.lms.iter() {
-            cum_ppls.insert(lm.name.as_str(), 0.);
+            cum_ppls.insert(lm.get_name(), 0.);
         }
     
         let mut opt_state;
@@ -84,8 +86,8 @@ impl Evaluator<'_, usize> {
 
             // Predict the perplexity of the next token before updating the state.
             for lm in self.lms.iter() {
-                let logprob = -(*lm).get_probability_kn(&dawg, state, token, good_turing).log2();
-                *cum_ppls.get_mut(lm.name.as_str()).unwrap() += logprob;
+                let logprob = -(*lm).get_probability(&dawg, state, token, good_turing).log2();
+                *cum_ppls.get_mut(lm.get_name()).unwrap() += logprob;
             }
 
             (opt_state, length) = dawg.transition_and_count(state, token, length);
@@ -117,8 +119,10 @@ mod tests {
     use vec_graph::dot::Dot;
     use Dawg;
     use Evaluator;
-    use LM;
     use TokenIndex;
+
+    use LM;
+    use lms::kn_lm::KNLM;
 
     #[test]
     fn test_timeseries_short() {
@@ -133,7 +137,7 @@ mod tests {
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-        let lms: Vec<LM> = Vec::new();
+        let lms: Vec<Box<dyn LM>> = Vec::new();
         let mut evaluator: Evaluator<usize> = Evaluator::new(&lms, &test);
 
         let mut dawg: Dawg<usize> = Dawg::new();
@@ -158,10 +162,9 @@ mod tests {
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-        let mut lms: Vec<LM> = Vec::new();
-        let mut unigram = LM::new(&index, 0., 0);
-        unigram.set_name("unigram".to_string());
-        lms.push(unigram);
+        let mut lms: Vec<Box<dyn LM>> = Vec::new();
+        let unigram = KNLM::new("unigram".to_string(), 0., 0);
+        lms.push(Box::new(unigram));
         let mut evaluator: Evaluator<usize> = Evaluator::new(&lms, &test);
 
         let mut dawg: Dawg<usize> = Dawg::new();
