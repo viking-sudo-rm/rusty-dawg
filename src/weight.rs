@@ -1,5 +1,6 @@
-extern crate petgraph;
-extern crate type_layout;
+// extern crate type_layout;
+
+use serde::{Serialize, Deserialize};
 
 // use petgraph::graph::NodeIndex;
 use vec_graph::indexing::NodeIndex;
@@ -15,7 +16,7 @@ pub trait Weight {
 
 // #[repr(C)]  // Lay out as written.
 // 12 bits instead of 10??
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BasicWeight {
     // TODO: Use bitfields here to get 10 bytes.
     length1: u8,

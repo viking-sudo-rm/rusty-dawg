@@ -3,6 +3,8 @@
 use std::fmt;
 use std::hash::Hash;
 
+// use serde::{Serialize, Deserialize};
+
 pub type DefaultIx = u32;
 
 /// Trait for the unsigned integer type used for node and edge indices.

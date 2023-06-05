@@ -13,6 +13,8 @@ extern crate substring;
 extern crate serde;
 extern crate serde_json;
 extern crate bitvec;
+extern crate bincode;
+extern crate test_temp_file;
 
 mod dawg;
 mod weight;
@@ -24,6 +26,7 @@ mod lms;
 
 use lms::LM;
 use lms::kn_lm::KNLM;
+use lms::induction_lm::InductionLM;
 
 // use std::cmp::max;
 // use std::io::{self, Read};
@@ -60,20 +63,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load at word level.
     type E = usize;
     let mut index = TokenIndex::new();
-    let mut train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let eos = index.index("<eos>");
 
-    // 
-    // FIXME: Issue is no probability mass on <unk>!
-    // 
+    // We are currently ignoring the probability of <eos>, very negligible
+    // let eos = index.index("<eos>");
+    // train.push(eos);
+    // test.push(eos);
 
-    train.push(eos);
-    test.push(eos);
     let old_test_len = test.len();
-    // let n_test = 10000;
-    // test = (&test[0..n_test]).to_vec();
-    let eval_threshold = train.len() / 20;
+    let n_test = 10000;
+    test = (&test[0..n_test]).to_vec();
+    let eval_threshold = train.len() / 10;
 
     println!("#(train): {}", train.len());
     println!("#(test): {}/{}", test.len(), old_test_len);
@@ -88,7 +89,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let ngram = KNLM::new(format!("ngram_kn-{}", delta), *delta, 4);
         lms.push(Box::new(ngram));
     }
-    let mut evaluator = Evaluator::new(&lms, &test);
+    for delta in vec![0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95].iter() {
+        let induct_backoff = KNLM::new("ngram_kn-0.7".to_string(), 0.7, 4);
+        let induct = InductionLM::new(format!("induct-{}", delta), Box::new(induct_backoff), *delta);
+        lms.push(Box::new(induct))
+    }
+    let mut evaluator = Evaluator::new(&mut lms, &test);
 
     let mut dawg: Dawg<E> = Dawg::new();
     let mut last = dawg.get_initial();

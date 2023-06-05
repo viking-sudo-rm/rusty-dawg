@@ -9,22 +9,21 @@ use std::cmp::max;
 use std::cmp::{Eq, Ord};
 use std::fmt::Debug;
 use std::collections::LinkedList;
+use serde::{Serialize};
 
-use vec_graph::dot::Dot;
-
+// use vec_graph::dot::Dot;
 use weight::BasicWeight;
-
-// use petgraph::Graph;
-// use petgraph::graph::NodeIndex;
 use vec_graph::Graph;
 use vec_graph::indexing::NodeIndex;
 
-pub struct Dawg<E: Eq + Ord + serde::Serialize + Copy + Debug> {
+pub struct Dawg<E>
+where E: Eq + Ord + Serialize + Copy + Debug {
     dawg: Graph<BasicWeight, E>,
     initial: NodeIndex,
 }
 
-impl<E: Eq + Ord + serde::Serialize + Copy + Debug> Dawg<E> {
+impl<E> Dawg<E>
+where E: Eq + Ord + Serialize + Copy + Debug {
 
     pub fn new() -> Dawg<E> {
         //dawg: &'a mut Graph<BasicWeight, char>
@@ -47,7 +46,6 @@ impl<E: Eq + Ord + serde::Serialize + Copy + Debug> Dawg<E> {
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
         let mut opt_next_state: Option<NodeIndex> = None;
-
         loop {
             let q = opt_state.unwrap();
             self.dawg.add_edge(q, new, token);
@@ -127,7 +125,6 @@ impl<E: Eq + Ord + serde::Serialize + Copy + Debug> Dawg<E> {
     // Set the lengths field to store min factor length instead of max factor length.
     pub fn recompute_lengths(&mut self) {
         self._zero_lengths(self.initial);
-        println!("{:?}", Dot::new(&self.dawg));
         let mut queue: LinkedList<(NodeIndex, u64)> = LinkedList::new();
         queue.push_back((self.initial, 0));
 
@@ -265,6 +262,11 @@ mod tests {
     use Dawg;
     use vec_graph::indexing::NodeIndex;
 
+    use std::fs::File;
+    use std::io::{Read, Write};
+    use bincode::{serialize_into, deserialize_from};
+    use test_temp_file::TestTempFile;
+
     #[test]
     fn test_build_bab() {
         let mut dawg = Dawg::new();
@@ -351,5 +353,16 @@ mod tests {
         dawg.recompute_lengths();
         assert_eq!(dawg.dawg[state].get_length(), 1);
     }
+
+    // #[test]
+    // fn test_serialize_deserialize() {
+    //     let dawg = Dawg::new();
+    //     dawg.build(&"abcd".chars().collect());
+
+    //     let file = TestTempFile::new(String::from("file_name.txt"));
+    //     serialize_into(file, &dawg);
+    //     let dawg2: Dawg<char> = deserialize_from::<TestTempFile, _>(file).unwrap();
+    //     assert_eq!(0, 1);
+    // }
 
 }

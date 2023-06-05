@@ -15,11 +15,13 @@ use self::indexing::{DefaultIx, NodeIndex, IndexType};
 pub mod dot;
 // use self::dot::Dot;
 
+// #[derive(Deserialize, Serialize)]
 pub struct Graph<N, E, Ix = DefaultIx> {
     nodes: Vec<Node<N, E, Ix>>,
 }
 
-impl<N, E: Eq + Ord + Copy, Ix: IndexType> Graph<N, E, Ix> {
+impl<N, E, Ix: IndexType> Graph<N, E, Ix>
+where E: Eq + Ord + Copy {
 
     pub fn new() -> Self {
         let nodes: Vec<Node<N, E, Ix>> = Vec::new();
@@ -91,12 +93,14 @@ where Ix: IndexType {
     }
 }
 
+// #[derive(Deserialize, Serialize)]
 pub struct Node<N, E, Ix = DefaultIx> {
     pub weight: N,
     edges: Vec<Edge<E, Ix>>,
 }
 
-impl<N, E: Eq + Ord + Copy, Ix: IndexType> Node<N, E, Ix> {
+impl<N, E, Ix: IndexType> Node<N, E, Ix>
+where E: Eq + Ord + Copy {
 
     pub fn new(weight: N) -> Self {
         let edges = Vec::new();
@@ -163,6 +167,7 @@ impl<N, E: Eq + Ord + Copy, Ix: IndexType> Node<N, E, Ix> {
 
 }
 
+// #[derive(Serialize, Deserialize)]
 pub struct Edge<E, Ix = DefaultIx> {
     pub weight: E,
     target: NodeIndex<Ix>,
@@ -221,7 +226,7 @@ mod tests {
     }
 
     fn weights<N, E, Ix>(graph: &Graph<N, E, Ix>, q: NodeIndex<Ix>) -> Vec<E>
-    where E: Ord, E: std::cmp::Eq, E: std::marker::Copy, Ix: IndexType {
+    where E: Ord + Eq + Copy, Ix: IndexType {
         graph.edges(q).map(|x| *x.weight()).collect::<Vec<_>>()
     }
 

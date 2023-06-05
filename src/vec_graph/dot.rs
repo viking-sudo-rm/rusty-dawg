@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Formatter, Result};
 use std::cmp::{Eq, Ord};
+// use serde::{Serialize, Deserialize};
 
 use vec_graph::Graph;
 use vec_graph::IndexType;
@@ -15,7 +16,8 @@ impl<'a, N, E, Ix> Dot<'a, N, E, Ix> {
     }
 }
 
-impl<'a, N: Debug, E: Eq + Ord + Copy + Debug, Ix: IndexType> Debug for Dot<'a, N, E, Ix> {
+impl<'a, N: Debug, E, Ix: IndexType> Debug for Dot<'a, N, E, Ix>
+where E: Eq + Ord + Copy + Debug {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "digraph {{\n")?;
         for idx in 0..self.graph.node_count() {
