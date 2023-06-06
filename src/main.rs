@@ -28,14 +28,9 @@ use lms::LM;
 use lms::kn_lm::KNLM;
 use lms::induction_lm::InductionLM;
 
-// use std::cmp::max;
-// use std::io::{self, Read};
 use std::mem::size_of;
-// use std::marker::Copy;
 use std::fs;
-// use std::fmt::Debug;
-// use std::vec;
-// use substring::Substring;
+use std::env;
 
 use kdam::tqdm;
 
@@ -50,12 +45,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sizeof(edge): {}B", size_of::<E>());
     println!("sizeof(node): {}B", size_of::<BasicWeight>());
 
-    let train_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.train.raw";
-    let test_path = "/Users/willm/Desktop/wikitext-2-raw/wiki.valid.raw";
-    let out_path = "/Users/willm/Desktop/wikitext2.json";
-    // let train_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.train.raw";
-    // let test_path = "/Users/willm/Desktop/wikitext-103-raw/wiki.valid.raw";
-    // let out_path = "/Users/willm/Desktop/wikitext103.json";
+    let args: Vec<String> = env::args().collect();
+    let train_path = &args[1];
+    let test_path = &args[2];
+    let out_path = &args[3];
 
     let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
     let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
