@@ -85,6 +85,10 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                     for (target, weight) in edges {
                         self.dawg.add_edge(clone, target, weight);
                     }
+                    // FIXME: For some reason, calling clone has infinite loop/hangs. Theoretically, it should be better??
+                    // let weight = BasicWeight::split(&self.dawg[state], &self.dawg[next_state]);
+                    // let clone = self.dawg.clone_node(state);
+                    // self.dawg.set_node_weight(clone, weight);
                     (&mut self.dawg[new]).set_failure(Some(clone));
                     (&mut self.dawg[next_state]).set_failure(Some(clone));
     
@@ -341,6 +345,7 @@ mod tests {
         and a statistically significant trend away from the older and
         relatively isolated rural communities **h urbanization appears to be";
         let mut dawg = Dawg::new();
+        println!("Start build!");
         dawg.build(&corpus.chars().collect());
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);

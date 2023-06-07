@@ -1,4 +1,5 @@
 // extern crate type_layout;
+use std::clone::Clone;
 
 use serde::{Serialize, Deserialize};
 
@@ -33,7 +34,7 @@ pub trait Weight {
 
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BasicWeight {
     length: u32,
     failure: u32,
@@ -83,7 +84,7 @@ impl Weight for BasicWeight {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Weight40 {
     // TODO: Use bitfields here to get 10 bytes.
     length1: u8,

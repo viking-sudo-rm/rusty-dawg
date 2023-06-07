@@ -7,6 +7,7 @@
 use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
 use std::slice::Iter;
+use std::clone::Clone;
 use serde::{Serialize, Deserialize};
 
 #[allow(dead_code)]
@@ -47,9 +48,20 @@ where E: Eq + Ord + Copy {
         self.nodes.get(a.index()).map(|n| &n.weight)
     }
 
-    // pub fn node_weight_mut(&mut self, a: NodeIndex<Ix>) -> Option<&mut N> {
-    //     self.nodes.get_mut(a.index()).map(|n| &mut n.weight)
-    // }
+    pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
+        match self.nodes.get_mut(a.index()) {
+            Some(ptr) => ptr.weight = value,
+            None => return,
+        }
+    }
+
+    pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
+    where N: Clone, E: Clone, Ix: Clone {
+        let node = self.nodes[a.index()].clone();
+        let node_idx = NodeIndex::new(self.nodes.len());
+        self.nodes.push(node);
+        node_idx
+    }
 
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
         self.nodes[a.index()].add_edge(weight, b)
@@ -108,6 +120,13 @@ pub struct Node<N, E, Ix = DefaultIx> {
     ))]
     pub weight: N,
     edges: Vec<Edge<E, Ix>>,
+}
+
+impl<N, E, Ix> Clone for Node<N, E, Ix>
+where N: Clone, E: Clone, Ix: Clone {
+    fn clone(&self) -> Self {
+        Node {weight: self.weight.clone(), edges: self.edges.clone()}
+    }
 }
 
 impl<N, E, Ix: IndexType> Node<N, E, Ix>
@@ -186,6 +205,13 @@ pub struct Edge<E, Ix = DefaultIx> {
     ))]
     pub weight: E,
     target: NodeIndex<Ix>,
+}
+
+impl<E, Ix> Clone for Edge<E, Ix>
+where E: Clone, Ix: Clone {
+    fn clone(&self) -> Self {
+        Edge {weight: self.weight.clone(), target: self.target.clone()}
+    }
 }
 
 impl<E, Ix: IndexType> Edge<E, Ix> {
@@ -297,6 +323,18 @@ mod tests {
         assert_eq!(graph.add_edge(q0, q1, 2), true);
         assert_eq!(graph.remove_edge(q0, 2), true);
         assert_eq!(graph.remove_edge(q0, 2), false);
+    }
+
+    #[test]
+    fn test_clone_node() {
+        let mut graph: Graph<u8, u16> = Graph::new();
+        let q0 = graph.add_node(0);
+        let q1 = graph.add_node(1);
+        graph.add_edge(q0, q1, 2);
+
+        let q2 = graph.clone_node(q0);
+        assert_eq!(*graph.node_weight(q2).unwrap(), 0 as u8);
+        assert_eq!(graph.edge_target(q2, 2), Some(q1));
     }
 
 }
