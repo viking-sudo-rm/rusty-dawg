@@ -12,7 +12,7 @@ use std::collections::LinkedList;
 use serde::{Serialize, Deserialize};
 
 // use vec_graph::dot::Dot;
-use weight::BasicWeight;
+use weight::{BasicWeight, Weight};
 use vec_graph::Graph;
 use vec_graph::indexing::NodeIndex;
 
@@ -265,6 +265,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 mod tests {
     use vec_graph::dot::Dot;
     use Dawg;
+    use weight::Weight;
     use vec_graph::indexing::NodeIndex;
 
     use std::fs::File;

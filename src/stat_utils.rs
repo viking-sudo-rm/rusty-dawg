@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 
 use dawg::Dawg;
-// use petgraph::graph::NodeIndex;
+use weight::Weight;
 use vec_graph::indexing::NodeIndex;
 
 pub fn get_entropy<E>(dawg: &Dawg<E>, state: NodeIndex) -> f32

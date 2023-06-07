@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use dawg::Dawg;
-
+use weight::Weight;
 use lms::LM;
 
 // use petgraph::graph::NodeIndex;

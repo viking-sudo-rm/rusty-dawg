@@ -1,5 +1,6 @@
 use dawg::Dawg;
 use lms::LM;
+use weight::Weight;
 use vec_graph::indexing::NodeIndex;
 // use vec_graph::dot::Dot;
 

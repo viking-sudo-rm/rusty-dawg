@@ -2,11 +2,10 @@ use std::marker::Copy;
 use std::fs;
 use std::collections::HashMap;
 use std::fmt::Debug;
-
-// For serializing JSON.
 use serde::{Serialize};
 use std::io::Write;
 
+use weight::Weight;
 use stat_utils::*;
 use dawg::Dawg;
 
