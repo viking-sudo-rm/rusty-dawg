@@ -14,7 +14,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate bitvec;
 extern crate bincode;
-extern crate test_temp_file;
+extern crate tempfile;
 
 mod dawg;
 mod weight;
@@ -31,6 +31,7 @@ use lms::induction_lm::InductionLM;
 use std::mem::size_of;
 use std::fs;
 use std::env;
+use bincode::{serialize_into, deserialize_from};
 
 use kdam::tqdm;
 
@@ -48,7 +49,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     let train_path = &args[1];
     let test_path = &args[2];
-    let out_path = &args[3];
+    let save_path = &args[3];
+    let results_path = &args[4];
 
     let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
     let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
@@ -67,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let old_test_len = test.len();
     let n_test = 10000;
     test = (&test[0..n_test]).to_vec();
-    let eval_threshold = train.len() / 10;
+    let eval_threshold = train.len() / 20;
 
     println!("#(train): {}", train.len());
     println!("#(test): {}/{}", test.len(), old_test_len);
@@ -100,12 +102,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     println!("DAWG built!");
-    evaluator.to_json(out_path)?;
-    println!("Successfully saved to {}!", out_path);
-    
-    // Graph is released here, can borrow it. Very messy pattern currently lol.
-    println!("Node count: {}", dawg.node_count());
-    println!("Edge count: {}", dawg.edge_count());
+    println!("  Node count: {}", dawg.node_count());
+    println!("  Edge count: {}", dawg.edge_count());
+
+    evaluator.to_json(results_path)?;
+    println!("Successfully saved results to {}!", results_path);
+
+    let mut save_file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(save_path)?;
+    serialize_into(&save_file, &dawg)?;
+    println!("Successfully saved DAWG to {}!", save_path);
 
     Ok(())
 }
