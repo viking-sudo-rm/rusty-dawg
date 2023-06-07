@@ -34,7 +34,6 @@ impl LM for KNLM {
     }
 }
 
-// TODO: Make LM into a trait and have different kinds of LMs.
 impl KNLM {
 
     pub fn new(name: String, kn_delta: f32, kn_max_n: i64) -> Self {

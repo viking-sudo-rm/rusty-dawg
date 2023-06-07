@@ -1,23 +1,25 @@
 use std::fmt::{Debug, Formatter, Result};
 use std::cmp::{Eq, Ord};
-// use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize};
 
 use vec_graph::Graph;
 use vec_graph::IndexType;
 use vec_graph::indexing::NodeIndex;
 
-pub struct Dot<'a, N, E, Ix> {
+pub struct Dot<'a, N, E, Ix>
+where E: Serialize + for<'b> Deserialize<'b> {
     graph: &'a Graph<N, E, Ix>,
 }
 
-impl<'a, N, E, Ix> Dot<'a, N, E, Ix> {
+impl<'a, N, E, Ix> Dot<'a, N, E, Ix>
+where E: Serialize + for<'b> Deserialize<'b> {
     pub fn new(graph: &'a Graph<N, E, Ix>) -> Self {
         Self {graph: graph}
     }
 }
 
 impl<'a, N: Debug, E, Ix: IndexType> Debug for Dot<'a, N, E, Ix>
-where E: Eq + Ord + Copy + Debug {
+where E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "digraph {{\n")?;
         for idx in 0..self.graph.node_count() {

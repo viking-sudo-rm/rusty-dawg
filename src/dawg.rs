@@ -9,21 +9,26 @@ use std::cmp::max;
 use std::cmp::{Eq, Ord};
 use std::fmt::Debug;
 use std::collections::LinkedList;
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
 
 // use vec_graph::dot::Dot;
 use weight::BasicWeight;
 use vec_graph::Graph;
 use vec_graph::indexing::NodeIndex;
 
+#[derive(Serialize, Deserialize)]
 pub struct Dawg<E>
-where E: Eq + Ord + Serialize + Copy + Debug {
+where E: Eq + Copy + Debug {
+    #[serde(bound(
+        serialize = "E: Serialize",
+        deserialize = "E: Deserialize<'de>",
+    ))]
     dawg: Graph<BasicWeight, E>,
     initial: NodeIndex,
 }
 
 impl<E> Dawg<E>
-where E: Eq + Ord + Serialize + Copy + Debug {
+where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 
     pub fn new() -> Dawg<E> {
         //dawg: &'a mut Graph<BasicWeight, char>
@@ -263,9 +268,9 @@ mod tests {
     use vec_graph::indexing::NodeIndex;
 
     use std::fs::File;
-    use std::io::{Read, Write};
+    use std::io::{Read, Write, Seek, SeekFrom};
     use bincode::{serialize_into, deserialize_from};
-    use test_temp_file::TestTempFile;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_build_bab() {
@@ -354,15 +359,26 @@ mod tests {
         assert_eq!(dawg.dawg[state].get_length(), 1);
     }
 
-    // #[test]
-    // fn test_serialize_deserialize() {
-    //     let dawg = Dawg::new();
-    //     dawg.build(&"abcd".chars().collect());
+    #[test]
+    fn test_serialize_deserialize_to_string() {
+        let mut dawg = Dawg::new();
+        dawg.build(&"abcd".chars().collect());
+    
+        let encoded: Vec<u8> = bincode::serialize(&dawg).unwrap();
+        let decoded: Dawg<char> = bincode::deserialize(&encoded[..]).unwrap();
+        assert_eq!(decoded.node_count(), 5);
+    }
 
-    //     let file = TestTempFile::new(String::from("file_name.txt"));
-    //     serialize_into(file, &dawg);
-    //     let dawg2: Dawg<char> = deserialize_from::<TestTempFile, _>(file).unwrap();
-    //     assert_eq!(0, 1);
-    // }
+    #[test]
+    fn test_serialize_deserialize_to_file() {
+        let mut dawg = Dawg::new();
+        dawg.build(&"abcd".chars().collect());
+
+        let mut file = NamedTempFile::new().expect("Failed to create file");
+        serialize_into(&file, &dawg).expect("Failed to serialize");
+        file.seek(SeekFrom::Start(0)).expect("");  // Need to go to beginning of file.
+        let decoded: Dawg<char> = deserialize_from(&file).expect("Failed to deserialize");
+        assert_eq!(decoded.node_count(), 5);
+    }
 
 }

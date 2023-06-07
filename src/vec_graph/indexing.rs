@@ -3,7 +3,7 @@
 use std::fmt;
 use std::hash::Hash;
 
-// use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize};
 
 pub type DefaultIx = u32;
 
@@ -55,7 +55,7 @@ unsafe impl IndexType for u8 {
 }
 
 /// Node identifier.
-#[derive(Copy, Clone, Default, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Copy, Clone, Default, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub struct NodeIndex<Ix=DefaultIx>(Ix);
 
 impl<Ix: IndexType> NodeIndex<Ix>

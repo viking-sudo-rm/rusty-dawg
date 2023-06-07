@@ -1,13 +1,13 @@
 use std::cmp::Ord;
 use std::fmt::Debug;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use dawg::Dawg;
 // use petgraph::graph::NodeIndex;
 use vec_graph::indexing::NodeIndex;
 
 pub fn get_entropy<E>(dawg: &Dawg<E>, state: NodeIndex) -> f32
-where E: Eq + Ord + Serialize + Copy + Debug {
+where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
     // let denom = counts[state.index()];
     // println!("{:?}", Dot::new(dawg.get_graph()));
 

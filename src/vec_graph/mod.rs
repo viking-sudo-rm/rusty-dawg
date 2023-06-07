@@ -7,6 +7,7 @@
 use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
 use std::slice::Iter;
+use serde::{Serialize, Deserialize};
 
 #[allow(dead_code)]
 pub mod indexing;
@@ -15,8 +16,14 @@ use self::indexing::{DefaultIx, NodeIndex, IndexType};
 pub mod dot;
 // use self::dot::Dot;
 
-// #[derive(Deserialize, Serialize)]
+// Cf.: https://stackoverflow.com/questions/56825661/how-do-i-declare-a-struct-that-contains-any-kind-of-deserializable-serializable
+
+#[derive(Deserialize, Serialize)]
 pub struct Graph<N, E, Ix = DefaultIx> {
+    #[serde(bound(
+        serialize = "N: Serialize, E: Serialize, Ix: Serialize",
+        deserialize = "N: Deserialize<'de>, E: Deserialize<'de>, Ix: Deserialize<'de>",
+    ))]
     nodes: Vec<Node<N, E, Ix>>,
 }
 
@@ -93,8 +100,12 @@ where Ix: IndexType {
     }
 }
 
-// #[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Node<N, E, Ix = DefaultIx> {
+    #[serde(bound(
+        serialize = "N: Serialize, E: Serialize, Ix: Serialize",
+        deserialize = "N: Deserialize<'de>, E: Deserialize<'de>, Ix: Deserialize<'de>",
+    ))]
     pub weight: N,
     edges: Vec<Edge<E, Ix>>,
 }
@@ -167,8 +178,12 @@ where E: Eq + Ord + Copy {
 
 }
 
-// #[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Edge<E, Ix = DefaultIx> {
+    #[serde(bound(
+        serialize = "E: Serialize, Ix: Serialize",
+        deserialize = "E: Deserialize<'de>, Ix: Deserialize<'de>",
+    ))]
     pub weight: E,
     target: NodeIndex<Ix>,
 }
@@ -217,6 +232,8 @@ mod tests {
     use vec_graph::Graph;
     use vec_graph::indexing::{NodeIndex, IndexType};
     use vec_graph::dot::Dot;
+
+    use serde::{Serialize, Deserialize};
 
     #[test]
     fn test_create_graph() {
