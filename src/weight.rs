@@ -8,7 +8,7 @@ use graph::indexing::NodeIndex;
 
 pub trait Weight {
     fn get_length(&self) -> u64;
-    fn set_length(&mut self, u64);
+    fn set_length(&mut self, length: u64);
     fn get_failure(&self) -> Option<NodeIndex>;
     fn set_failure(&mut self, failure: Option<NodeIndex>);
     fn increment_count(&mut self);

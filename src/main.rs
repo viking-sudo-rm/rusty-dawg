@@ -31,7 +31,7 @@ use lms::induction_lm::InductionLM;
 use std::mem::size_of;
 use std::fs;
 use std::env;
-use bincode::{serialize_into, deserialize_from};
+use bincode::serialize_into;
 
 use kdam::tqdm;
 
@@ -66,8 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // test.push(eos);
 
     let old_test_len = test.len();
-    let n_test = 10000;
-    test = (&test[0..n_test]).to_vec();
+    test = (&test[0..10000]).to_vec();  // Truncate to 10,000 tokens.
     let eval_threshold = train.len() / 20;
 
     println!("#(train): {}", train.len());
@@ -88,11 +87,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut evaluator = Evaluator::new(&mut lms, &test);
 
-    let mut dawg: Dawg<E> = Dawg::new();
+    let mut dawg: Dawg<E> = Dawg::with_capacity(2 * train.len());
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
-        if idx % eval_threshold == 0 {
+        if idx % eval_threshold == 0 && idx != 0 {
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
             checkpoint(&dawg, &evaluator, results_path, save_path)?;
@@ -108,14 +107,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn checkpoint(dawg: &Dawg<usize>, evaluator: &Evaluator<usize>, results_path: &str, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     evaluator.to_json(results_path)?;
-    println!("Successfully saved results to {}!", results_path);
+    // println!("Successfully saved results to {}!", results_path);
 
     let mut save_file = fs::OpenOptions::new()
         .write(true)
-        .create_new(true)
+        .create(true)
         .open(save_path)?;
     serialize_into(&save_file, &dawg)?;
-    println!("Successfully saved DAWG to {}!", save_path);
+    // println!("Successfully saved DAWG to {}!", save_path);
+
+    // HOWTO: Deserialize
+    // let mut load_file = fs::OpenOptions::new()
+    //     .read(true)
+    //     .open(save_path)?;
+    // let decoded: Dawg<usize> = deserialize_from(&load_file).expect("Failed to deserialize");
+    // println!("decoded DAWG");
 
     Ok(())
 }

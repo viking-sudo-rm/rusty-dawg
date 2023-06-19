@@ -33,6 +33,11 @@ where E: Eq + Ord + Copy {
         Graph {nodes}
     }
 
+    pub fn with_capacity(n_nodes: usize) -> Self {
+        let nodes: Vec<Node<N, E, Ix>> = Vec::with_capacity(n_nodes);
+        Graph {nodes}
+    }
+
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
         let node = Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());

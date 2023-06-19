@@ -31,9 +31,14 @@ impl<E> Dawg<E>
 where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 
     pub fn new() -> Dawg<E> {
-        //dawg: &'a mut Graph<BasicWeight, char>
-        // let weight = Weight::create::<W>(0, 0, None);
         let mut dawg = Graph::<BasicWeight, E>::new();
+        let initial = dawg.add_node(BasicWeight::initial());
+        dawg[initial].increment_count();
+        Dawg {dawg: dawg, initial: initial}
+    }
+
+    pub fn with_capacity(n_nodes: usize) -> Dawg<E> {
+        let mut dawg = Graph::<BasicWeight, E>::with_capacity(n_nodes);
         let initial = dawg.add_node(BasicWeight::initial());
         dawg[initial].increment_count();
         Dawg {dawg: dawg, initial: initial}

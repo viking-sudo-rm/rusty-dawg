@@ -6,9 +6,8 @@
 
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
-use std::cmp::{Eq, Ord, max};
+use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
-use std::slice::Iter;
 use std::clone::Clone;
 use serde::{Serialize, Deserialize};
 
