@@ -4,7 +4,7 @@ use std::clone::Clone;
 use serde::{Serialize, Deserialize};
 
 // use petgraph::graph::NodeIndex;
-use vec_graph::indexing::NodeIndex;
+use graph::indexing::NodeIndex;
 
 pub trait Weight {
     fn get_length(&self) -> u64;

@@ -100,7 +100,7 @@ pub fn node_index<Ix: IndexType>(index: usize) -> NodeIndex<Ix> { NodeIndex::new
 pub fn edge_index<Ix: IndexType>(index: usize) -> EdgeIndex<Ix> { EdgeIndex::new(index) }
 
 /// Edge identifier.
-#[derive(Copy, Clone, Default, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Copy, Clone, Default, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub struct EdgeIndex<Ix=DefaultIx>(Ix);
 
 impl<Ix: IndexType> EdgeIndex<Ix>

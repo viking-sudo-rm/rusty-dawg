@@ -20,7 +20,7 @@ mod dawg;
 mod weight;
 mod stat_utils;
 mod token_index;
-mod vec_graph;
+mod graph;
 mod evaluator;
 mod lms;
 
@@ -35,7 +35,6 @@ use bincode::{serialize_into, deserialize_from};
 
 use kdam::tqdm;
 
-use vec_graph::*;
 use stat_utils::*;
 use dawg::Dawg;
 use weight::BasicWeight;
@@ -73,9 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("#(train): {}", train.len());
     println!("#(test): {}/{}", test.len(), old_test_len);
-
-    // let tokens: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
-    // println!("#(train words): {}", tokens.len());
+    println!("#(vocab): {}", index.count);
 
     let mut lms: Vec<Box<dyn LM>> = Vec::new();
     for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
@@ -96,15 +93,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
         if idx % eval_threshold == 0 {
-            // FIXME: Use right lengths here? Shouldn't matter too much.
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
+            checkpoint(&dawg, &evaluator, results_path, save_path)?;
         }
     }
-    println!("DAWG built!");
+    checkpoint(&dawg, &evaluator, results_path, save_path)?;
+    println!("Completed!");
     println!("  Node count: {}", dawg.node_count());
     println!("  Edge count: {}", dawg.edge_count());
 
+    Ok(())
+}
+
+fn checkpoint(dawg: &Dawg<usize>, evaluator: &Evaluator<usize>, results_path: &str, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     evaluator.to_json(results_path)?;
     println!("Successfully saved results to {}!", results_path);
 

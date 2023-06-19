@@ -2,9 +2,8 @@ use std::fmt::{Debug, Formatter, Result};
 use std::cmp::{Eq, Ord};
 use serde::{Serialize, Deserialize};
 
-use vec_graph::Graph;
-use vec_graph::IndexType;
-use vec_graph::indexing::NodeIndex;
+use graph::indexing::{NodeIndex, IndexType};
+use graph::vec_graph::Graph;
 
 pub struct Dot<'a, N, E, Ix>
 where E: Serialize + for<'b> Deserialize<'b> {
@@ -39,8 +38,8 @@ where E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b> {
 
 #[cfg(test)]
 mod tests {
-    use vec_graph::Graph;
-    use dot::Dot;
+    use graph::vec_graph::Graph;
+    use graph::vec_graph::dot::Dot;
 
     #[test]
     fn test_print_graph() {

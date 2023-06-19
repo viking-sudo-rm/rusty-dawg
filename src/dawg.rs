@@ -13,8 +13,8 @@ use serde::{Serialize, Deserialize};
 
 // use vec_graph::dot::Dot;
 use weight::{BasicWeight, Weight};
-use vec_graph::Graph;
-use vec_graph::indexing::NodeIndex;
+use graph::indexing::NodeIndex;
+use graph::vec_graph::Graph;
 
 #[derive(Serialize, Deserialize)]
 pub struct Dawg<E>
@@ -96,9 +96,10 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                     let mut next_state_ = next_state;
                     loop {
                         if next_state_ == next_state {
-                            self.dawg.remove_edge(state, token);
+                            self.dawg.reroute_edge(state, clone, token);
+                        } else {
+                            self.dawg.add_edge(state, clone, token);
                         }
-                        self.dawg.add_edge(state, clone, token);
     
                         match self.dawg[state].get_failure() {
                             None => break,
@@ -267,10 +268,11 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use vec_graph::dot::Dot;
     use Dawg;
     use weight::Weight;
-    use vec_graph::indexing::NodeIndex;
+
+    use graph::vec_graph::dot::Dot;
+    use graph::indexing::NodeIndex;
 
     use std::fs::File;
     use std::io::{Read, Write, Seek, SeekFrom};

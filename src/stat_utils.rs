@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 
 use dawg::Dawg;
 use weight::Weight;
-use vec_graph::indexing::NodeIndex;
+use graph::indexing::NodeIndex;
 
 pub fn get_entropy<E>(dawg: &Dawg<E>, state: NodeIndex) -> f32
 where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
@@ -52,8 +52,8 @@ mod tests {
     use TokenIndex;
     use stat_utils::*;
 
-    use vec_graph::indexing::NodeIndex;
-    use vec_graph::dot::Dot;
+    use graph::indexing::NodeIndex;
+    use graph::vec_graph::dot::Dot;
 
     #[test]
     fn test_get_entropy() {

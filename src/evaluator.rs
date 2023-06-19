@@ -68,6 +68,8 @@ impl Evaluator<'_, usize> {
         // println!("counts: {:?}", counts);
         // println!("{:?}", Dot::new(dawg.get_graph()));
 
+        // Note: Lengths here aren't recomputed. Shouldn't matter too much.
+
         let mut num_tokens = 0;
         let mut cum_length = 0;
         let mut cum_count = 0;
@@ -125,7 +127,7 @@ impl Evaluator<'_, usize> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use vec_graph::dot::Dot;
+    use graph::vec_graph::dot::Dot;
     use Dawg;
     use Evaluator;
     use TokenIndex;

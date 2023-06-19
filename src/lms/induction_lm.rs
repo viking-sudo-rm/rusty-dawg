@@ -1,8 +1,7 @@
 use dawg::Dawg;
 use lms::LM;
 use weight::Weight;
-use vec_graph::indexing::NodeIndex;
-// use vec_graph::dot::Dot;
+use graph::indexing::NodeIndex;
 
 pub struct InductionLM {
     pub name: String,
@@ -94,8 +93,8 @@ mod tests {
     use Dawg;
     use TokenIndex;
 
-    use vec_graph::indexing::NodeIndex;
-    use vec_graph::dot::Dot;
+    use graph::indexing::NodeIndex;
+    use graph::vec_graph::dot::Dot;
 
     use lms::LM;
     use lms::kn_lm::KNLM;

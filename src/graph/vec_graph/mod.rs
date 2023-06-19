@@ -10,15 +10,12 @@ use std::slice::Iter;
 use std::clone::Clone;
 use serde::{Serialize, Deserialize};
 
-#[allow(dead_code)]
-pub mod indexing;
-use self::indexing::{DefaultIx, NodeIndex, IndexType};
+use graph::indexing::{DefaultIx, NodeIndex, IndexType};
 
 pub mod dot;
 // use self::dot::Dot;
 
-// Cf.: https://stackoverflow.com/questions/56825661/how-do-i-declare-a-struct-that-contains-any-kind-of-deserializable-serializable
-
+// Potential feature: Avoid binary search on filled entries, or "fill" almost filled entries?
 #[derive(Deserialize, Serialize)]
 pub struct Graph<N, E, Ix = DefaultIx> {
     #[serde(bound(
@@ -73,6 +70,10 @@ where E: Eq + Ord + Copy {
 
     pub fn remove_edge(&mut self, a: NodeIndex<Ix>, weight: E) -> bool {
         self.nodes[a.index()].remove_edge(weight)
+    }
+
+    pub fn reroute_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
+        self.nodes[a.index()].reroute_edge(weight, b)
     }
 
     pub fn edges(&self, a: NodeIndex<Ix>) -> Iter<'_, Edge<E, Ix>> {
@@ -182,6 +183,19 @@ where E: Eq + Ord + Copy {
         return true;
     }
 
+    pub fn reroute_edge(&mut self, weight: E, target: NodeIndex<Ix>) -> bool {
+        if self.edges.len() == 0 {
+            return false;
+        }
+
+        let idx = self._binary_search(weight, 0, self.edges.len());
+        if self.edges[idx].weight != weight {
+            return false;
+        }
+        self.edges.get_mut(idx).expect("").set_target(target);
+        return true;
+    }
+
     fn _binary_search(&self, weight: E, l: usize, r: usize) -> usize {
         if l + 1 == r {
             return l;
@@ -224,6 +238,10 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
         self.target
     }
 
+    pub fn set_target(&mut self, target: NodeIndex<Ix>) {
+        self.target = target;
+    }
+
 }
 
 pub struct Neighbors<'a, E: 'a, Ix: 'a = DefaultIx> {
@@ -255,9 +273,9 @@ where Ix: IndexType {
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use vec_graph::Graph;
-    use vec_graph::indexing::{NodeIndex, IndexType};
-    use vec_graph::dot::Dot;
+    use graph::indexing::{NodeIndex, IndexType};
+    use graph::vec_graph::Graph;
+    use graph::vec_graph::dot::Dot;
 
     use serde::{Serialize, Deserialize};
 
@@ -335,6 +353,17 @@ mod tests {
         let q2 = graph.clone_node(q0);
         assert_eq!(*graph.node_weight(q2).unwrap(), 0 as u8);
         assert_eq!(graph.edge_target(q2, 2), Some(q1));
+    }
+
+    #[test]
+    fn test_reroute_edge() {
+        let mut graph: Graph<u8, u16> = Graph::new();
+        let q0 = graph.add_node(0);
+        let q1 = graph.add_node(1);
+        let q2 = graph.add_node(2);
+        graph.add_edge(q0, q1, 2);
+        assert_eq!(graph.reroute_edge(q0, q2, 2), true);
+        assert_eq!(graph.edge_target(q0, 2), Some(q2));
     }
 
 }

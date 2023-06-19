@@ -5,7 +5,7 @@ use weight::Weight;
 use lms::LM;
 
 // use petgraph::graph::NodeIndex;
-use vec_graph::indexing::NodeIndex;
+use graph::indexing::NodeIndex;
 
 pub struct KNLM {
     pub name: String,
@@ -104,8 +104,8 @@ mod tests {
     use Dawg;
     use TokenIndex;
 
-    use vec_graph::indexing::NodeIndex;
-    use vec_graph::dot::Dot;
+    use graph::indexing::NodeIndex;
+    use graph::vec_graph::dot::Dot;
 
     use KNLM;
     use LM;
