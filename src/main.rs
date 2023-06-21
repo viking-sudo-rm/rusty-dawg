@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(vocab): {}", index.count);
 
     let mut lms: Vec<Box<dyn LM>> = Vec::new();
-    for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5].iter() {
+    for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
         let maxgram = KNLM::new(format!("maxgram_kn-{}", delta), *delta, -1);
         lms.push(Box::new(maxgram));
         for n in vec![4, 6, 8].iter() {
