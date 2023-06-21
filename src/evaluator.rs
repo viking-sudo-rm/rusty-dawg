@@ -55,6 +55,10 @@ impl Evaluator<'_, usize> {
         metrics.insert("suffix_lengths".to_string(), Vec::new());
         metrics.insert("suffix_counts".to_string(), Vec::new());
         metrics.insert("suffix_entropies".to_string(), Vec::new());
+        for length in 0..11 {
+            metrics.insert(format!("length{}_count", length), Vec::new());
+        }
+        metrics.insert("length+_count".to_string(), Vec::new());
         for lm in lms.iter() {
             // Make sure to copy the string here.
             metrics.insert(lm.get_name().to_string(), Vec::new());
@@ -87,6 +91,11 @@ impl Evaluator<'_, usize> {
             lm.reset(dawg);
         }
 
+        for length in 0..11 {
+            self.get_mut(format!("length{}_count", length)).push(0.);
+        }
+        self.get_mut("length+_count".to_string()).push(0.);
+
         for token_ptr in self.test.iter() {
             let token = *token_ptr;
 
@@ -99,6 +108,11 @@ impl Evaluator<'_, usize> {
             (opt_state, length) = dawg.transition_and_count(state, token, length);
             state = opt_state.unwrap();
             cum_length += length;
+            if length < 11 {
+                self.get_mut(format!("length{}_count", length))[idx] += 1.;
+            } else {
+                self.get_mut("length+_count".to_string())[idx] += 1.;
+            }
             if state.index() != 0 {
                 cum_count += dawg.get_weight(state).get_count();
                 // cum_count += counts[state.index()];
@@ -158,6 +172,10 @@ mod tests {
             evaluator.evaluate(&dawg, idx, 0.);
         }
         assert_eq!(*evaluator.get("suffix_lengths"), vec![1./3., 1., 1.]);
+        assert_eq!(*evaluator.get("length0_count"), vec![2., 1., 1.]);
+        assert_eq!(*evaluator.get("length1_count"), vec![1., 1., 1.]);
+        assert_eq!(*evaluator.get("length2_count"), vec![0., 1., 1.]);
+        assert_eq!(*evaluator.get("length3_count"), vec![0., 0., 0.]);
         assert_eq!(*evaluator.get("suffix_counts"), vec![1./3., 2./3., 2./3.]);
     }
 
