@@ -94,21 +94,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if idx % eval_threshold == 0 && idx != 0 {
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
-            checkpoint(&dawg, &evaluator, results_path, save_path)?;
+            evaluator.to_json(results_path)?;
+            // checkpoint(&dawg, save_path)?;
         }
     }
-    checkpoint(&dawg, &evaluator, results_path, save_path)?;
     println!("Completed!");
     println!("  Node count: {}", dawg.node_count());
     println!("  Edge count: {}", dawg.edge_count());
 
+    println!("Saving DAWG...");
+    checkpoint(&dawg, save_path)?;
     Ok(())
 }
 
-fn checkpoint(dawg: &Dawg<usize>, evaluator: &Evaluator<usize>, results_path: &str, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    evaluator.to_json(results_path)?;
-    // println!("Successfully saved results to {}!", results_path);
-
+fn checkpoint(dawg: &Dawg<usize>, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut save_file = fs::OpenOptions::new()
         .write(true)
         .create(true)
@@ -122,6 +121,5 @@ fn checkpoint(dawg: &Dawg<usize>, evaluator: &Evaluator<usize>, results_path: &s
     //     .open(save_path)?;
     // let decoded: Dawg<usize> = deserialize_from(&load_file).expect("Failed to deserialize");
     // println!("decoded DAWG");
-
     Ok(())
 }
