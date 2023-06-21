@@ -74,16 +74,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(vocab): {}", index.count);
 
     let mut lms: Vec<Box<dyn LM>> = Vec::new();
-    for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
+    for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5].iter() {
         let maxgram = KNLM::new(format!("maxgram_kn-{}", delta), *delta, -1);
         lms.push(Box::new(maxgram));
-        let ngram = KNLM::new(format!("ngram_kn-{}", delta), *delta, 4);
-        lms.push(Box::new(ngram));
-    }
-    for delta in vec![0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95].iter() {
-        let induct_backoff = KNLM::new("ngram_kn-0.7".to_string(), 0.7, 4);
-        let induct = InductionLM::new(format!("induct-{}", delta), Box::new(induct_backoff), *delta);
-        lms.push(Box::new(induct))
+        for n in vec![4, 6, 8].iter() {
+            let ngram = KNLM::new(format!("{}gram_kn-{}", n, delta), *delta, *n);
+            lms.push(Box::new(ngram));
+            for induct_delta in vec![0.9, 0.95].iter() {
+                let induct_backoff = KNLM::new(format!("sub_{}gram_kn-{}", n, delta), *delta, *n);
+                let induct = InductionLM::new(format!("{}gram_kn-{}_induct-{}", n, delta, induct_delta), Box::new(induct_backoff), *induct_delta);
+                lms.push(Box::new(induct))
+            }
+        }
     }
     let mut evaluator = Evaluator::new(&mut lms, &test);
 
