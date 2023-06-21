@@ -95,6 +95,7 @@ impl Evaluator<'_, usize> {
             self.get_mut(format!("length{}_count", length)).push(0.);
         }
         self.get_mut("length+_count".to_string()).push(0.);
+        let it = self.metrics.get("length+_count").unwrap().len() - 1;
 
         for token_ptr in self.test.iter() {
             let token = *token_ptr;
@@ -109,9 +110,9 @@ impl Evaluator<'_, usize> {
             state = opt_state.unwrap();
             cum_length += length;
             if length < 11 {
-                self.get_mut(format!("length{}_count", length))[idx] += 1.;
+                self.get_mut(format!("length{}_count", length))[it] += 1.;
             } else {
-                self.get_mut("length+_count".to_string())[idx] += 1.;
+                self.get_mut("length+_count".to_string())[it] += 1.;
             }
             if state.index() != 0 {
                 cum_count += dawg.get_weight(state).get_count();
