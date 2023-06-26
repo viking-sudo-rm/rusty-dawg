@@ -41,39 +41,7 @@ use weight::BasicWeight;
 use token_index::TokenIndex;
 use evaluator::Evaluator;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("sizeof(edge): {}B", size_of::<E>());
-    println!("sizeof(node): {}B", size_of::<BasicWeight>());
-
-    let args: Vec<String> = env::args().collect();
-    let train_path = &args[1];
-    let test_path = &args[2];
-    let save_path = &args[3];
-    let results_path = &args[4];
-
-    let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
-    let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
-
-    // Load at word level.
-    type E = usize;
-    let mut index = TokenIndex::new();
-    let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
-
-    // We are currently ignoring the probability of <eos>, very negligible
-    // let eos = index.index("<eos>");
-    // train.push(eos);
-    // test.push(eos);
-
-    let old_test_len = test.len();
-    test = (&test[0..10000]).to_vec();  // Truncate to 10,000 tokens.
-    let eval_threshold = train.len() / 20;
-
-    println!("#(train): {}", train.len());
-    println!("#(test): {}/{}", test.len(), old_test_len);
-    println!("#(vocab): {}", index.count);
-
-    let mut lms: Vec<Box<dyn LM>> = Vec::new();
+fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
     for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
         let maxgram = KNLM::new(format!("maxgram_kn-{}", delta), *delta, -1);
         lms.push(Box::new(maxgram));
@@ -87,9 +55,59 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    let mut evaluator = Evaluator::new(&mut lms, &test);
+}
 
-    let mut dawg: Dawg<E> = Dawg::with_capacity(2 * train.len());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("sizeof(edge): {}B", size_of::<usize>());
+    println!("sizeof(node): {}B", size_of::<BasicWeight>());
+
+    let args: Vec<String> = env::args().collect();
+    let train_path = &args[1];
+    let test_path = &args[2];
+    let save_path = &args[3];
+    let results_path = &args[4];
+    let gen_path: Option<&str>;
+    let gen_results_path: Option<&str>;
+
+    // See if we have a generalization/generated set.
+    if args.len() >= 6 {
+        gen_path = Some(&args[5]);
+        gen_results_path = Some(&args[6]);
+    } else {
+        gen_path = None;
+        gen_results_path = None;
+    }
+
+    let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
+    let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
+    let gen_raw: String = match gen_path {
+        Some(path) => fs::read_to_string(path).expect("Error loading gen"),
+        None => "".to_string(),
+    };
+
+    // Load at word level.
+    let mut index = TokenIndex::new();
+    let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let eval_threshold = train.len() / 20;
+    println!("#(train): {}", train.len());
+
+    let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let old_test_len = test.len();
+    test = (&test[0..10000]).to_vec();  // Truncate to 10,000 tokens.
+    println!("#(test): {}/{}", test.len(), old_test_len);
+
+    let gen: Vec<usize> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
+    println!("#(gen): {}", gen.len());
+    println!("#(vocab): {}", index.count);
+
+    let mut lms: Vec<Box<dyn LM>> = Vec::new();
+    create_lms(&mut lms);
+    let mut evaluator = Evaluator::new(&mut lms, &test);
+    let mut gen_lms: Vec<Box<dyn LM>> = Vec::new();
+    create_lms(&mut gen_lms);
+    let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen);
+
+    let mut dawg: Dawg<usize> = Dawg::with_capacity(2 * train.len());
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
@@ -97,6 +115,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
             evaluator.to_json(results_path)?;
+            match gen_results_path {
+                Some(gen_path) => {
+                    gen_evaluator.evaluate(&dawg, idx, good_turing);
+                    gen_evaluator.to_json(gen_path);
+                },
+                None => {},
+            }
+            
             // checkpoint(&dawg, save_path)?;
         }
     }
