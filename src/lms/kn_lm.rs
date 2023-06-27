@@ -101,14 +101,14 @@ impl KNLM {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use Dawg;
-    use TokenIndex;
+    use dawg::Dawg;
+    use token_index::TokenIndex;
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
 
-    use KNLM;
-    use LM;
+    use lms::kn_lm::KNLM;
+    use lms::LM;
 
     #[test]
     fn test_get_probability_exact() {

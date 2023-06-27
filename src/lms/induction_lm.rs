@@ -90,15 +90,15 @@ impl InductionLM {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use Dawg;
-    use TokenIndex;
+    use dawg::Dawg;
+    use token_index::TokenIndex;
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
 
     use lms::LM;
     use lms::kn_lm::KNLM;
-    use InductionLM;
+    use lms::induction_lm::InductionLM;
 
     #[test]
     fn test_get_probability_ab() {

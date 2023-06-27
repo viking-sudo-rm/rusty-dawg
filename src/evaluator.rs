@@ -143,11 +143,11 @@ impl Evaluator<'_, usize> {
 #[allow(unused_imports)]
 mod tests {
     use graph::vec_graph::dot::Dot;
-    use Dawg;
-    use Evaluator;
-    use TokenIndex;
+    use dawg::Dawg;
+    use evaluator::Evaluator;
+    use token_index::TokenIndex;
 
-    use LM;
+    use lms::LM;
     use lms::kn_lm::KNLM;
 
     #[test]

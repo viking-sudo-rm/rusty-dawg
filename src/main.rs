@@ -19,6 +19,7 @@ extern crate tempfile;
 mod dawg;
 mod weight;
 mod stat_utils;
+mod null_token_index;
 mod token_index;
 mod graph;
 mod evaluator;
@@ -38,7 +39,7 @@ use kdam::tqdm;
 use stat_utils::*;
 use dawg::Dawg;
 use weight::BasicWeight;
-use token_index::TokenIndex;
+use null_token_index::NullTokenIndex;  // TokenIndex
 use evaluator::Evaluator;
 
 fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
@@ -86,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Load at word level.
-    let mut index = TokenIndex::new();
+    let mut index = NullTokenIndex::new();
     let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     let eval_threshold = train.len() / 20;
     println!("#(train): {}", train.len());

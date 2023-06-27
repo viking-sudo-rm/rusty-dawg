@@ -273,7 +273,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use Dawg;
+    use dawg::Dawg;
     use weight::Weight;
 
     use graph::vec_graph::dot::Dot;
