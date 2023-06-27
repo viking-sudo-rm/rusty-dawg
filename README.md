@@ -2,9 +2,13 @@
 
 A library for building suffix automata for string indexing and searching in Rust.
 
+For Python bindings of Rusty DAWG (easier for basic use cases), see: [py-rusty-dawg](https://github.com/viking-sudo-rm/py-rusty-dawg)
+
+## Building
+
 ```
 cargo test
-cargo build
+cargo build --release
 ```
 
 ## Local Usage
