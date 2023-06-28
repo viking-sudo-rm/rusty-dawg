@@ -138,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
-    for min_freq in vec![0, 1024, 2048, 4096].iter() {
+    for min_freq in vec![0, 1024, 2048, 4096, 8192, 16384].iter() {
         for delta in vec![0.001, 0.01, 0.1, 0.3, 0.5].iter() {
             let maxgram = KNLM::new(format!("maxgram-kn{}-#{}", delta, min_freq), *delta, -1, *min_freq);
             lms.push(Box::new(maxgram));
