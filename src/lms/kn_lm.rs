@@ -13,6 +13,7 @@ pub struct KNLM {
     // dawg: &'a Dawg<usize>,
     kn_delta: f32,
     kn_max_n: i64,
+    min_count: u64,  // Backoff to states that occur at least this much.
     state: NodeIndex,
 }
 
@@ -26,7 +27,15 @@ impl LM for KNLM {
     }
 
     fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f32) -> f32 {
-        self.get_probability_kn(dawg, self.state, label, good_turing)
+        let mut state = self.state;
+        let initial = dawg.get_initial();
+        while dawg.get_weight(state).get_count() < self.min_count {
+            match dawg.get_weight(state).get_failure() {
+                Some(fstate) => state = fstate,
+                None => break,
+            }
+        }
+        self.get_probability_kn(dawg, state, label, good_turing)
     }
 
     fn update(&mut self, dawg: &Dawg<usize>, label: usize) {
@@ -36,9 +45,9 @@ impl LM for KNLM {
 
 impl KNLM {
 
-    pub fn new(name: String, kn_delta: f32, kn_max_n: i64) -> Self {
+    pub fn new(name: String, kn_delta: f32, kn_max_n: i64, min_count: u64) -> Self {
         // The state set here is correct but also unused.
-        Self {name, kn_delta, kn_max_n, state: NodeIndex::new(0)}
+        Self {name, kn_delta, kn_max_n, state: NodeIndex::new(0), min_count}
     }
 
     pub fn get_probability_exact(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f32 {
@@ -119,7 +128,7 @@ mod tests {
         let mut dawg = Dawg::new();
         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.0, -1);
+        let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
         let b = index.index("b");
         assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(0), b), 1./3.);
         assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(1), b), 1.);
@@ -135,7 +144,7 @@ mod tests {
         let mut dawg = Dawg::new();
         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.0, -1);
+        let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
         let a = index.index("a");
         let b = index.index("b");
         assert_eq!(lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.), 1./3.);
@@ -151,7 +160,7 @@ mod tests {
         let mut dawg = Dawg::new();
         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.1, -1);
+        let lm = KNLM::new("test".to_string(), 0.1, -1, 0);
         let a = index.index("a");
         let b = index.index("b");
         let c = index.index("c");
@@ -180,7 +189,7 @@ mod tests {
         let mut dawg = Dawg::new();
         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.0, 1);
+        let lm = KNLM::new("test".to_string(), 0.0, 1, 0);
         let b = index.index("b");
   
         let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
@@ -197,7 +206,7 @@ mod tests {
         dawg.build(&indices);
         println!("{:?}", Dot::new(dawg.get_graph()));
 
-        let mut lm = KNLM::new("unigram".to_string(), 0.0, 0);
+        let mut lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
         let a = index.index("a");
         let b = index.index("b");
 

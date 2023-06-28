@@ -109,7 +109,7 @@ mod tests {
         let mut dawg = Dawg::new();
         dawg.build(&indices);
 
-        let base_lm = KNLM::new("unigram".to_string(), 0.0, 0);
+        let base_lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
         let mut lm = InductionLM::new("lm".to_string(), Box::new(base_lm), 0.5);
         let a = index.index("a");
         let b = index.index("b");

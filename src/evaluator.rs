@@ -193,7 +193,7 @@ mod tests {
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
         let mut lms: Vec<Box<dyn LM>> = Vec::new();
-        let unigram = KNLM::new("unigram".to_string(), 0., 0);
+        let unigram = KNLM::new("unigram".to_string(), 0., 0, 0);
         lms.push(Box::new(unigram));
         let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test);
 

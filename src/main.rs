@@ -7,6 +7,7 @@
 // https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
 // 
 
+extern crate clap;
 extern crate petgraph;
 extern crate kdam;
 extern crate substring;
@@ -33,73 +34,74 @@ use std::mem::size_of;
 use std::fs;
 use std::env;
 use bincode::serialize_into;
+use clap::Parser;
 
 use kdam::tqdm;
 
 use stat_utils::*;
 use dawg::Dawg;
 use weight::BasicWeight;
-use null_token_index::NullTokenIndex;  // TokenIndex
+use token_index::{Tokenize, TokenIndex};
+use null_token_index::NullTokenIndex;
 use evaluator::Evaluator;
 
-fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
-    for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
-        let maxgram = KNLM::new(format!("maxgram_kn-{}", delta), *delta, -1);
-        lms.push(Box::new(maxgram));
-        for n in vec![4, 6, 8].iter() {
-            let ngram = KNLM::new(format!("{}gram_kn-{}", n, delta), *delta, *n);
-            lms.push(Box::new(ngram));
-            for induct_delta in vec![0.9, 0.95].iter() {
-                let induct_backoff = KNLM::new(format!("sub_{}gram_kn-{}", n, delta), *delta, *n);
-                let induct = InductionLM::new(format!("{}gram_kn-{}_induct-{}", n, delta, induct_delta), Box::new(induct_backoff), *induct_delta);
-                lms.push(Box::new(induct))
-            }
-        }
-    }
+#[derive(Parser, Debug)]
+#[command(
+    author = "William Merrill <willm@nyu.edu>",
+    version, about, long_about = None,
+ )]
+struct Args {
+    #[arg(long)]
+    train_path: String,
+    #[arg(long)]
+    test_path: String,
+    #[arg(long)]
+    save_path: String,
+    #[arg(long)]
+    results_path: String,
+    #[arg(long)]
+    gen_path: Option<String>,
+    #[arg(long)]
+    gen_results_path: Option<String>,
+    #[arg(long, default_value_t=false)]
+    tokenize: bool,
+    #[arg(long, default_value_t=10000)]
+    truncate_test: usize,
+    #[arg(long, default_value_t=20)]
+    n_eval: usize,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sizeof(edge): {}B", size_of::<usize>());
     println!("sizeof(node): {}B", size_of::<BasicWeight>());
 
-    let args: Vec<String> = env::args().collect();
-    let train_path = &args[1];
-    let test_path = &args[2];
-    let save_path = &args[3];
-    let results_path = &args[4];
-    let gen_path: Option<&str>;
-    let gen_results_path: Option<&str>;
-
-    // See if we have a generalization/generated set.
-    if args.len() >= 6 {
-        gen_path = Some(&args[5]);
-        gen_results_path = Some(&args[6]);
+    let args = Args::parse();
+    let mut index: Box<dyn Tokenize> = if args.tokenize {
+        Box::new(TokenIndex::<usize>::new())
     } else {
-        gen_path = None;
-        gen_results_path = None;
-    }
+        Box::new(NullTokenIndex::new())
+    };
 
-    let train_raw: String = fs::read_to_string(train_path).expect("Error loading train");
-    let test_raw: String = fs::read_to_string(test_path).expect("Error loading test");
-    let gen_raw: String = match gen_path {
+    let train_raw: String = fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
+    let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let eval_threshold = train.len() / args.n_eval;
+    println!("#(train): {}", train.len());
+
+    let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
+    let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let old_test_len = test.len();
+    if args.truncate_test > 0 {
+        test = (&test[0..args.truncate_test]).to_vec();
+    }
+    println!("#(test): {}/{}", test.len(), old_test_len);
+
+    let gen_raw: String = match &args.gen_path {
         Some(path) => fs::read_to_string(path).expect("Error loading gen"),
         None => "".to_string(),
     };
-
-    // Load at word level.
-    let mut index = NullTokenIndex::new();
-    let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let eval_threshold = train.len() / 20;
-    println!("#(train): {}", train.len());
-
-    let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let old_test_len = test.len();
-    test = (&test[0..10000]).to_vec();  // Truncate to 10,000 tokens.
-    println!("#(test): {}/{}", test.len(), old_test_len);
-
     let gen: Vec<usize> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
     println!("#(gen): {}", gen.len());
-    println!("#(vocab): {}", index.count);
+    println!("#(vocab): {}", index.get_count());
 
     let mut lms: Vec<Box<dyn LM>> = Vec::new();
     create_lms(&mut lms);
@@ -115,16 +117,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if idx % eval_threshold == 0 && idx != 0 {
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
-            evaluator.to_json(results_path)?;
-            match gen_results_path {
+            evaluator.to_json(&args.results_path)?;
+            match &args.gen_results_path {
                 Some(gen_path) => {
                     gen_evaluator.evaluate(&dawg, idx, good_turing);
-                    gen_evaluator.to_json(gen_path);
+                    gen_evaluator.to_json(gen_path)?;
                 },
                 None => {},
-            }
-            
-            // checkpoint(&dawg, save_path)?;
+            }            
         }
     }
     println!("Completed!");
@@ -132,8 +132,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Edge count: {}", dawg.edge_count());
 
     println!("Saving DAWG...");
-    checkpoint(&dawg, save_path)?;
+    checkpoint(&dawg, &args.save_path)?;
+    println!("Successfully saved DAWG to {}!", &args.save_path);
     Ok(())
+}
+
+fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
+    for min_freq in vec![16, 32, 64].iter() {
+        for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
+            let maxgram = KNLM::new(format!("maxgram-kn{}-#{}", delta, min_freq), *delta, -1, *min_freq);
+            lms.push(Box::new(maxgram));
+            for n in vec![4, 6, 8].iter() {
+                let ngram = KNLM::new(format!("{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
+                lms.push(Box::new(ngram));
+                for induct_delta in vec![0.9, 0.95].iter() {
+                    let induct_backoff = KNLM::new(format!("sub-{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
+                    let induct = InductionLM::new(format!("{}gram-kn{}-#{}-induct{}", n, delta, min_freq, induct_delta), Box::new(induct_backoff), *induct_delta);
+                    lms.push(Box::new(induct))
+                }
+            }
+        }
+    }
 }
 
 fn checkpoint(dawg: &Dawg<usize>, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -142,7 +161,6 @@ fn checkpoint(dawg: &Dawg<usize>, save_path: &str) -> Result<(), Box<dyn std::er
         .create(true)
         .open(save_path)?;
     serialize_into(&save_file, &dawg)?;
-    // println!("Successfully saved DAWG to {}!", save_path);
 
     // HOWTO: Deserialize
     // let mut load_file = fs::OpenOptions::new()

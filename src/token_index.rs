@@ -1,5 +1,12 @@
 use std::collections::HashMap;
 
+pub trait Tokenize {
+    fn new() -> Self where Self: Sized;
+    fn add(&mut self, token: &str) -> usize;
+    fn index(&self, token: &str) -> usize;
+    fn get_count(&self) -> usize;
+}
+
 pub struct TokenIndex<E> {
     // TODO: Could optimize this to only store each string once.
     // TODO: Make token type generic.
@@ -10,8 +17,21 @@ pub struct TokenIndex<E> {
 }
 
 impl TokenIndex<usize> {
+    pub fn token(&self, index: usize) -> &str {
+        if index < self.count {
+            return self.index_to_token[index].as_str();
+        }
+        return self.token(self.unk);
+    }
 
-    pub fn new() -> Self {
+    pub fn eos(&self) -> usize {
+        2
+    }
+}
+
+impl Tokenize for TokenIndex<usize> {
+
+    fn new() -> Self {
         let token_to_index = HashMap::new();
         let index_to_token = Vec::new();
         let mut index = TokenIndex {token_to_index, index_to_token, count: 0, unk: 0};
@@ -21,7 +41,7 @@ impl TokenIndex<usize> {
         index
     }
 
-    pub fn add(&mut self, token: &str) -> usize {
+    fn add(&mut self, token: &str) -> usize {
         let token_string = token.to_string();
         match self.token_to_index.get(token) {
             Some(ptr) => *ptr,
@@ -35,22 +55,15 @@ impl TokenIndex<usize> {
         }
     }
 
-    pub fn index(&self, token: &str) -> usize {
+    fn index(&self, token: &str) -> usize {
         match self.token_to_index.get(token) {
             Some(ptr) => *ptr,
             None => self.unk,
         }
     }
 
-    pub fn token(&self, index: usize) -> &str {
-        if index < self.count {
-            return self.index_to_token[index].as_str();
-        }
-        return self.token(self.unk);
-    }
-
-    pub fn eos(&self) -> usize {
-        2
+    fn get_count(&self) -> usize {
+        self.count
     }
 
 }

@@ -1,23 +1,29 @@
 use std::cmp::max;
 
+use token_index::Tokenize;
+
 pub struct NullTokenIndex {
     pub count: usize,
 }
 
-impl NullTokenIndex {
+impl Tokenize for NullTokenIndex {
 
-    pub fn new() -> Self {
+    fn new() -> Self {
         NullTokenIndex {count: 0}
     }
 
-    pub fn add(&mut self, token: &str) -> usize {
+    fn add(&mut self, token: &str) -> usize {
         let index = self.index(token);
         self.count = max(self.count, index + 1);
         index
     }
 
-    pub fn index(&self, token: &str) -> usize {
+    fn index(&self, token: &str) -> usize {
         token.parse().unwrap()
+    }
+
+    fn get_count(&self) -> usize {
+        self.count
     }
 
 }
