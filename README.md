@@ -2,7 +2,7 @@
 
 A library for building suffix automata for string indexing and searching in Rust.
 
-For Python bindings of Rusty DAWG (easier for basic use cases), see: [py-rusty-dawg](https://github.com/viking-sudo-rm/py-rusty-dawg)
+For most basic use cases, it might be easier to use the Python wrapper [py-rusty-dawg](https://github.com/viking-sudo-rm/py-rusty-dawg).
 
 ## Building
 
@@ -11,14 +11,21 @@ cargo test
 cargo build --release
 ```
 
-## Local Usage
+## Example Usage
+
+After a release build, you can run:
 
 ```
-./target/debug/rusty-dawg /Users/willm/Desktop/wikitext-2-raw/wiki.train.raw /Users/willm/Desktop/wikitext-2-raw/wiki.valid.raw /Users/willm/Desktop/wikitext2.json
+./target/release/rusty-dawg \
+    --train-path /path/like/train.txt \
+    --test-path /path/like/val.txt \
+    --save-path /path/like/wikitext2.dawg \
+    --results-path /path/like/wikitext2.json \
+    --tokenize
 ```
 
-## GCP Usage
+The last `tokenize` flag specifies that the data is Unicode/ASCII text that should be tokenized by splitting whitespace. If the flag is omitted, it is assumed that the data is a list of integers representing token IDs encoded in ASCII.
 
-```
-sudo /home/willm/miniconda3/envs/dawg/bin/python scripts/get_corpus.py
-```
+## Contributions
+
+Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty DAWG more efficient and scalable. Get in contact if you want to help out!
