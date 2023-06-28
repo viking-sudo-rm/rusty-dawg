@@ -69,6 +69,15 @@ struct Args {
     truncate_test: usize,
     #[arg(long, default_value_t=20)]
     n_eval: usize,
+
+    #[arg(long,short='f')]
+    min_freq: Vec<u64>,
+    #[arg(long,short='d')]
+    delta: Vec<f64>,
+    #[arg(long,short='n')]
+    n_gram: Vec<i64>,
+    #[arg(long,short='i')]
+    induct_delta: Vec<f64>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -104,10 +113,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(vocab): {}", index.get_count());
 
     let mut lms: Vec<Box<dyn LM>> = Vec::new();
-    create_lms(&mut lms);
+    create_lms(&args, &mut lms);
     let mut evaluator = Evaluator::new(&mut lms, &test);
     let mut gen_lms: Vec<Box<dyn LM>> = Vec::new();
-    create_lms(&mut gen_lms);
+    create_lms(&args, &mut gen_lms);
     let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen);
 
     let mut dawg: Dawg<usize> = Dawg::with_capacity(2 * train.len());
@@ -137,15 +146,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
-    for min_freq in vec![0, 1024, 2048, 4096, 8192, 16384].iter() {
-        for delta in vec![0.001, 0.01, 0.1, 0.3, 0.5].iter() {
+fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM>>) {
+    for min_freq in args.min_freq.iter() {
+        for delta in args.delta.iter() {
             let maxgram = KNLM::new(format!("maxgram-kn{}-#{}", delta, min_freq), *delta, -1, *min_freq);
             lms.push(Box::new(maxgram));
-            for n in vec![4, 6].iter() {
+            for n in args.n_gram.iter() {
                 let ngram = KNLM::new(format!("{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
                 lms.push(Box::new(ngram));
-                for induct_delta in vec![0.9, 0.95].iter() {
+                for induct_delta in args.induct_delta.iter() {
                     let induct_backoff = KNLM::new(format!("sub-{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
                     let induct = InductionLM::new(format!("{}gram-kn{}-#{}-induct{}", n, delta, min_freq, induct_delta), Box::new(induct_backoff), *induct_delta);
                     lms.push(Box::new(induct))
