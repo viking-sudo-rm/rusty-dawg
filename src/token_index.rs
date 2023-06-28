@@ -70,7 +70,7 @@ impl Tokenize for TokenIndex<usize> {
 
 #[cfg(test)]
 mod tests {
-    use token_index::TokenIndex;
+    use token_index::{Tokenize, TokenIndex};
 
     #[test]
     fn test_token_index() {

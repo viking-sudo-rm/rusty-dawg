@@ -7,7 +7,7 @@ pub struct InductionLM {
     pub name: String,
     train_lm: Box<dyn LM>,
     dawg: Dawg<usize>,
-    delta: f32,
+    delta: f64,
     state: NodeIndex,
     last: NodeIndex,
 }
@@ -24,7 +24,7 @@ impl LM for InductionLM {
         self.train_lm.reset(dawg);
     }
 
-    fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f32) -> f32 {
+    fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f64) -> f64 {
         self.get_probability_interp(dawg, self.state, label, good_turing)
     }
 
@@ -40,7 +40,7 @@ impl InductionLM {
 
     // Don't use smoothing, just interpolate!!!s
 
-    pub fn new(name: String, train_lm: Box<dyn LM>, delta: f32) -> Self {
+    pub fn new(name: String, train_lm: Box<dyn LM>, delta: f64) -> Self {
         let dawg = Dawg::new();
         let state = dawg.get_initial();
         let last = dawg.get_initial();
@@ -48,7 +48,7 @@ impl InductionLM {
     }
 
     // Backoff with Kneser-Ney smoothing
-    pub fn get_probability_interp(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize, good_turing: f32) -> f32 {
+    pub fn get_probability_interp(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize, good_turing: f64) -> f64 {
         // if self.kn_max_n >= 0 {
         //     let n: u64 = self.kn_max_n.try_into().unwrap();
         //     let graph = self.dawg.get_graph();
@@ -83,7 +83,7 @@ impl InductionLM {
         if graph.n_edges(state) == 0 {
             return back_prob;
         }
-        (1. - self.delta) * (count as f32) / (sum_count as f32) + self.delta * back_prob
+        (1. - self.delta) * (count as f64) / (sum_count as f64) + self.delta * back_prob
     }
 }
 
@@ -91,7 +91,7 @@ impl InductionLM {
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use token_index::TokenIndex;
+    use token_index::{Tokenize, TokenIndex};
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
@@ -121,7 +121,7 @@ mod tests {
         lm.update(&dawg, a);
         assert_eq!(lm.state.index(), 1);
         // 1/2 * (1/2 + 1/3)
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 0.4166667);
+        assert_eq!(lm.get_probability(&dawg, a, 0.), 0.41666666666666663);
         assert_eq!(lm.get_probability(&dawg, b, 0.), 1./6.);
         lm.update(&dawg, b);
         // println!("{:?}", Dot::new(lm.dawg.get_graph()));
@@ -131,8 +131,8 @@ mod tests {
         lm.update(&dawg, a);
         assert_eq!(lm.state.index(), 3);
         // Now b is more likely!
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 0.20833334);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 0.39583334);
+        assert_eq!(lm.get_probability(&dawg, a, 0.), 0.20833333333333331);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 0.3958333333333333);
     }
 
 }

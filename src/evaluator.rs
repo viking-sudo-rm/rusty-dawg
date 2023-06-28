@@ -20,17 +20,17 @@ where E: Eq + serde::Serialize + Copy + Debug {
     #[serde(skip)]
     test: &'a Vec<E>,
     indices: Vec<usize>,
-    metrics: HashMap<String, Vec<f32>>,
+    metrics: HashMap<String, Vec<f64>>,
 }
 
 impl<E> Evaluator<'_, E>
 where E: Eq + serde::Serialize + Copy + Debug {
 
-    pub fn get(&self, key: &str) -> &Vec<f32> {
+    pub fn get(&self, key: &str) -> &Vec<f64> {
         &self.metrics[key]
     }
 
-    pub fn get_mut(&mut self, key: String) -> &mut Vec<f32> {
+    pub fn get_mut(&mut self, key: String) -> &mut Vec<f64> {
         self.metrics.get_mut(&key).expect("Unknown metric")
     }
 
@@ -67,7 +67,7 @@ impl Evaluator<'_, usize> {
         Evaluator {lms, test, indices, metrics}
     }
 
-    pub fn evaluate(&mut self, dawg: &Dawg<usize>, idx: usize, good_turing: f32) {
+    pub fn evaluate(&mut self, dawg: &Dawg<usize>, idx: usize, good_turing: f64) {
         // println!("=== eval@{} ===", idx);
         // println!("counts: {:?}", counts);
         // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -79,7 +79,7 @@ impl Evaluator<'_, usize> {
         let mut cum_count = 0;
         let mut cum_entropy = 0.;
 
-        let mut cum_ppls: HashMap<String, f32> = HashMap::new();
+        let mut cum_ppls: HashMap<String, f64> = HashMap::new();
         for lm in self.lms.iter() {
             cum_ppls.insert(lm.get_name().to_string(), 0.);
         }
@@ -127,13 +127,13 @@ impl Evaluator<'_, usize> {
         }
     
         self.indices.push(idx);
-        self.get_mut("states_per_token".to_string()).push((dawg.node_count() as f32) / (idx as f32));
-        self.get_mut("edges_per_token".to_string()).push((dawg.edge_count() as f32) / (idx as f32));
-        self.get_mut("suffix_lengths".to_string()).push((cum_length as f32) / (num_tokens as f32));
-        self.get_mut("suffix_counts".to_string()).push((cum_count as f32) / (num_tokens as f32));
-        self.get_mut("suffix_entropies".to_string()).push((cum_entropy as f32) / (num_tokens as f32));
+        self.get_mut("states_per_token".to_string()).push((dawg.node_count() as f64) / (idx as f64));
+        self.get_mut("edges_per_token".to_string()).push((dawg.edge_count() as f64) / (idx as f64));
+        self.get_mut("suffix_lengths".to_string()).push((cum_length as f64) / (num_tokens as f64));
+        self.get_mut("suffix_counts".to_string()).push((cum_count as f64) / (num_tokens as f64));
+        self.get_mut("suffix_entropies".to_string()).push((cum_entropy as f64) / (num_tokens as f64));
         for (key, ppl) in cum_ppls {
-            self.get_mut(key).push((ppl as f32) / (num_tokens as f32));
+            self.get_mut(key).push((ppl as f64) / (num_tokens as f64));
         }
     }
 
@@ -145,7 +145,7 @@ mod tests {
     use graph::vec_graph::dot::Dot;
     use dawg::Dawg;
     use evaluator::Evaluator;
-    use token_index::TokenIndex;
+    use token_index::{Tokenize, TokenIndex};
 
     use lms::LM;
     use lms::kn_lm::KNLM;
@@ -206,7 +206,7 @@ mod tests {
         assert_eq!(*evaluator.get("suffix_lengths"), vec![1., 5./3.]);
         assert_eq!(*evaluator.get("suffix_counts"), vec![1., 4./3.]);
         // Is this right? This is cross-entropy/token.
-        assert_eq!(*evaluator.get("unigram"), vec![1., 0.5849625]);
+        assert_eq!(*evaluator.get("unigram"), vec![1., 0.5849625007211563]);
     }
 
 }

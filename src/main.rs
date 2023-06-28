@@ -138,11 +138,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn create_lms(lms: &mut Vec<Box<dyn LM>>) {
-    for min_freq in vec![16, 32, 64].iter() {
-        for delta in vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].iter() {
+    for min_freq in vec![0, 64, 128, 256].iter() {
+        for delta in vec![0.001, 0.01, 0.1, 0.3, 0.5].iter() {
             let maxgram = KNLM::new(format!("maxgram-kn{}-#{}", delta, min_freq), *delta, -1, *min_freq);
             lms.push(Box::new(maxgram));
-            for n in vec![4, 6, 8].iter() {
+            for n in vec![4, 6].iter() {
                 let ngram = KNLM::new(format!("{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
                 lms.push(Box::new(ngram));
                 for induct_delta in vec![0.9, 0.95].iter() {

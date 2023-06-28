@@ -11,7 +11,7 @@ pub struct KNLM {
     pub name: String,
     // index: &'a TokenIndex<usize>,
     // dawg: &'a Dawg<usize>,
-    kn_delta: f32,
+    kn_delta: f64,
     kn_max_n: i64,
     min_count: u64,  // Backoff to states that occur at least this much.
     state: NodeIndex,
@@ -26,7 +26,7 @@ impl LM for KNLM {
         self.state = dawg.get_initial();
     }
 
-    fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f32) -> f32 {
+    fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f64) -> f64 {
         let mut state = self.state;
         let initial = dawg.get_initial();
         while dawg.get_weight(state).get_count() < self.min_count {
@@ -45,33 +45,33 @@ impl LM for KNLM {
 
 impl KNLM {
 
-    pub fn new(name: String, kn_delta: f32, kn_max_n: i64, min_count: u64) -> Self {
+    pub fn new(name: String, kn_delta: f64, kn_max_n: i64, min_count: u64) -> Self {
         // The state set here is correct but also unused.
         Self {name, kn_delta, kn_max_n, state: NodeIndex::new(0), min_count}
     }
 
-    pub fn get_probability_exact(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f32 {
+    pub fn get_probability_exact(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f64 {
         // FIXME: Handle <eos> here!!
         let denom = dawg.get_weight(state).get_count();
         let num = match dawg.transition(state, label, false) {
             Some(next_state) => dawg.get_weight(next_state).get_count(),
             None => 0,
         };
-        (num as f32) / (denom as f32)
+        (num as f64) / (denom as f64)
     }
 
-    // pub fn get_probability_simple_smoothing(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f32 {
+    // pub fn get_probability_simple_smoothing(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f64 {
     //     let n_types = (index.count - 1) as u64;  // Ignore <bos>
     //     let smooth_denom = dawg.get_weight(state).get_count() + n_types;
     //     let smooth_num = match dawg.transition(state, label, false) {
     //         Some(next_state) => dawg.get_weight(next_state).get_count() + 1,
     //         None => 1,
     //     };
-    //     (smooth_num as f32) / (smooth_denom as f32)
+    //     (smooth_num as f64) / (smooth_denom as f64)
     // }
 
     // Backoff with Kneser-Ney smoothing
-    pub fn get_probability_kn(&self, dawg: &Dawg<usize>, mut state: NodeIndex, label: usize, good_turing: f32) -> f32 {
+    pub fn get_probability_kn(&self, dawg: &Dawg<usize>, mut state: NodeIndex, label: usize, good_turing: f64) -> f64 {
         if self.kn_max_n >= 0 {
             let n: u64 = self.kn_max_n.try_into().unwrap();
             let graph = dawg.get_graph();
@@ -96,7 +96,7 @@ impl KNLM {
             Some(fstate) => {
                 let delta = self.kn_delta;
                 let back_prob = self.get_probability_kn(dawg, fstate, label, good_turing);
-                return ((1. - delta) * (count as f32) + delta * (back_count as f32) * back_prob) / (sum_count as f32);
+                return ((1. - delta) * (count as f64) + delta * (back_count as f64) * back_prob) / (sum_count as f64);
             }
             None => {
                 // Put some probability here on <unk> using Good-Turing estimate.
@@ -111,7 +111,7 @@ impl KNLM {
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use token_index::TokenIndex;
+    use token_index::{Tokenize, TokenIndex};
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
@@ -193,7 +193,7 @@ mod tests {
         let b = index.index("b");
   
         let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
-        assert_eq!(pb_a, 0.33333334);
+        assert_eq!(pb_a, 1./3.);
     }
 
     #[test]
