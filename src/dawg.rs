@@ -12,7 +12,7 @@ use std::collections::LinkedList;
 use serde::{Serialize, Deserialize};
 
 // use vec_graph::dot::Dot;
-use weight::{BasicWeight, Weight};
+use weight::{Weight40, Weight};
 use graph::indexing::NodeIndex;
 use graph::vec_graph::Graph;
 
@@ -23,23 +23,24 @@ where E: Eq + Copy + Debug {
         serialize = "E: Serialize",
         deserialize = "E: Deserialize<'de>",
     ))]
-    dawg: Graph<BasicWeight, E>,
+    dawg: Graph<Weight40, E>,
     initial: NodeIndex,
 }
 
+// TODO: Make weight type generic with default of Weight40
 impl<E> Dawg<E>
 where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 
     pub fn new() -> Dawg<E> {
-        let mut dawg = Graph::<BasicWeight, E>::new();
-        let initial = dawg.add_node(BasicWeight::initial());
+        let mut dawg = Graph::<Weight40, E>::new();
+        let initial = dawg.add_node(Weight40::initial());
         dawg[initial].increment_count();
         Dawg {dawg: dawg, initial: initial}
     }
 
     pub fn with_capacity(n_nodes: usize) -> Dawg<E> {
-        let mut dawg = Graph::<BasicWeight, E>::with_capacity(n_nodes);
-        let initial = dawg.add_node(BasicWeight::initial());
+        let mut dawg = Graph::<Weight40, E>::with_capacity(n_nodes);
+        let initial = dawg.add_node(Weight40::initial());
         dawg[initial].increment_count();
         Dawg {dawg: dawg, initial: initial}
     }
@@ -52,7 +53,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
     }
 
     pub fn extend(&mut self, token: E, last: NodeIndex) -> NodeIndex {
-        let new = self.dawg.add_node(BasicWeight::extend(&self.dawg[last]));
+        let new = self.dawg.add_node(Weight40::extend(&self.dawg[last]));
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
         let mut opt_next_state: Option<NodeIndex> = None;
@@ -85,13 +86,13 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                 
                 else {
                     // Split a state and fail to the clone of it.
-                    let clone = self.dawg.add_node(BasicWeight::split(&self.dawg[state], &self.dawg[next_state]));
+                    let clone = self.dawg.add_node(Weight40::split(&self.dawg[state], &self.dawg[next_state]));
                     let edges: Vec<_> = self.dawg.edges(next_state).map(|edge| (edge.target(), *edge.weight())).collect();
                     for (target, weight) in edges {
                         self.dawg.add_edge(clone, target, weight);
                     }
                     // FIXME: For some reason, calling clone has infinite loop/hangs. Theoretically, it should be better??
-                    // let weight = BasicWeight::split(&self.dawg[state], &self.dawg[next_state]);
+                    // let weight = Weight40::split(&self.dawg[state], &self.dawg[next_state]);
                     // let clone = self.dawg.clone_node(state);
                     // self.dawg.set_node_weight(clone, weight);
                     (&mut self.dawg[new]).set_failure(Some(clone));
@@ -248,7 +249,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
 
     // TODO: Can build full substring vector for query.
 
-    pub fn get_weight(&self, state: NodeIndex) -> &BasicWeight {
+    pub fn get_weight(&self, state: NodeIndex) -> &Weight40 {
         &self.dawg[state]
     }
 
@@ -264,7 +265,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
         self.dawg.edge_count()
     }
 
-    pub fn get_graph(&self) -> &Graph<BasicWeight, E> {
+    pub fn get_graph(&self) -> &Graph<Weight40, E> {
         &self.dawg
     }
 
