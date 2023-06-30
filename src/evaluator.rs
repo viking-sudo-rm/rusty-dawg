@@ -46,6 +46,8 @@ where E: Eq + serde::Serialize + Copy + Debug {
 // TODO: Generic case
 impl Evaluator<'_, usize> {
 
+    const MAX_LENGTH: usize = 100;
+
     pub fn new<'a>(lms: &'a mut Vec<Box<dyn LM>>, test: &'a Vec<usize>) -> Evaluator<'a, usize> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
@@ -55,7 +57,7 @@ impl Evaluator<'_, usize> {
         metrics.insert("suffix_lengths".to_string(), Vec::new());
         metrics.insert("suffix_counts".to_string(), Vec::new());
         metrics.insert("suffix_entropies".to_string(), Vec::new());
-        for length in 0..11 {
+        for length in 0..Self::MAX_LENGTH + 1 {
             metrics.insert(format!("length{}_count", length), Vec::new());
         }
         metrics.insert("length+_count".to_string(), Vec::new());
@@ -91,7 +93,7 @@ impl Evaluator<'_, usize> {
             lm.reset(dawg);
         }
 
-        for length in 0..11 {
+        for length in 0..Self::MAX_LENGTH + 1 {
             self.get_mut(format!("length{}_count", length)).push(0.);
         }
         self.get_mut("length+_count".to_string()).push(0.);
