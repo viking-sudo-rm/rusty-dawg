@@ -5,7 +5,7 @@ use std::hash::Hash;
 
 use serde::{Serialize, Deserialize};
 
-// u40 would be nice here up to 1T tokens.
+// u40 would be nice here up to 1T tokens. u32 breaks down around 10Gi 
 pub type DefaultIx = u64;
 
 /// Trait for the unsigned integer type used for node and edge indices.
