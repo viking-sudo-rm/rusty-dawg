@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use serde::{Serialize};
 use std::io::Write;
+use std::cmp::max;
 
 use weight::Weight;
 use stat_utils::*;
@@ -55,6 +56,7 @@ impl Evaluator<'_, usize> {
         metrics.insert("states_per_token".to_string(), Vec::new());
         metrics.insert("edges_per_token".to_string(), Vec::new());
         metrics.insert("suffix_lengths".to_string(), Vec::new());
+        metrics.insert("max_suffix_lengths".to_string(), Vec::new());
         metrics.insert("suffix_counts".to_string(), Vec::new());
         metrics.insert("suffix_entropies".to_string(), Vec::new());
         for length in 0..Self::MAX_LENGTH + 1 {
@@ -80,6 +82,7 @@ impl Evaluator<'_, usize> {
         let mut cum_length = 0;
         let mut cum_count = 0;
         let mut cum_entropy = 0.;
+        let mut max_length = 0;
 
         let mut cum_ppls: HashMap<String, f64> = HashMap::new();
         for lm in self.lms.iter() {
@@ -111,6 +114,7 @@ impl Evaluator<'_, usize> {
             (opt_state, length) = dawg.transition_and_count(state, token, length);
             state = opt_state.unwrap();
             cum_length += length;
+            max_length = max(max_length, length);
             if length < 11 {
                 self.get_mut(format!("length{}_count", length))[it] += 1.;
             } else {
@@ -132,6 +136,7 @@ impl Evaluator<'_, usize> {
         self.get_mut("states_per_token".to_string()).push((dawg.node_count() as f64) / (idx as f64));
         self.get_mut("edges_per_token".to_string()).push((dawg.edge_count() as f64) / (idx as f64));
         self.get_mut("suffix_lengths".to_string()).push((cum_length as f64) / (num_tokens as f64));
+        self.get_mut("max_suffix_lengths".to_string()).push(max_length as f64);
         self.get_mut("suffix_counts".to_string()).push((cum_count as f64) / (num_tokens as f64));
         self.get_mut("suffix_entropies".to_string()).push((cum_entropy as f64) / (num_tokens as f64));
         for (key, ppl) in cum_ppls {
