@@ -40,10 +40,14 @@ use kdam::tqdm;
 
 use stat_utils::*;
 use dawg::Dawg;
-use weight::BasicWeight;
+use weight::{Weight40};
 use token_index::{Tokenize, TokenIndex};
 use null_token_index::NullTokenIndex;
 use evaluator::Evaluator;
+
+// Node and edge weight types.
+type N = Weight40;  // FIXME: Actually pass this as a generic argument to Dawg.
+type E = usize;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -83,8 +87,8 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("sizeof(edge): {}B", size_of::<usize>());
-    println!("sizeof(node): {}B", size_of::<BasicWeight>());
+    println!("sizeof(edge): {}B", size_of::<E>());
+    println!("sizeof(node): {}B", size_of::<N>());
 
     let args = Args::parse();
     let mut index: Box<dyn Tokenize> = if args.tokenize {
@@ -110,7 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(path) => fs::read_to_string(path).expect("Error loading gen"),
         None => "".to_string(),
     };
-    let gen: Vec<usize> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let gen: Vec<E> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
     println!("#(gen): {}", gen.len());
     println!("#(vocab): {}", index.get_count());
 
@@ -121,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     create_lms(&args, &mut gen_lms);
     let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
 
-    let mut dawg: Dawg<usize> = Dawg::with_capacity(2 * train.len());
+    let mut dawg: Dawg<E> = Dawg::with_capacity(2 * train.len());
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
