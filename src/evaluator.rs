@@ -22,6 +22,7 @@ where E: Eq + serde::Serialize + Copy + Debug {
     test: &'a Vec<E>,
     indices: Vec<usize>,
     metrics: HashMap<String, Vec<f64>>,
+    max_length: u64,
 }
 
 impl<E> Evaluator<'_, E>
@@ -47,9 +48,7 @@ where E: Eq + serde::Serialize + Copy + Debug {
 // TODO: Generic case
 impl Evaluator<'_, usize> {
 
-    const MAX_LENGTH: usize = 100;
-
-    pub fn new<'a>(lms: &'a mut Vec<Box<dyn LM>>, test: &'a Vec<usize>) -> Evaluator<'a, usize> {
+    pub fn new<'a>(lms: &'a mut Vec<Box<dyn LM>>, test: &'a Vec<usize>, max_length: u64) -> Evaluator<'a, usize> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
@@ -59,7 +58,7 @@ impl Evaluator<'_, usize> {
         metrics.insert("max_suffix_lengths".to_string(), Vec::new());
         metrics.insert("suffix_counts".to_string(), Vec::new());
         metrics.insert("suffix_entropies".to_string(), Vec::new());
-        for length in 0..Self::MAX_LENGTH + 1 {
+        for length in 0..max_length + 1 {
             metrics.insert(format!("length{}_count", length), Vec::new());
         }
         metrics.insert("length+_count".to_string(), Vec::new());
@@ -68,7 +67,7 @@ impl Evaluator<'_, usize> {
             metrics.insert(lm.get_name().to_string(), Vec::new());
         }
 
-        Evaluator {lms, test, indices, metrics}
+        Evaluator {lms, test, indices, metrics, max_length}
     }
 
     pub fn evaluate(&mut self, dawg: &Dawg<usize>, idx: usize, good_turing: f64) {
@@ -96,7 +95,7 @@ impl Evaluator<'_, usize> {
             lm.reset(dawg);
         }
 
-        for length in 0..Self::MAX_LENGTH + 1 {
+        for length in 0..self.max_length + 1 {
             self.get_mut(format!("length{}_count", length)).push(0.);
         }
         self.get_mut("length+_count".to_string()).push(0.);
@@ -115,7 +114,7 @@ impl Evaluator<'_, usize> {
             state = opt_state.unwrap();
             cum_length += length;
             max_length = max(max_length, length);
-            if length < 11 {
+            if length <= self.max_length {
                 self.get_mut(format!("length{}_count", length))[it] += 1.;
             } else {
                 self.get_mut("length+_count".to_string())[it] += 1.;
@@ -171,7 +170,7 @@ mod tests {
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
         let mut lms: Vec<Box<dyn LM>> = Vec::new();
-        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test);
+        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
 
         let mut dawg: Dawg<usize> = Dawg::new();
         let mut last = dawg.get_initial();
@@ -202,7 +201,7 @@ mod tests {
         let mut lms: Vec<Box<dyn LM>> = Vec::new();
         let unigram = KNLM::new("unigram".to_string(), 0., 0, 0);
         lms.push(Box::new(unigram));
-        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test);
+        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
 
         let mut dawg: Dawg<usize> = Dawg::new();
         let mut last = dawg.get_initial();

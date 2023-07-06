@@ -69,6 +69,8 @@ struct Args {
     truncate_test: usize,
     #[arg(long, default_value_t=20)]
     n_eval: usize,
+    #[arg(long, default_value_t=10)]
+    max_length: u64,
 
     #[arg(long,short='f')]
     min_freq: Vec<u64>,
@@ -114,10 +116,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut lms: Vec<Box<dyn LM>> = Vec::new();
     create_lms(&args, &mut lms);
-    let mut evaluator = Evaluator::new(&mut lms, &test);
+    let mut evaluator = Evaluator::new(&mut lms, &test, args.max_length);
     let mut gen_lms: Vec<Box<dyn LM>> = Vec::new();
     create_lms(&args, &mut gen_lms);
-    let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen);
+    let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
 
     let mut dawg: Dawg<usize> = Dawg::with_capacity(2 * train.len());
     let mut last = dawg.get_initial();
