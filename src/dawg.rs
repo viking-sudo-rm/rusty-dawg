@@ -225,8 +225,8 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
         let fail_state = self.dawg[state].get_failure();
         match fail_state {
             Some(q) => {
-                // Before had self.dawg[q].get_length(). Do we actually need more complex thing?
-                let new_length = length - (self.dawg[state].get_length() - self.dawg[q].get_length());
+                // If we fail, the length we're matching is the length of the largest suffix of the fail state.
+                let new_length = self.dawg[q].get_length();
                 return self.transition_and_count(q, token, new_length);
             },
             // Only possible in the initial state.
