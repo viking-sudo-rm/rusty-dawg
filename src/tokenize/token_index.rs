@@ -1,11 +1,6 @@
 use std::collections::HashMap;
 
-pub trait Tokenize {
-    fn new() -> Self where Self: Sized;
-    fn add(&mut self, token: &str) -> usize;
-    fn index(&self, token: &str) -> usize;
-    fn get_count(&self) -> usize;
-}
+use crate::tokenize::Tokenize;
 
 pub struct TokenIndex<E> {
     // TODO: Could optimize this to only store each string once.
@@ -70,7 +65,7 @@ impl Tokenize for TokenIndex<usize> {
 
 #[cfg(test)]
 mod tests {
-    use token_index::{Tokenize, TokenIndex};
+    use crate::tokenize::{Tokenize, TokenIndex};
 
     #[test]
     fn test_token_index() {

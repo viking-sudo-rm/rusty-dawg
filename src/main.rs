@@ -20,8 +20,7 @@ extern crate tempfile;
 mod dawg;
 mod weight;
 mod stat_utils;
-mod null_token_index;
-mod token_index;
+mod tokenize;
 mod graph;
 mod evaluator;
 mod lms;
@@ -41,8 +40,7 @@ use kdam::tqdm;
 use stat_utils::*;
 use dawg::Dawg;
 use weight::{Weight40};
-use token_index::{Tokenize, TokenIndex};
-use null_token_index::NullTokenIndex;
+use tokenize::{Tokenize, TokenIndex,NullTokenIndex};
 use evaluator::Evaluator;
 
 // Node and edge weight types.

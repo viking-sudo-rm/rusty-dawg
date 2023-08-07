@@ -10,7 +10,7 @@ extern crate tempfile;
 pub mod dawg;
 pub mod weight;
 pub mod stat_utils;
-pub mod token_index;
 pub mod graph;
 pub mod evaluator;
 pub mod lms;
+pub mod tokenize;

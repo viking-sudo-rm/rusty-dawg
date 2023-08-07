@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use token_index::Tokenize;
+use crate::tokenize::Tokenize;
 
 pub struct NullTokenIndex {
     pub count: usize,

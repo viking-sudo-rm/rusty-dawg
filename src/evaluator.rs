@@ -151,7 +151,7 @@ mod tests {
     use graph::vec_graph::dot::Dot;
     use dawg::Dawg;
     use evaluator::Evaluator;
-    use token_index::{Tokenize, TokenIndex};
+    use tokenize::{Tokenize, TokenIndex};
 
     use lms::LM;
     use lms::kn_lm::KNLM;

@@ -111,7 +111,7 @@ impl KNLM {
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use token_index::{Tokenize, TokenIndex};
+    use tokenize::{Tokenize, TokenIndex};
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;

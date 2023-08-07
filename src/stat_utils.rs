@@ -49,7 +49,7 @@ pub fn good_turing_estimate(dawg: &Dawg<usize>, n_tokens: usize) -> f64 {
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use token_index::{Tokenize, TokenIndex};
+    use tokenize::{Tokenize, TokenIndex};
     use stat_utils::*;
 
     use graph::indexing::NodeIndex;
