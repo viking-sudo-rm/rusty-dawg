@@ -4,11 +4,15 @@ A library for building suffix automata for string indexing and searching in Rust
 
 For most basic use cases, it might be easier to use the Python wrapper [py-rusty-dawg](https://github.com/viking-sudo-rm/py-rusty-dawg).
 
-# How to Use
+# Getting Started
 
-## Building
+## Installing Rust
 
-To run tests for the repo, you can use Cargo:
+Simply use the one-liner [here](https://www.rust-lang.org/tools/install).
+
+## Testing and Building Rusty DAWG
+
+To run tests for the repo, you can use Cargo, which should have been installed along with Rust:
 
 ```
 cargo test
