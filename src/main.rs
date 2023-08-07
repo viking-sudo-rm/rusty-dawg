@@ -99,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let train_raw: String = fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
     let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let eval_threshold = train.len() / args.n_eval;
+    let eval_threshold = if args.n_eval != 0 {train.len() / args.n_eval} else {0};
     println!("#(train): {}", train.len());
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
@@ -111,7 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(test): {}/{}", test.len(), old_test_len);
 
     let gen_raw: String = match &args.gen_path {
-        Some(path) => fs::read_to_string(path).expect("Error loading gen"),
+        Some(path) => fs::read_to_string(path).expect(format!("Error loading gen path: {}", path).as_str()),
         None => "".to_string(),
     };
     let gen: Vec<E> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
@@ -129,7 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
-        if idx % eval_threshold == 0 && idx != 0 {
+        if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
             evaluator.to_json(&args.results_path)?;
