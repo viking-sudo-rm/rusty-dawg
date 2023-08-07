@@ -132,7 +132,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
             let good_turing = good_turing_estimate(&dawg, train.len());        
             evaluator.evaluate(&dawg, idx, good_turing);
-            evaluator.to_json(&args.results_path)?;
+            if args.results_path != "" {
+                evaluator.to_json(&args.results_path)?;
+            }
             match &args.gen_results_path {
                 Some(gen_path) => {
                     gen_evaluator.evaluate(&dawg, idx, good_turing);
@@ -146,9 +148,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Node count: {}", dawg.node_count());
     println!("  Edge count: {}", dawg.edge_count());
 
-    println!("Saving DAWG...");
-    checkpoint(&dawg, &args.save_path)?;
-    println!("Successfully saved DAWG to {}!", &args.save_path);
+    if args.save_path != "" {
+        println!("Saving DAWG...");
+        checkpoint(&dawg, &args.save_path)?;
+        println!("Successfully saved DAWG to {}!", &args.save_path);
+    }
     Ok(())
 }
 
