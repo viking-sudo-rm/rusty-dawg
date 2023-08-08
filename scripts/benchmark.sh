@@ -9,3 +9,6 @@ DATA_PATH="${DATA:-data}"
     --results-path "" \
     --n-eval 0 \
     --tokenize
+size=$(ls -lh /tmp/$1.dawg | awk '{print  $5}')
+rm /tmp/$1.dawg
+echo "\n=====\nsize: $size"

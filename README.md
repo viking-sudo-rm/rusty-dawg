@@ -50,12 +50,7 @@ source scripts/benchmark.sh wikitext-103-raw
 
 ### Interpreting the Output
 
-The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. You can find the size of the resulting DAWG by looking at:
-
-```
-ls -l /tmp/wikitext-2-raw.dawg
-ls -l /tmp/wikitext-103-raw.dawg
-```
+The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. The benchmarking script will also print out the size of the DAWG at the bottom.
 
 # Documentation
 
