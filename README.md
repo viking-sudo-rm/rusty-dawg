@@ -28,16 +28,29 @@ Note that the `--release` flag is very important for performance. The code will 
 
 ## Running Benchmarking Script
 
-To run the benchmarking script, you first need to download the [data](https://drive.google.com/file/d/1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby/view?usp=sharing) directory, unzip it, and put it in the root of the repository directory (i.e., rusty-dawg/data). If you'd prefer, you can also retrieve the data directories for Wikitext2 and Wikitext103 from /home/willm/splits on NFS.
+To run the benchmarking script, you need the Wikitext2/103 data. You can either download this to rusty-dawg/data path or point to an existing repository (easy on beaker, you can use my copy of the data).
 
-Now you will be able to benchmark building the DAWG on Wikitext2 or Wikitext103!
+### Using a Custom Data Path
+
+You can point to a custom path where the Wikitext data lives. For example, if you're running on Beaker, you can do:
+
+```
+DATA=/home/willm/splits source scripts/benchmark.sh wikitext-2-raw
+DATA/home/willm/splits source scripts/benchmark.sh wikitext-103-raw
+```
+
+### (Optional) Downloading the Data Locally
+
+You first need to download the [data](https://drive.google.com/file/d/1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby/view?usp=sharing) directory, unzip it, and put it in the root of the repository directory (i.e., rusty-dawg/data). Then you can run:
 
 ```
 source scripts/benchmark.sh wikitext-2-raw
 source scripts/benchmark.sh wikitext-103-raw
 ```
 
-The total runtime will be printed out by the script's progress bar. You can find the size of the resulting DAWG by looking at:
+### Interpreting the Output
+
+The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. You can find the size of the resulting DAWG by looking at:
 
 ```
 ls -l /tmp/wikitext-2-raw.dawg
