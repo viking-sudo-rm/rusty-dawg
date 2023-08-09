@@ -14,33 +14,34 @@ use std::fmt::Debug;
 // use vec_graph::dot::Dot;
 use graph::indexing::NodeIndex;
 use graph::vec_graph::Graph;
-use weight::{Weight, Weight40};
+use weight::Weight;
 
 #[derive(Serialize, Deserialize)]
-pub struct Dawg<E>
+pub struct Dawg<E, W>
 where
     E: Eq + Copy + Debug,
+    W: Weight + Serialize + for<'a> Deserialize<'a>,
 {
     #[serde(bound(serialize = "E: Serialize", deserialize = "E: Deserialize<'de>",))]
-    dawg: Graph<Weight40, E>,
+    dawg: Graph<W, E>,
     initial: NodeIndex,
 }
 
-// TODO: Make weight type generic with default of Weight40
-impl<E> Dawg<E>
+impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+    W: Weight + Serialize + for<'a> Deserialize<'a>,
 {
-    pub fn new() -> Dawg<E> {
-        let mut dawg = Graph::<Weight40, E>::new();
-        let initial = dawg.add_node(Weight40::initial());
+    pub fn new() -> Dawg<E, W> {
+        let mut dawg = Graph::<W, E>::new();
+        let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
 
-    pub fn with_capacity(n_nodes: usize) -> Dawg<E> {
-        let mut dawg = Graph::<Weight40, E>::with_capacity(n_nodes);
-        let initial = dawg.add_node(Weight40::initial());
+    pub fn with_capacity(n_nodes: usize) -> Dawg<E, W> {
+        let mut dawg = Graph::<W, E>::with_capacity(n_nodes);
+        let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
@@ -53,7 +54,7 @@ where
     }
 
     pub fn extend(&mut self, token: E, last: NodeIndex) -> NodeIndex {
-        let new = self.dawg.add_node(Weight40::extend(&self.dawg[last]));
+        let new = self.dawg.add_node(W::extend(&self.dawg[last]));
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
         let mut opt_next_state: Option<NodeIndex> = None;
@@ -86,7 +87,7 @@ where
                     // Split a state and fail to the clone of it.
                     let clone = self
                         .dawg
-                        .add_node(Weight40::split(&self.dawg[state], &self.dawg[next_state]));
+                        .add_node(W::split(&self.dawg[state], &self.dawg[next_state]));
                     let edges: Vec<_> = self
                         .dawg
                         .edges(next_state)
@@ -259,7 +260,7 @@ where
 
     // TODO: Can build full substring vector for query.
 
-    pub fn get_weight(&self, state: NodeIndex) -> &Weight40 {
+    pub fn get_weight(&self, state: NodeIndex) -> &W {
         &self.dawg[state]
     }
 
@@ -275,7 +276,7 @@ where
         self.dawg.edge_count()
     }
 
-    pub fn get_graph(&self) -> &Graph<Weight40, E> {
+    pub fn get_graph(&self) -> &Graph<W, E> {
         &self.dawg
     }
 }
@@ -293,10 +294,11 @@ mod tests {
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom, Write};
     use tempfile::NamedTempFile;
+    use weight::weight40::DefaultWeight;
 
     #[test]
     fn test_build_bab() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"bab".chars().collect());
 
         let q0 = NodeIndex::new(0);
@@ -322,7 +324,7 @@ mod tests {
 
     #[test]
     fn test_build_abcab() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"abcab".chars().collect());
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
@@ -341,7 +343,7 @@ mod tests {
 
     #[test]
     fn test_build_abb() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"abb".chars().collect());
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 1);
@@ -361,7 +363,7 @@ mod tests {
         is still predominantly rural, there are indications of a consistent
         and a statistically significant trend away from the older and
         relatively isolated rural communities **h urbanization appears to be";
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         println!("Start build!");
         dawg.build(&corpus.chars().collect());
         dawg.recompute_lengths();
@@ -379,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_get_length() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"ab".chars().collect());
         let state = NodeIndex::new(2);
         assert_eq!(dawg.dawg[state].get_length(), 2);
@@ -390,23 +392,24 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_to_string() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"abcd".chars().collect());
 
         let encoded: Vec<u8> = bincode::serialize(&dawg).unwrap();
-        let decoded: Dawg<char> = bincode::deserialize(&encoded[..]).unwrap();
+        let decoded: Dawg<char, DefaultWeight> = bincode::deserialize(&encoded[..]).unwrap();
         assert_eq!(decoded.node_count(), 5);
     }
 
     #[test]
     fn test_serialize_deserialize_to_file() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"abcd".chars().collect());
 
         let mut file = NamedTempFile::new().expect("Failed to create file");
         serialize_into(&file, &dawg).expect("Failed to serialize");
         file.seek(SeekFrom::Start(0)).expect(""); // Need to go to beginning of file.
-        let decoded: Dawg<char> = deserialize_from(&file).expect("Failed to deserialize");
+        let decoded: Dawg<char, DefaultWeight> =
+            deserialize_from(&file).expect("Failed to deserialize");
         assert_eq!(decoded.node_count(), 5);
     }
 }
