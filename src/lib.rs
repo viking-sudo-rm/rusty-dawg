@@ -6,6 +6,9 @@ extern crate serde;
 extern crate serde_json;
 extern crate substring;
 extern crate tempfile;
+extern crate tokenizers;
+extern crate anyhow;
+extern crate unicode_segmentation;
 
 pub mod dawg;
 pub mod evaluator;

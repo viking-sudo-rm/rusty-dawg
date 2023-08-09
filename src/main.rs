@@ -16,6 +16,9 @@ extern crate serde;
 extern crate serde_json;
 extern crate substring;
 extern crate tempfile;
+extern crate tokenizers;
+extern crate anyhow;
+extern crate unicode_segmentation;
 
 mod dawg;
 mod evaluator;
@@ -23,6 +26,7 @@ mod graph;
 mod lms;
 mod stat_utils;
 mod tokenize;
+mod tokenize2;
 mod weight;
 
 use lms::induction_lm::InductionLM;
