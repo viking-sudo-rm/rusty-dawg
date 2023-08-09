@@ -1,24 +1,30 @@
-use std::fmt::{Debug, Formatter, Result};
+use serde::{Deserialize, Serialize};
 use std::cmp::{Eq, Ord};
-use serde::{Serialize, Deserialize};
+use std::fmt::{Debug, Formatter, Result};
 
-use graph::indexing::{NodeIndex, IndexType};
+use graph::indexing::{IndexType, NodeIndex};
 use graph::vec_graph::Graph;
 
 pub struct Dot<'a, N, E, Ix>
-where E: Serialize + for<'b> Deserialize<'b> {
+where
+    E: Serialize + for<'b> Deserialize<'b>,
+{
     graph: &'a Graph<N, E, Ix>,
 }
 
 impl<'a, N, E, Ix> Dot<'a, N, E, Ix>
-where E: Serialize + for<'b> Deserialize<'b> {
+where
+    E: Serialize + for<'b> Deserialize<'b>,
+{
     pub fn new(graph: &'a Graph<N, E, Ix>) -> Self {
-        Self {graph: graph}
+        Self { graph: graph }
     }
 }
 
 impl<'a, N: Debug, E, Ix: IndexType> Debug for Dot<'a, N, E, Ix>
-where E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b> {
+where
+    E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b>,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "digraph {{\n")?;
         for idx in 0..self.graph.node_count() {
@@ -29,7 +35,13 @@ where E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b> {
         for idx in 0..self.graph.node_count() {
             let node_index = NodeIndex::new(idx);
             for edge in self.graph.edges(node_index) {
-                write!(f, "  {} -> {} [{:?}]\n", idx, edge.target().index(), edge.weight())?;
+                write!(
+                    f,
+                    "  {} -> {} [{:?}]\n",
+                    idx,
+                    edge.target().index(),
+                    edge.weight()
+                )?;
             }
         }
         write!(f, "}}")
@@ -38,8 +50,8 @@ where E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b> {
 
 #[cfg(test)]
 mod tests {
-    use graph::vec_graph::Graph;
     use graph::vec_graph::dot::Dot;
+    use graph::vec_graph::Graph;
 
     #[test]
     fn test_print_graph() {
@@ -50,7 +62,9 @@ mod tests {
 
         let dot = Dot::new(&graph);
         println!("{:?}", dot);
-        assert_eq!(format!("{dot:?}"), "digraph {\n  0 [5]\n  1 [6]\n  0 -> 1 [7]\n}");
+        assert_eq!(
+            format!("{dot:?}"),
+            "digraph {\n  0 [5]\n  1 [6]\n  0 -> 1 [7]\n}"
+        );
     }
-
 }

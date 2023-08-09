@@ -7,9 +7,8 @@ pub struct NullTokenIndex {
 }
 
 impl Tokenize for NullTokenIndex {
-
     fn new() -> Self {
-        NullTokenIndex {count: 0}
+        NullTokenIndex { count: 0 }
     }
 
     fn add(&mut self, token: &str) -> usize {
@@ -25,5 +24,4 @@ impl Tokenize for NullTokenIndex {
     fn get_count(&self) -> usize {
         self.count
     }
-
 }

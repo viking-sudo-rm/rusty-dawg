@@ -25,11 +25,15 @@ impl TokenIndex<usize> {
 }
 
 impl Tokenize for TokenIndex<usize> {
-
     fn new() -> Self {
         let token_to_index = HashMap::new();
         let index_to_token = Vec::new();
-        let mut index = TokenIndex {token_to_index, index_to_token, count: 0, unk: 0};
+        let mut index = TokenIndex {
+            token_to_index,
+            index_to_token,
+            count: 0,
+            unk: 0,
+        };
         index.add("<unk>");
         index.add("<bos>");
         index.add("<eos>");
@@ -46,7 +50,7 @@ impl Tokenize for TokenIndex<usize> {
                 self.index_to_token.push(token.to_string());
                 self.count += 1;
                 self.count - 1
-            },
+            }
         }
     }
 
@@ -60,12 +64,11 @@ impl Tokenize for TokenIndex<usize> {
     fn get_count(&self) -> usize {
         self.count
     }
-
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenize::{Tokenize, TokenIndex};
+    use crate::tokenize::{TokenIndex, Tokenize};
 
     #[test]
     fn test_token_index() {
@@ -83,5 +86,4 @@ mod tests {
         assert_eq!(token_index.index("<unk>"), 0);
         assert_eq!(token_index.index("universe"), 0);
     }
-
 }

@@ -1,48 +1,54 @@
 // See here for Graph info:
 // https://docs.rs/petgraph/latest/petgraph/graph/struct.Graph.html
-// 
+//
 // See here for Suffix Automaton algorithm in Python:
 // https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
-// 
+//
 
+use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::cmp::{Eq, Ord};
-use std::fmt::Debug;
 use std::collections::LinkedList;
-use serde::{Serialize, Deserialize};
+use std::fmt::Debug;
 
 // use vec_graph::dot::Dot;
-use weight::{Weight40, Weight};
 use graph::indexing::NodeIndex;
 use graph::vec_graph::Graph;
+use weight::{Weight, Weight40};
 
 #[derive(Serialize, Deserialize)]
 pub struct Dawg<E>
-where E: Eq + Copy + Debug {
-    #[serde(bound(
-        serialize = "E: Serialize",
-        deserialize = "E: Deserialize<'de>",
-    ))]
+where
+    E: Eq + Copy + Debug,
+{
+    #[serde(bound(serialize = "E: Serialize", deserialize = "E: Deserialize<'de>",))]
     dawg: Graph<Weight40, E>,
     initial: NodeIndex,
 }
 
 // TODO: Make weight type generic with default of Weight40
 impl<E> Dawg<E>
-where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
-
+where
+    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+{
     pub fn new() -> Dawg<E> {
         let mut dawg = Graph::<Weight40, E>::new();
         let initial = dawg.add_node(Weight40::initial());
         dawg[initial].increment_count();
-        Dawg {dawg: dawg, initial: initial}
+        Dawg {
+            dawg: dawg,
+            initial: initial,
+        }
     }
 
     pub fn with_capacity(n_nodes: usize) -> Dawg<E> {
         let mut dawg = Graph::<Weight40, E>::with_capacity(n_nodes);
         let initial = dawg.add_node(Weight40::initial());
         dawg[initial].increment_count();
-        Dawg {dawg: dawg, initial: initial}
+        Dawg {
+            dawg: dawg,
+            initial: initial,
+        }
     }
 
     pub fn build(&mut self, text: &Vec<E>) {
@@ -67,27 +73,31 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                     if opt_next_state.is_some() {
                         break;
                     }
-                },
+                }
                 None => break,
             }
         }
-    
+
         match opt_state {
             // There is no valid failure state for the new state.
             None => (&mut self.dawg[new]).set_failure(Some(self.initial)),
-    
+
             // Found a failure state to fail to.
             Some(mut state) => {
                 let next_state = opt_next_state.unwrap();
                 if self.dawg[state].get_length() + 1 == self.dawg[next_state].get_length() {
                     // Fail to an existing state.
                     (&mut self.dawg[new]).set_failure(Some(next_state));
-                }
-                
-                else {
+                } else {
                     // Split a state and fail to the clone of it.
-                    let clone = self.dawg.add_node(Weight40::split(&self.dawg[state], &self.dawg[next_state]));
-                    let edges: Vec<_> = self.dawg.edges(next_state).map(|edge| (edge.target(), *edge.weight())).collect();
+                    let clone = self
+                        .dawg
+                        .add_node(Weight40::split(&self.dawg[state], &self.dawg[next_state]));
+                    let edges: Vec<_> = self
+                        .dawg
+                        .edges(next_state)
+                        .map(|edge| (edge.target(), *edge.weight()))
+                        .collect();
                     for (target, weight) in edges {
                         self.dawg.add_edge(clone, target, weight);
                     }
@@ -97,7 +107,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                     // self.dawg.set_node_weight(clone, weight);
                     (&mut self.dawg[new]).set_failure(Some(clone));
                     (&mut self.dawg[next_state]).set_failure(Some(clone));
-    
+
                     // Reroute edges along failure chain.
                     let mut next_state_ = next_state;
                     loop {
@@ -106,12 +116,12 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                         } else {
                             self.dawg.add_edge(state, clone, token);
                         }
-    
+
                         match self.dawg[state].get_failure() {
                             None => break,
                             Some(q) => {
                                 state = q;
-                            },
+                            }
                         }
                         match self.transition(state, token, false) {
                             Some(value) => {
@@ -119,12 +129,12 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                                 if next_state_ != next_state {
                                     break;
                                 }
-                            },
-                            None => {},
+                            }
+                            None => {}
                         }
                     }
                 }
-            },
+            }
         }
 
         // Increment counts of all suffixes along the failure path.
@@ -154,8 +164,8 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                     for next_state in self.dawg.neighbors(state) {
                         queue.push_back((next_state, length + 1));
                     }
-                },
-                None => break
+                }
+                None => break,
             }
         }
     }
@@ -177,8 +187,8 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
                 Some(fstate) => {
                     state = fstate;
                     count += 1;
-                },
-                None => {break},
+                }
+                None => break,
             }
         }
         count
@@ -195,7 +205,7 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
         //     println!("{}, {:?} -> {}", state.index(), token, next_state.unwrap().index());
         //     return next_state;
         // }
-    
+
         if !use_failures {
             return None;
         }
@@ -204,14 +214,19 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
             Some(q) => {
                 // Not in the initial state.
                 return self.transition(q, token, use_failures);
-            },
+            }
             // Only possible in the initial state.
             None => return Some(self.initial),
-        }    
+        }
     }
 
     //Return the length of the largest matching suffix.
-    pub fn transition_and_count(&self, state: NodeIndex, token: E, length: u64) -> (Option<NodeIndex>, u64) {
+    pub fn transition_and_count(
+        &self,
+        state: NodeIndex,
+        token: E,
+        length: u64,
+    ) -> (Option<NodeIndex>, u64) {
         // for edge in self.dawg.edges(state) {
         //     if token == *edge.weight() {
         //         return (Some(edge.target()), length + 1);
@@ -221,14 +236,14 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
         if next_state.is_some() {
             return (next_state, length + 1);
         }
-    
+
         let fail_state = self.dawg[state].get_failure();
         match fail_state {
             Some(q) => {
                 // If we fail, the length we're matching is the length of the largest suffix of the fail state.
                 let new_length = self.dawg[q].get_length();
                 return self.transition_and_count(q, token, new_length);
-            },
+            }
             // Only possible in the initial state.
             None => return (Some(self.initial), 0),
         }
@@ -269,7 +284,6 @@ where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
     pub fn get_graph(&self) -> &Graph<Weight40, E> {
         &self.dawg
     }
-
 }
 
 #[cfg(test)]
@@ -278,12 +292,12 @@ mod tests {
     use dawg::Dawg;
     use weight::Weight;
 
-    use graph::vec_graph::dot::Dot;
     use graph::indexing::NodeIndex;
+    use graph::vec_graph::dot::Dot;
 
+    use bincode::{deserialize_from, serialize_into};
     use std::fs::File;
-    use std::io::{Read, Write, Seek, SeekFrom};
-    use bincode::{serialize_into, deserialize_from};
+    use std::io::{Read, Seek, SeekFrom, Write};
     use tempfile::NamedTempFile;
 
     #[test]
@@ -359,8 +373,14 @@ mod tests {
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);
         assert_eq!(dawg.get_max_factor_length("However,".chars().collect()), 8);
-        assert_eq!(dawg.get_max_factor_length("static~However, the farce".chars().collect()), 15);
-        assert_eq!(dawg.get_max_factor_length("However, the zzz".chars().collect()), 13);
+        assert_eq!(
+            dawg.get_max_factor_length("static~However, the farce".chars().collect()),
+            15
+        );
+        assert_eq!(
+            dawg.get_max_factor_length("However, the zzz".chars().collect()),
+            13
+        );
     }
 
     #[test]
@@ -378,7 +398,7 @@ mod tests {
     fn test_serialize_deserialize_to_string() {
         let mut dawg = Dawg::new();
         dawg.build(&"abcd".chars().collect());
-    
+
         let encoded: Vec<u8> = bincode::serialize(&dawg).unwrap();
         let decoded: Dawg<char> = bincode::deserialize(&encoded[..]).unwrap();
         assert_eq!(decoded.node_count(), 5);
@@ -391,9 +411,8 @@ mod tests {
 
         let mut file = NamedTempFile::new().expect("Failed to create file");
         serialize_into(&file, &dawg).expect("Failed to serialize");
-        file.seek(SeekFrom::Start(0)).expect("");  // Need to go to beginning of file.
+        file.seek(SeekFrom::Start(0)).expect(""); // Need to go to beginning of file.
         let decoded: Dawg<char> = deserialize_from(&file).expect("Failed to deserialize");
         assert_eq!(decoded.node_count(), 5);
     }
-
 }

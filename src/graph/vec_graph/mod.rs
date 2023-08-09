@@ -4,13 +4,13 @@
 // See https://timothy.hobbs.cz/rust-play/petgraph-internals.html
 // Can also implement a version with separate Node/Edge lists and Edge pointers forming AVL tree.
 
+use serde::{Deserialize, Serialize};
+use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
 use std::slice::Iter;
-use std::clone::Clone;
-use serde::{Serialize, Deserialize};
 
-use graph::indexing::{DefaultIx, NodeIndex, IndexType};
+use graph::indexing::{DefaultIx, IndexType, NodeIndex};
 
 pub mod dot;
 // use self::dot::Dot;
@@ -26,16 +26,17 @@ pub struct Graph<N, E, Ix = DefaultIx> {
 }
 
 impl<N, E, Ix: IndexType> Graph<N, E, Ix>
-where E: Eq + Ord + Copy {
-
+where
+    E: Eq + Ord + Copy,
+{
     pub fn new() -> Self {
         let nodes: Vec<Node<N, E, Ix>> = Vec::new();
-        Graph {nodes}
+        Graph { nodes }
     }
 
     pub fn with_capacity(n_nodes: usize) -> Self {
         let nodes: Vec<Node<N, E, Ix>> = Vec::with_capacity(n_nodes);
-        Graph {nodes}
+        Graph { nodes }
     }
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
@@ -58,7 +59,11 @@ where E: Eq + Ord + Copy {
     }
 
     pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
-    where N: Clone, E: Clone, Ix: Clone {
+    where
+        N: Clone,
+        E: Clone,
+        Ix: Clone,
+    {
         let node = self.nodes[a.index()].clone();
         let node_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(node);
@@ -100,11 +105,12 @@ where E: Eq + Ord + Copy {
     pub fn edge_count(&self) -> usize {
         self.nodes.iter().map(|x| x.edges.len()).sum()
     }
-
 }
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for Graph<N, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     type Output = N;
     fn index(&self, index: NodeIndex<Ix>) -> &N {
         &self.nodes[index.index()].weight
@@ -112,7 +118,9 @@ where Ix: IndexType {
 }
 
 impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for Graph<N, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
         &mut self.nodes[index.index()].weight
     }
@@ -129,23 +137,31 @@ pub struct Node<N, E, Ix = DefaultIx> {
 }
 
 impl<N, E, Ix> Clone for Node<N, E, Ix>
-where N: Clone, E: Clone, Ix: Clone {
+where
+    N: Clone,
+    E: Clone,
+    Ix: Clone,
+{
     fn clone(&self) -> Self {
-        Node {weight: self.weight.clone(), edges: self.edges.clone()}
+        Node {
+            weight: self.weight.clone(),
+            edges: self.edges.clone(),
+        }
     }
 }
 
 impl<N, E, Ix: IndexType> Node<N, E, Ix>
-where E: Eq + Ord + Copy {
-
+where
+    E: Eq + Ord + Copy,
+{
     pub fn new(weight: N) -> Self {
         let edges = Vec::new();
-        Self {weight, edges}
+        Self { weight, edges }
     }
 
     pub fn add_edge(&mut self, weight: E, target: NodeIndex<Ix>) -> bool {
         if self.edges.len() == 0 {
-            let edge = Edge {weight, target};
+            let edge = Edge { weight, target };
             self.edges.push(edge);
             return true;
         }
@@ -154,7 +170,7 @@ where E: Eq + Ord + Copy {
         if self.edges[idx].weight == weight {
             return false;
         }
-        let edge = Edge {weight, target};
+        let edge = Edge { weight, target };
         if weight < self.edges[idx].weight {
             self.edges.insert(idx, edge);
         } else {
@@ -213,7 +229,6 @@ where E: Eq + Ord + Copy {
             return self._binary_search(weight, mid, r);
         }
     }
-
 }
 
 #[derive(Serialize, Deserialize)]
@@ -227,14 +242,19 @@ pub struct Edge<E, Ix = DefaultIx> {
 }
 
 impl<E, Ix> Clone for Edge<E, Ix>
-where E: Clone, Ix: Clone {
+where
+    E: Clone,
+    Ix: Clone,
+{
     fn clone(&self) -> Self {
-        Edge {weight: self.weight.clone(), target: self.target.clone()}
+        Edge {
+            weight: self.weight.clone(),
+            target: self.target.clone(),
+        }
     }
 }
 
 impl<E, Ix: IndexType> Edge<E, Ix> {
-
     pub fn weight(&self) -> &E {
         &self.weight
     }
@@ -246,7 +266,6 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
     pub fn set_target(&mut self, target: NodeIndex<Ix>) {
         self.target = target;
     }
-
 }
 
 pub struct Neighbors<'a, E: 'a, Ix: 'a = DefaultIx> {
@@ -255,7 +274,9 @@ pub struct Neighbors<'a, E: 'a, Ix: 'a = DefaultIx> {
 }
 
 impl<'a, E, Ix> Iterator for Neighbors<'a, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     type Item = NodeIndex<Ix>;
 
     fn next(&mut self) -> Option<NodeIndex<Ix>> {
@@ -268,9 +289,14 @@ where Ix: IndexType {
 }
 
 impl<'a, E, Ix> Neighbors<'a, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     pub fn new<N>(node: &'a Node<N, E, Ix>) -> Self {
-        Self {edges: &node.edges, next: 0}
+        Self {
+            edges: &node.edges,
+            next: 0,
+        }
     }
 }
 
@@ -278,11 +304,11 @@ where Ix: IndexType {
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use graph::indexing::{NodeIndex, IndexType};
-    use graph::vec_graph::Graph;
+    use graph::indexing::{IndexType, NodeIndex};
     use graph::vec_graph::dot::Dot;
+    use graph::vec_graph::Graph;
 
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn test_create_graph() {
@@ -292,7 +318,10 @@ mod tests {
     }
 
     fn weights<N, E, Ix>(graph: &Graph<N, E, Ix>, q: NodeIndex<Ix>) -> Vec<E>
-    where E: Ord + Eq + Copy, Ix: IndexType {
+    where
+        E: Ord + Eq + Copy,
+        Ix: IndexType,
+    {
         graph.edges(q).map(|x| *x.weight()).collect::<Vec<_>>()
     }
 
@@ -370,5 +399,4 @@ mod tests {
         assert_eq!(graph.reroute_edge(q0, q2, 2), true);
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
     }
-
 }

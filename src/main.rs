@@ -1,50 +1,50 @@
 // Implementation of Suffix DFA in Rust.
-// 
+//
 // See here for Graph info:
 // https://docs.rs/petgraph/latest/petgraph/graph/struct.Graph.html
-// 
+//
 // See here for Suffix Automaton algorithm in Python:
 // https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
-// 
+//
 
+extern crate bincode;
+extern crate bitvec;
 extern crate clap;
-extern crate petgraph;
 extern crate kdam;
-extern crate substring;
+extern crate petgraph;
 extern crate serde;
 extern crate serde_json;
-extern crate bitvec;
-extern crate bincode;
+extern crate substring;
 extern crate tempfile;
 
 mod dawg;
-mod weight;
+mod evaluator;
+mod graph;
+mod lms;
 mod stat_utils;
 mod tokenize;
-mod graph;
-mod evaluator;
-mod lms;
+mod weight;
 
-use lms::LM;
-use lms::kn_lm::KNLM;
 use lms::induction_lm::InductionLM;
+use lms::kn_lm::KNLM;
+use lms::LM;
 
-use std::mem::size_of;
-use std::fs;
-use std::env;
 use bincode::serialize_into;
 use clap::Parser;
+use std::env;
+use std::fs;
+use std::mem::size_of;
 
 use kdam::tqdm;
 
-use stat_utils::*;
 use dawg::Dawg;
-use weight::{Weight40};
-use tokenize::{Tokenize, TokenIndex,NullTokenIndex};
 use evaluator::Evaluator;
+use stat_utils::*;
+use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
+use weight::Weight40;
 
 // Node and edge weight types.
-type N = Weight40;  // FIXME: Actually pass this as a generic argument to Dawg.
+type N = Weight40; // FIXME: Actually pass this as a generic argument to Dawg.
 type E = usize;
 
 #[derive(Parser, Debug)]
@@ -65,22 +65,22 @@ struct Args {
     gen_path: Option<String>,
     #[arg(long)]
     gen_results_path: Option<String>,
-    #[arg(long, default_value_t=false)]
+    #[arg(long, default_value_t = false)]
     tokenize: bool,
-    #[arg(long, default_value_t=10000)]
+    #[arg(long, default_value_t = 10000)]
     truncate_test: usize,
-    #[arg(long, default_value_t=20)]
+    #[arg(long, default_value_t = 20)]
     n_eval: usize,
-    #[arg(long, default_value_t=10)]
+    #[arg(long, default_value_t = 10)]
     max_length: u64,
 
-    #[arg(long,short='f')]
+    #[arg(long, short = 'f')]
     min_freq: Vec<u64>,
-    #[arg(long,short='d')]
+    #[arg(long, short = 'd')]
     delta: Vec<f64>,
-    #[arg(long,short='n')]
+    #[arg(long, short = 'n')]
     n_gram: Vec<i64>,
-    #[arg(long,short='i')]
+    #[arg(long, short = 'i')]
     induct_delta: Vec<f64>,
 }
 
@@ -95,9 +95,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Box::new(NullTokenIndex::new())
     };
 
-    let train_raw: String = fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
+    let train_raw: String =
+        fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
     let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let eval_threshold = if args.n_eval != 0 {train.len() / args.n_eval} else {0};
+    let eval_threshold = if args.n_eval != 0 {
+        train.len() / args.n_eval
+    } else {
+        0
+    };
     println!("#(train): {}", train.len());
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
@@ -109,7 +114,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(test): {}/{}", test.len(), old_test_len);
 
     let gen_raw: String = match &args.gen_path {
-        Some(path) => fs::read_to_string(path).expect(format!("Error loading gen path: {}", path).as_str()),
+        Some(path) => {
+            fs::read_to_string(path).expect(format!("Error loading gen path: {}", path).as_str())
+        }
         None => "".to_string(),
     };
     let gen: Vec<E> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
@@ -128,7 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
         if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
-            let good_turing = good_turing_estimate(&dawg, train.len());        
+            let good_turing = good_turing_estimate(&dawg, train.len());
             evaluator.evaluate(&dawg, idx, good_turing);
             if args.results_path != "" {
                 evaluator.to_json(&args.results_path)?;
@@ -137,9 +144,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some(gen_path) => {
                     gen_evaluator.evaluate(&dawg, idx, good_turing);
                     gen_evaluator.to_json(gen_path)?;
-                },
-                None => {},
-            }            
+                }
+                None => {}
+            }
         }
     }
     println!("Completed!");
@@ -157,14 +164,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM>>) {
     for min_freq in args.min_freq.iter() {
         for delta in args.delta.iter() {
-            let maxgram = KNLM::new(format!("maxgram-kn{}-#{}", delta, min_freq), *delta, -1, *min_freq);
+            let maxgram = KNLM::new(
+                format!("maxgram-kn{}-#{}", delta, min_freq),
+                *delta,
+                -1,
+                *min_freq,
+            );
             lms.push(Box::new(maxgram));
             for n in args.n_gram.iter() {
-                let ngram = KNLM::new(format!("{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
+                let ngram = KNLM::new(
+                    format!("{}gram-kn{}-#{}", n, delta, min_freq),
+                    *delta,
+                    *n,
+                    *min_freq,
+                );
                 lms.push(Box::new(ngram));
                 for induct_delta in args.induct_delta.iter() {
-                    let induct_backoff = KNLM::new(format!("sub-{}gram-kn{}-#{}", n, delta, min_freq), *delta, *n, *min_freq);
-                    let induct = InductionLM::new(format!("{}gram-kn{}-#{}-induct{}", n, delta, min_freq, induct_delta), Box::new(induct_backoff), *induct_delta);
+                    let induct_backoff = KNLM::new(
+                        format!("sub-{}gram-kn{}-#{}", n, delta, min_freq),
+                        *delta,
+                        *n,
+                        *min_freq,
+                    );
+                    let induct = InductionLM::new(
+                        format!("{}gram-kn{}-#{}-induct{}", n, delta, min_freq, induct_delta),
+                        Box::new(induct_backoff),
+                        *induct_delta,
+                    );
                     lms.push(Box::new(induct))
                 }
             }

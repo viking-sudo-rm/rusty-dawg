@@ -6,12 +6,12 @@
 
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
+use serde::{Deserialize, Serialize};
+use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
-use std::clone::Clone;
-use serde::{Serialize, Deserialize};
 
-use graph::indexing::{DefaultIx, EdgeIndex, NodeIndex, IndexType};
+use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
 
@@ -26,12 +26,13 @@ pub struct AvlGraph<N, E, Ix = DefaultIx> {
 }
 
 impl<N, E, Ix: IndexType> AvlGraph<N, E, Ix>
-where E: Eq + Ord + Copy {
-
+where
+    E: Eq + Ord + Copy,
+{
     pub fn new() -> Self {
         let nodes = Vec::new();
         let edges = Vec::new();
-        AvlGraph {nodes, edges}
+        AvlGraph { nodes, edges }
     }
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
@@ -54,7 +55,11 @@ where E: Eq + Ord + Copy {
     }
 
     pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
-    where N: Clone, E: Clone, Ix: Clone {
+    where
+        N: Clone,
+        E: Clone,
+        Ix: Clone,
+    {
         let clone = Node::new(self.nodes[a.index()].weight.clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(clone);
@@ -107,7 +112,12 @@ where E: Eq + Ord + Copy {
     }
 
     // First result is either where weight was found or end; second is node above that (where to insert).
-    fn binary_search(&self, edge: EdgeIndex<Ix>, last_edge: EdgeIndex<Ix>, weight: E) -> (EdgeIndex<Ix>, EdgeIndex<Ix>) {
+    fn binary_search(
+        &self,
+        edge: EdgeIndex<Ix>,
+        last_edge: EdgeIndex<Ix>,
+        weight: E,
+    ) -> (EdgeIndex<Ix>, EdgeIndex<Ix>) {
         if edge == EdgeIndex::end() {
             return (edge, last_edge);
         }
@@ -122,7 +132,12 @@ where E: Eq + Ord + Copy {
         }
     }
 
-    pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
+    pub fn add_edge(
+        &mut self,
+        a: NodeIndex<Ix>,
+        b: NodeIndex<Ix>,
+        weight: E,
+    ) -> Option<EdgeIndex<Ix>> {
         let edge = Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
@@ -226,14 +241,13 @@ where E: Eq + Ord + Copy {
                 }
             } else {
                 if self.edges[e.index()].balance_factor < 0 {
-                   (&mut self.edges[e.index()]).balance_factor = 0;
-                   return false;
+                    (&mut self.edges[e.index()]).balance_factor = 0;
+                    return false;
                 }
                 (&mut self.edges[e.index()]).balance_factor = 1;
                 return true;
             }
         }
-
         // The left-child case.
         else {
             if self.edges[e.index()].balance_factor < 0 {
@@ -266,9 +280,9 @@ where E: Eq + Ord + Copy {
                 if self.edges[e.index()].balance_factor > 0 {
                     (&mut self.edges[e.index()]).balance_factor = 0;
                     return false;
-                 }
-                 (&mut self.edges[e.index()]).balance_factor = -1;
-                 return true;
+                }
+                (&mut self.edges[e.index()]).balance_factor = -1;
+                return true;
             }
         }
 
@@ -379,11 +393,12 @@ where E: Eq + Ord + Copy {
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
-
 }
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     type Output = N;
     fn index(&self, index: NodeIndex<Ix>) -> &N {
         &self.nodes[index.index()].weight
@@ -391,7 +406,9 @@ where Ix: IndexType {
 }
 
 impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
         &mut self.nodes[index.index()].weight
     }
@@ -408,15 +425,24 @@ pub struct Node<N, Ix = DefaultIx> {
 }
 
 impl<N, Ix> Clone for Node<N, Ix>
-where N: Clone, Ix: Clone {
+where
+    N: Clone,
+    Ix: Clone,
+{
     fn clone(&self) -> Self {
-        Node {weight: self.weight.clone(), first_edge: self.first_edge.clone()}
+        Node {
+            weight: self.weight.clone(),
+            first_edge: self.first_edge.clone(),
+        }
     }
 }
 
-impl<N, Ix: IndexType> Node<N, Ix>  {
+impl<N, Ix: IndexType> Node<N, Ix> {
     pub fn new(weight: N) -> Self {
-        Self {weight, first_edge: EdgeIndex::end()}
+        Self {
+            weight,
+            first_edge: EdgeIndex::end(),
+        }
     }
 }
 
@@ -434,7 +460,10 @@ pub struct Edge<E, Ix = DefaultIx> {
 }
 
 impl<E, Ix> Clone for Edge<E, Ix>
-where E: Clone, Ix: Clone {
+where
+    E: Clone,
+    Ix: Clone,
+{
     fn clone(&self) -> Self {
         Edge {
             weight: self.weight.clone(),
@@ -447,9 +476,14 @@ where E: Clone, Ix: Clone {
 }
 
 impl<E, Ix: IndexType> Edge<E, Ix> {
-
     pub fn new(weight: E, target: NodeIndex<Ix>) -> Self {
-        Edge {weight, target, left: EdgeIndex::end(), right: EdgeIndex::end(), balance_factor: 0}
+        Edge {
+            weight,
+            target,
+            left: EdgeIndex::end(),
+            right: EdgeIndex::end(),
+            balance_factor: 0,
+        }
     }
 
     pub fn weight(&self) -> &E {
@@ -463,18 +497,17 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
     pub fn set_target(&mut self, target: NodeIndex<Ix>) {
         self.target = target;
     }
-
 }
 
 #[cfg(test)]
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use graph::indexing::{NodeIndex, EdgeIndex, IndexType};
     use graph::avl_graph::AvlGraph;
+    use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
     // use graph::avl_graph::dot::Dot;
 
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn test_create_graph() {
@@ -566,7 +599,7 @@ mod tests {
     fn height(graph: &AvlGraph<u8, u16>, e: EdgeIndex) -> usize {
         if e == EdgeIndex::end() {
             return 0;
-        } 
+        }
         height(graph, graph.edges[e.index()].left) + height(graph, graph.edges[e.index()].right) + 1
     }
 
@@ -579,11 +612,13 @@ mod tests {
             let qi = graph.add_node(idx);
             graph.add_edge(q0, qi, idx.into());
         }
-        
+
         println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
-        println!("bf: {}", graph.edges[graph.nodes[0].first_edge.index()].balance_factor);
+        println!(
+            "bf: {}",
+            graph.edges[graph.nodes[0].first_edge.index()].balance_factor
+        );
         // assert_eq!(0, 1);
         // FIXME
     }
-
 }

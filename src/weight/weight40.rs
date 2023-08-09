@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::clone::Clone;
-use serde::{Serialize, Deserialize};
 
-use graph::indexing::NodeIndex;
 use crate::weight::Weight;
+use graph::indexing::NodeIndex;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Weight40 {
@@ -74,8 +74,8 @@ impl Weight for Weight40 {
 #[cfg(test)]
 mod tests {
 
-    use weight::Weight;
     use weight::weight40::Weight40;
+    use weight::Weight;
 
     #[test]
     fn test_length_weight40() {
@@ -88,5 +88,4 @@ mod tests {
         let weight = Weight40::new(1 << 35, None, 0);
         assert_eq!(weight.get_length(), 1 << 35);
     }
-
 }

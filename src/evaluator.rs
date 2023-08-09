@@ -1,21 +1,23 @@
-use std::marker::Copy;
-use std::fs;
+use serde::Serialize;
+use std::cmp::max;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use serde::{Serialize};
+use std::fs;
 use std::io::Write;
-use std::cmp::max;
+use std::marker::Copy;
 
-use weight::Weight;
-use stat_utils::*;
 use dawg::Dawg;
+use stat_utils::*;
+use weight::Weight;
 
 use lms::LM;
 
-// TODO: 
+// TODO:
 #[derive(Serialize)]
 pub struct Evaluator<'a, E>
-where E: Eq + serde::Serialize + Copy + Debug {
+where
+    E: Eq + serde::Serialize + Copy + Debug,
+{
     #[serde(skip)]
     lms: &'a mut Vec<Box<dyn LM>>,
     #[serde(skip)]
@@ -26,8 +28,9 @@ where E: Eq + serde::Serialize + Copy + Debug {
 }
 
 impl<E> Evaluator<'_, E>
-where E: Eq + serde::Serialize + Copy + Debug {
-
+where
+    E: Eq + serde::Serialize + Copy + Debug,
+{
     pub fn get(&self, key: &str) -> &Vec<f64> {
         &self.metrics[key]
     }
@@ -42,13 +45,15 @@ where E: Eq + serde::Serialize + Copy + Debug {
         file.write_all(json_data.as_bytes())?;
         Ok(())
     }
-
 }
 
 // TODO: Generic case
 impl Evaluator<'_, usize> {
-
-    pub fn new<'a>(lms: &'a mut Vec<Box<dyn LM>>, test: &'a Vec<usize>, max_length: u64) -> Evaluator<'a, usize> {
+    pub fn new<'a>(
+        lms: &'a mut Vec<Box<dyn LM>>,
+        test: &'a Vec<usize>,
+        max_length: u64,
+    ) -> Evaluator<'a, usize> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
@@ -67,7 +72,13 @@ impl Evaluator<'_, usize> {
             metrics.insert(lm.get_name().to_string(), Vec::new());
         }
 
-        Evaluator {lms, test, indices, metrics, max_length}
+        Evaluator {
+            lms,
+            test,
+            indices,
+            metrics,
+            max_length,
+        }
     }
 
     pub fn evaluate(&mut self, dawg: &Dawg<usize>, idx: usize, good_turing: f64) {
@@ -87,7 +98,7 @@ impl Evaluator<'_, usize> {
         for lm in self.lms.iter() {
             cum_ppls.insert(lm.get_name().to_string(), 0.);
         }
-    
+
         let mut opt_state;
         let mut state = dawg.get_initial();
         let mut length = 0;
@@ -130,36 +141,41 @@ impl Evaluator<'_, usize> {
                 lm.update(dawg, token);
             }
         }
-    
+
         self.indices.push(idx);
-        self.get_mut("states_per_token".to_string()).push((dawg.node_count() as f64) / (idx as f64));
-        self.get_mut("edges_per_token".to_string()).push((dawg.edge_count() as f64) / (idx as f64));
-        self.get_mut("suffix_lengths".to_string()).push((cum_length as f64) / (num_tokens as f64));
-        self.get_mut("max_suffix_lengths".to_string()).push(max_length as f64);
-        self.get_mut("suffix_counts".to_string()).push((cum_count as f64) / (num_tokens as f64));
-        self.get_mut("suffix_entropies".to_string()).push((cum_entropy as f64) / (num_tokens as f64));
+        self.get_mut("states_per_token".to_string())
+            .push((dawg.node_count() as f64) / (idx as f64));
+        self.get_mut("edges_per_token".to_string())
+            .push((dawg.edge_count() as f64) / (idx as f64));
+        self.get_mut("suffix_lengths".to_string())
+            .push((cum_length as f64) / (num_tokens as f64));
+        self.get_mut("max_suffix_lengths".to_string())
+            .push(max_length as f64);
+        self.get_mut("suffix_counts".to_string())
+            .push((cum_count as f64) / (num_tokens as f64));
+        self.get_mut("suffix_entropies".to_string())
+            .push((cum_entropy as f64) / (num_tokens as f64));
         for (key, ppl) in cum_ppls {
             self.get_mut(key).push((ppl as f64) / (num_tokens as f64));
         }
     }
-
 }
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use graph::vec_graph::dot::Dot;
     use dawg::Dawg;
     use evaluator::Evaluator;
-    use tokenize::{Tokenize, TokenIndex};
+    use graph::vec_graph::dot::Dot;
+    use tokenize::{TokenIndex, Tokenize};
 
-    use lms::LM;
     use lms::kn_lm::KNLM;
+    use lms::LM;
 
     #[test]
     fn test_timeseries_short() {
         // Max factor of train that is suffix of test, throughout train steps:
-        //   Step #0: [a, , ,] => 1 / 3 
+        //   Step #0: [a, , ,] => 1 / 3
         //   Step #1: [a, ab, ] => 3 / 3
         //   Step #2: [a, ab, ] => 3 / 3
         let train_tokens = vec!["a", "b", "b"];
@@ -178,18 +194,21 @@ mod tests {
             last = dawg.extend(*token, last);
             evaluator.evaluate(&dawg, idx, 0.);
         }
-        assert_eq!(*evaluator.get("suffix_lengths"), vec![1./3., 1., 1.]);
+        assert_eq!(*evaluator.get("suffix_lengths"), vec![1. / 3., 1., 1.]);
         assert_eq!(*evaluator.get("length0_count"), vec![2., 1., 1.]);
         assert_eq!(*evaluator.get("length1_count"), vec![1., 1., 1.]);
         assert_eq!(*evaluator.get("length2_count"), vec![0., 1., 1.]);
         assert_eq!(*evaluator.get("length3_count"), vec![0., 0., 0.]);
-        assert_eq!(*evaluator.get("suffix_counts"), vec![1./3., 2./3., 2./3.]);
+        assert_eq!(
+            *evaluator.get("suffix_counts"),
+            vec![1. / 3., 2. / 3., 2. / 3.]
+        );
     }
 
     #[test]
     fn test_timeseries_repeated() {
         // Max factor of train that is suffix of test, throughout train steps:
-        //   Step #0: [a, a, a] => 3 / 3 
+        //   Step #0: [a, a, a] => 3 / 3
         //   Step #1: [a, aa, aa] => 5 / 3
         let train_tokens = vec!["a", "a"];
         let test_tokens = vec!["a", "a", "a"];
@@ -209,10 +228,9 @@ mod tests {
             last = dawg.extend(*token, last);
             evaluator.evaluate(&dawg, idx, 0.);
         }
-        assert_eq!(*evaluator.get("suffix_lengths"), vec![1., 5./3.]);
-        assert_eq!(*evaluator.get("suffix_counts"), vec![1., 4./3.]);
+        assert_eq!(*evaluator.get("suffix_lengths"), vec![1., 5. / 3.]);
+        assert_eq!(*evaluator.get("suffix_counts"), vec![1., 4. / 3.]);
         // Is this right? This is cross-entropy/token.
         assert_eq!(*evaluator.get("unigram"), vec![1., 0.5849625007211563]);
     }
-
 }

@@ -1,8 +1,8 @@
 use std::convert::TryInto;
 
 use dawg::Dawg;
-use weight::Weight;
 use lms::LM;
+use weight::Weight;
 
 // use petgraph::graph::NodeIndex;
 use graph::indexing::NodeIndex;
@@ -13,7 +13,7 @@ pub struct KNLM {
     // dawg: &'a Dawg<usize>,
     kn_delta: f64,
     kn_max_n: i64,
-    min_count: u64,  // Backoff to states that occur at least this much.
+    min_count: u64, // Backoff to states that occur at least this much.
     state: NodeIndex,
 }
 
@@ -44,10 +44,15 @@ impl LM for KNLM {
 }
 
 impl KNLM {
-
     pub fn new(name: String, kn_delta: f64, kn_max_n: i64, min_count: u64) -> Self {
         // The state set here is correct but also unused.
-        Self {name, kn_delta, kn_max_n, state: NodeIndex::new(0), min_count}
+        Self {
+            name,
+            kn_delta,
+            kn_max_n,
+            state: NodeIndex::new(0),
+            min_count,
+        }
     }
 
     pub fn get_probability_exact(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f64 {
@@ -71,7 +76,13 @@ impl KNLM {
     // }
 
     // Backoff with Kneser-Ney smoothing
-    pub fn get_probability_kn(&self, dawg: &Dawg<usize>, mut state: NodeIndex, label: usize, good_turing: f64) -> f64 {
+    pub fn get_probability_kn(
+        &self,
+        dawg: &Dawg<usize>,
+        mut state: NodeIndex,
+        label: usize,
+        good_turing: f64,
+    ) -> f64 {
         if self.kn_max_n >= 0 {
             let n: u64 = self.kn_max_n.try_into().unwrap();
             let graph = dawg.get_graph();
@@ -80,8 +91,8 @@ impl KNLM {
                 match graph[state].get_failure() {
                     Some(next_state) => {
                         state = next_state;
-                    },
-                    None => {break},
+                    }
+                    None => break,
                 }
             }
         }
@@ -96,22 +107,23 @@ impl KNLM {
             Some(fstate) => {
                 let delta = self.kn_delta;
                 let back_prob = self.get_probability_kn(dawg, fstate, label, good_turing);
-                return ((1. - delta) * (count as f64) + delta * (back_count as f64) * back_prob) / (sum_count as f64);
+                return ((1. - delta) * (count as f64) + delta * (back_count as f64) * back_prob)
+                    / (sum_count as f64);
             }
             None => {
                 // Put some probability here on <unk> using Good-Turing estimate.
-                return (1. - good_turing) * self.get_probability_exact(dawg, state, label) + good_turing;
-            },
+                return (1. - good_turing) * self.get_probability_exact(dawg, state, label)
+                    + good_turing;
+            }
         }
     }
-
 }
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use tokenize::{Tokenize, TokenIndex};
+    use tokenize::{TokenIndex, Tokenize};
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
@@ -130,7 +142,10 @@ mod tests {
 
         let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
         let b = index.index("b");
-        assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(0), b), 1./3.);
+        assert_eq!(
+            lm.get_probability_exact(&dawg, NodeIndex::new(0), b),
+            1. / 3.
+        );
         assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(1), b), 1.);
         assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(2), b), 0.);
     }
@@ -147,8 +162,14 @@ mod tests {
         let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
         let a = index.index("a");
         let b = index.index("b");
-        assert_eq!(lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.), 1./3.);
-        assert_eq!(lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.), 1./3.);
+        assert_eq!(
+            lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.),
+            1. / 3.
+        );
+        assert_eq!(
+            lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.),
+            1. / 3.
+        );
     }
 
     #[test]
@@ -169,7 +190,7 @@ mod tests {
         let pb = lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.);
         let pc = lm.get_probability_kn(&dawg, NodeIndex::new(0), c, 0.);
         // In the base case, we now just return the unigram model.
-        assert_eq!(pa + pb, 2./3.);
+        assert_eq!(pa + pb, 2. / 3.);
         assert_eq!(pc, 0.);
 
         // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -191,9 +212,9 @@ mod tests {
 
         let lm = KNLM::new("test".to_string(), 0.0, 1, 0);
         let b = index.index("b");
-  
+
         let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
-        assert_eq!(pb_a, 1./3.);
+        assert_eq!(pb_a, 1. / 3.);
     }
 
     #[test]
@@ -210,17 +231,22 @@ mod tests {
         let a = index.index("a");
         let b = index.index("b");
 
-        assert_eq!(lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.), 2./5.);
-        assert_eq!(lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.), 2./5.);
+        assert_eq!(
+            lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.),
+            2. / 5.
+        );
+        assert_eq!(
+            lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.),
+            2. / 5.
+        );
 
         lm.update(&dawg, a);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 2./5.);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
         lm.update(&dawg, b);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 2./5.);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
         lm.update(&dawg, a);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 2./5.);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
     }
 
     // TODO: Test integration between Good-Turing and get_probability_kn
-
 }
