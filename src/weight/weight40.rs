@@ -14,6 +14,7 @@ pub struct Weight40 {
     count: u32,
 }
 
+#[allow(arithmetic_overflow)]
 impl Weight for Weight40 {
     fn new(length: u64, failure: Option<NodeIndex>, count: u64) -> Self {
         Self {
