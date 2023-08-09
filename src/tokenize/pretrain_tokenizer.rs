@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use tokenizers::tokenizer::Tokenizer;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::tokenize2::Tokenize;
+use crate::tokenize::Tokenize;
 
 pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
     s.split_word_bounds().filter(|w| {

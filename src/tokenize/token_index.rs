@@ -12,20 +12,7 @@ pub struct TokenIndex<E> {
 }
 
 impl TokenIndex<usize> {
-    pub fn token(&self, index: usize) -> &str {
-        if index < self.count {
-            return self.index_to_token[index].as_str();
-        }
-        return self.token(self.unk);
-    }
-
-    pub fn eos(&self) -> usize {
-        2
-    }
-}
-
-impl Tokenize for TokenIndex<usize> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let token_to_index = HashMap::new();
         let index_to_token = Vec::new();
         let mut index = TokenIndex {
@@ -40,8 +27,15 @@ impl Tokenize for TokenIndex<usize> {
         index
     }
 
-    fn tokenize(&mut self, text: &str) {
-        let tokenized_text: Vec<usize> = text.split_whitespace().map(|x| self.add(x)).collect();
+    pub fn token(&self, index: usize) -> &str {
+        if index < self.count {
+            return self.index_to_token[index].as_str();
+        }
+        return self.token(self.unk);
+    }
+
+    pub fn eos(&self) -> usize {
+        2
     }
 
     fn add(&mut self, token: &str) -> usize {
@@ -64,6 +58,17 @@ impl Tokenize for TokenIndex<usize> {
             None => self.unk,
         }
     }
+}
+
+impl Tokenize for TokenIndex<usize> {
+    fn build(&mut self, text: &str) {
+        let tokens: Vec<usize> = text.split_whitespace().map(|x| self.add(x)).collect();
+    }
+
+    fn tokenize(&mut self, text: &str) -> Vec<usize> {
+        let tokenized_text: Vec<usize> = text.split_whitespace().map(|x| self.index(x)).collect();
+        tokenized_text
+    }
 
     fn get_count(&self) -> usize {
         self.count
@@ -72,10 +77,25 @@ impl Tokenize for TokenIndex<usize> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenize::{TokenIndex, Tokenize};
+    use crate::tokenize2::{TokenIndex, Tokenize};
 
     #[test]
-    fn test_token_index() {
+    fn test_build_tokenizer() {
+        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        token_index.build("");
+        assert_eq!(token_index.get_count(), 3);
+
+        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        token_index.build("hello");
+        assert_eq!(token_index.get_count(), 4);
+
+        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        token_index.build("hello, this is me.");
+        assert_eq!(token_index.get_count(), 7);
+    }
+
+    #[test]
+    fn test_add() {
         let mut token_index: TokenIndex<usize> = TokenIndex::new();
         assert_eq!(token_index.add("hello"), 3);
         assert_eq!(token_index.add("hello"), 3);
@@ -94,10 +114,24 @@ mod tests {
     #[test]
     fn test_tokenize_fn() {
         let mut token_index: TokenIndex<usize> = TokenIndex::new();
-        token_index.tokenize("hello world");
-        assert_eq!(token_index.get_count(), 5);
+        token_index.build("");
+        let tokens = token_index.tokenize("hello world");
+        assert_eq!(
+            tokens,
+            "<unk> <unk>"
+                .split_whitespace()
+                .map(|x| token_index.index(x))
+                .collect::<Vec<usize>>()
+        );
 
-        token_index.tokenize("how are you ?");
-        assert_eq!(token_index.get_count(), 9);
+        token_index.build("hello wolrd");
+        let tokens = token_index.tokenize("hello world");
+        assert_eq!(
+            tokens,
+            "hello world"
+                .split_whitespace()
+                .map(|x| token_index.index(x))
+                .collect::<Vec<usize>>()
+        );
     }
 }

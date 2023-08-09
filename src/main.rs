@@ -26,7 +26,6 @@ mod graph;
 mod lms;
 mod stat_utils;
 mod tokenize;
-mod tokenize2;
 mod weight;
 
 use lms::induction_lm::InductionLM;
@@ -43,7 +42,8 @@ use kdam::tqdm;
 use dawg::Dawg;
 use evaluator::Evaluator;
 use stat_utils::*;
-use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
+// use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
+use tokenize::{TokenIndex, Tokenize};
 use weight::Weight40;
 
 // Node and edge weight types.
@@ -92,15 +92,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sizeof(node): {}B", size_of::<N>());
 
     let args = Args::parse();
-    let mut index: Box<dyn Tokenize> = if args.tokenize {
-        Box::new(TokenIndex::<usize>::new())
-    } else {
-        Box::new(NullTokenIndex::new())
-    };
+    let mut index: Box<dyn Tokenize> = Box::new(TokenIndex::<usize>::new());
+    // let mut index: Box<dyn Tokenize> = if args.tokenize {
+    //     Box::new(TokenIndex::<usize>::new())
+    // } else {
+    //     Box::new(NullTokenIndex::new())
+    // };
 
     let train_raw: String =
         fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
-    let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
+    index.build(&train_raw);
+    let train: Vec<usize> = index.tokenize(&train_raw);
+    // let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     let eval_threshold = if args.n_eval != 0 {
         train.len() / args.n_eval
     } else {
@@ -109,7 +112,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(train): {}", train.len());
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
-    let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let mut test: Vec<usize> = index.tokenize(&test_raw);
+    // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
         test = test[0..args.truncate_test].to_vec();
@@ -122,7 +126,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         None => "".to_string(),
     };
-    let gen: Vec<E> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
+    // let gen: Vec<E> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
+    let gen: Vec<E> = index.tokenize(&gen_raw);
     println!("#(gen): {}", gen.len());
     println!("#(vocab): {}", index.get_count());
 
