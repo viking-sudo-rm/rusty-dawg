@@ -1,6 +1,6 @@
 use std::clone::Clone;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 // use petgraph::graph::NodeIndex;
 use graph::indexing::NodeIndex;
@@ -60,13 +60,12 @@ impl Weight for BasicWeight {
 #[cfg(test)]
 mod tests {
 
-    use weight::Weight;
     use weight::basic_weight::BasicWeight;
+    use weight::Weight;
 
     #[test]
     fn test_length_weight32() {
         let weight = BasicWeight::new(53, None, 0);
         assert_eq!(weight.get_length(), 53);
     }
-
 }

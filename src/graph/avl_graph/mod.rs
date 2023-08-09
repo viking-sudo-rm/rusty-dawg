@@ -6,12 +6,12 @@
 
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
+use serde::{Deserialize, Serialize};
+use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
-use std::clone::Clone;
-use serde::{Serialize, Deserialize};
 
-use graph::indexing::{DefaultIx, EdgeIndex, NodeIndex, IndexType};
+use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
 
@@ -26,12 +26,13 @@ pub struct AvlGraph<N, E, Ix = DefaultIx> {
 }
 
 impl<N, E, Ix: IndexType> AvlGraph<N, E, Ix>
-where E: Eq + Ord + Copy {
-
+where
+    E: Eq + Ord + Copy,
+{
     pub fn new() -> Self {
         let nodes = Vec::new();
         let edges = Vec::new();
-        AvlGraph {nodes, edges}
+        AvlGraph { nodes, edges }
     }
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
@@ -49,12 +50,16 @@ where E: Eq + Ord + Copy {
     pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
         match self.nodes.get_mut(a.index()) {
             Some(ptr) => ptr.weight = value,
-            None => return,
+            None => (),
         }
     }
 
     pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
-    where N: Clone, E: Clone, Ix: Clone {
+    where
+        N: Clone,
+        E: Clone,
+        Ix: Clone,
+    {
         let clone = Node::new(self.nodes[a.index()].weight.clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(clone);
@@ -65,10 +70,10 @@ where E: Eq + Ord + Copy {
         }
 
         let edge_to_clone = &self.edges[first_source_idx.index()];
-        let first_clone_edge = Edge::new(edge_to_clone.weight.clone(), edge_to_clone.target);
+        let first_clone_edge = Edge::new(edge_to_clone.weight, edge_to_clone.target);
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
-        (&mut self.nodes[clone_idx.index()]).first_edge = first_clone_idx;
+        self.nodes[clone_idx.index()].first_edge = first_clone_idx;
         self.clone_edges(first_source_idx, first_clone_idx);
         clone_idx
     }
@@ -87,7 +92,7 @@ where E: Eq + Ord + Copy {
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
-            (&mut self.edges[new.index()]).left = new_left;
+            self.edges[new.index()].left = new_left;
             self.clone_edges(left, new_left);
         }
 
@@ -97,7 +102,7 @@ where E: Eq + Ord + Copy {
             let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
-            (&mut self.edges[new.index()]).right = new_right;
+            self.edges[new.index()].right = new_right;
             self.clone_edges(right, new_right);
         }
     }
@@ -107,14 +112,19 @@ where E: Eq + Ord + Copy {
     }
 
     // First result is either where weight was found or end; second is node above that (where to insert).
-    fn binary_search(&self, edge: EdgeIndex<Ix>, last_edge: EdgeIndex<Ix>, weight: E) -> (EdgeIndex<Ix>, EdgeIndex<Ix>) {
+    fn binary_search(
+        &self,
+        edge: EdgeIndex<Ix>,
+        last_edge: EdgeIndex<Ix>,
+        weight: E,
+    ) -> (EdgeIndex<Ix>, EdgeIndex<Ix>) {
         if edge == EdgeIndex::end() {
             return (edge, last_edge);
         }
 
         let edge_weight = self.edges[edge.index()].weight;
         if weight == edge_weight {
-            return (edge, last_edge);
+            (edge, last_edge)
         } else if weight < edge_weight {
             return self.binary_search(self.edges[edge.index()].left, edge, weight);
         } else {
@@ -122,7 +132,12 @@ where E: Eq + Ord + Copy {
         }
     }
 
-    pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
+    pub fn add_edge(
+        &mut self,
+        a: NodeIndex<Ix>,
+        b: NodeIndex<Ix>,
+        weight: E,
+    ) -> Option<EdgeIndex<Ix>> {
         let edge = Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
@@ -139,9 +154,9 @@ where E: Eq + Ord + Copy {
         }
         let add_weight = self.edges[last_e.index()].weight;
         if weight < add_weight {
-            (&mut self.edges[last_e.index()]).left = edge_idx;
+            self.edges[last_e.index()].left = edge_idx;
         } else {
-            (&mut self.edges[last_e.index()]).right = edge_idx;
+            self.edges[last_e.index()].right = edge_idx;
         }
         self.edges.push(edge);
         // self.pre_update_balance_factors(first_edge, weight);
@@ -160,13 +175,13 @@ where E: Eq + Ord + Copy {
         }
 
         if self.edges[e.index()].weight < weight {
-            (&mut self.edges[e.index()]).balance_factor -= 1;
+            self.edges[e.index()].balance_factor -= 1;
             self.pre_update_balance_factors(self.edges[e.index()].left, weight);
             return;
         }
 
         if self.edges[e.index()].weight > weight {
-            (&mut self.edges[e.index()]).balance_factor += 1;
+            self.edges[e.index()].balance_factor += 1;
             self.pre_update_balance_factors(self.edges[e.index()].right, weight);
         }
     }
@@ -204,72 +219,69 @@ where E: Eq + Ord + Copy {
                     let old_rl = self.edges[r.index()].left;
                     let old_rll = self.edges[old_rl.index()].left;
                     let old_rlr = self.edges[old_rl.index()].right;
-                    (&mut self.edges[r.index()]).left = old_rlr;
+                    self.edges[r.index()].left = old_rlr;
                     // FIXME: Correct balance factor update??
                     // https://cs.stackexchange.com/questions/16313/updating-an-avl-tree-based-on-balance-factors
                     // self.update_balance_factor(r);
-                    (&mut self.edges[e.index()]).right = old_rll;
+                    self.edges[e.index()].right = old_rll;
                     // self.update_balance_factor(e);
-                    (&mut self.edges[old_rl.index()]).left = e;
-                    (&mut self.edges[old_rl.index()]).right = r;
+                    self.edges[old_rl.index()].left = e;
+                    self.edges[old_rl.index()].right = r;
                     // self.update_balance_factor(old_rl);
                     new_root = old_rl;
                 } else {
                     // Rotate left.
                     println!("  rotate left");
                     let old_rl = self.edges[r.index()].left;
-                    (&mut self.edges[e.index()]).right = old_rl;
+                    self.edges[e.index()].right = old_rl;
                     // self.update_balance_factor(e);
-                    (&mut self.edges[r.index()]).left = e;
+                    self.edges[r.index()].left = e;
                     // self.update_balance_factor(r);
                     new_root = r;
                 }
             } else {
                 if self.edges[e.index()].balance_factor < 0 {
-                   (&mut self.edges[e.index()]).balance_factor = 0;
-                   return false;
+                    self.edges[e.index()].balance_factor = 0;
+                    return false;
                 }
-                (&mut self.edges[e.index()]).balance_factor = 1;
+                self.edges[e.index()].balance_factor = 1;
                 return true;
             }
         }
-
         // The left-child case.
-        else {
-            if self.edges[e.index()].balance_factor < 0 {
-                let l = self.edges[e.index()].left;
-                if self.edges[l.index()].balance_factor > 0 {
-                    // Rotate left, right.
-                    println!("  rotate left/right");
-                    let old_lr = self.edges[l.index()].right;
-                    let old_lrl = self.edges[old_lr.index()].left;
-                    let old_lrr = self.edges[old_lr.index()].right;
-                    (&mut self.edges[l.index()]).right = old_lrl;
-                    // self.update_balance_factor(l);
-                    (&mut self.edges[e.index()]).left = old_lrr;
-                    // self.update_balance_factor(e);
-                    (&mut self.edges[old_lr.index()]).left = l;
-                    (&mut self.edges[old_lr.index()]).right = e;
-                    // self.update_balance_factor(old_lr);
-                    new_root = old_lr;
-                } else {
-                    // Rotate right.
-                    println!("  rotate right");
-                    let old_lr = self.edges[l.index()].right;
-                    (&mut self.edges[e.index()]).left = old_lr;
-                    // self.update_balance_factor(e);
-                    (&mut self.edges[l.index()]).right = e;
-                    // self.update_balance_factor(l);
-                    new_root = l;
-                }
+        else if self.edges[e.index()].balance_factor < 0 {
+            let l = self.edges[e.index()].left;
+            if self.edges[l.index()].balance_factor > 0 {
+                // Rotate left, right.
+                println!("  rotate left/right");
+                let old_lr = self.edges[l.index()].right;
+                let old_lrl = self.edges[old_lr.index()].left;
+                let old_lrr = self.edges[old_lr.index()].right;
+                self.edges[l.index()].right = old_lrl;
+                // self.update_balance_factor(l);
+                self.edges[e.index()].left = old_lrr;
+                // self.update_balance_factor(e);
+                self.edges[old_lr.index()].left = l;
+                self.edges[old_lr.index()].right = e;
+                // self.update_balance_factor(old_lr);
+                new_root = old_lr;
             } else {
-                if self.edges[e.index()].balance_factor > 0 {
-                    (&mut self.edges[e.index()]).balance_factor = 0;
-                    return false;
-                 }
-                 (&mut self.edges[e.index()]).balance_factor = -1;
-                 return true;
+                // Rotate right.
+                println!("  rotate right");
+                let old_lr = self.edges[l.index()].right;
+                self.edges[e.index()].left = old_lr;
+                // self.update_balance_factor(e);
+                self.edges[l.index()].right = e;
+                // self.update_balance_factor(l);
+                new_root = l;
             }
+        } else {
+            if self.edges[e.index()].balance_factor > 0 {
+                self.edges[e.index()].balance_factor = 0;
+                return false;
+            }
+            self.edges[e.index()].balance_factor = -1;
+            return true;
         }
 
         if self.edges[p.index()].weight < weight {
@@ -279,7 +291,7 @@ where E: Eq + Ord + Copy {
         }
         println!("p.left: {}", self.edges[p.index()].left.index());
         println!("p.right: {}", self.edges[p.index()].right.index());
-        return true;
+        true
     }
 
     pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
@@ -288,7 +300,7 @@ where E: Eq + Ord + Copy {
             return None;
         }
 
-        let (e, last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight);
+        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight);
         if e == EdgeIndex::end() {
             return None;
         }
@@ -306,7 +318,7 @@ where E: Eq + Ord + Copy {
             return false;
         }
         self.edges[e.index()].set_target(b);
-        return true;
+        true
     }
 
     // pub fn edges(&self, a: NodeIndex<Ix>) -> Iter<'_, EdgeIndex<Ix>> {
@@ -360,7 +372,7 @@ where E: Eq + Ord + Copy {
     pub fn n_edges(&self, a: NodeIndex<Ix>) -> usize {
         let mut stack = vec![self.nodes[a.index()].first_edge];
         let mut count = 0;
-        while stack.len() > 0 {
+        while !stack.is_empty() {
             let top = stack.pop().unwrap();
             if top == EdgeIndex::end() {
                 continue;
@@ -379,11 +391,12 @@ where E: Eq + Ord + Copy {
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
-
 }
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     type Output = N;
     fn index(&self, index: NodeIndex<Ix>) -> &N {
         &self.nodes[index.index()].weight
@@ -391,7 +404,9 @@ where Ix: IndexType {
 }
 
 impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
-where Ix: IndexType {
+where
+    Ix: IndexType,
+{
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
         &mut self.nodes[index.index()].weight
     }
@@ -408,15 +423,24 @@ pub struct Node<N, Ix = DefaultIx> {
 }
 
 impl<N, Ix> Clone for Node<N, Ix>
-where N: Clone, Ix: Clone {
+where
+    N: Clone,
+    Ix: Clone,
+{
     fn clone(&self) -> Self {
-        Node {weight: self.weight.clone(), first_edge: self.first_edge.clone()}
+        Node {
+            weight: self.weight.clone(),
+            first_edge: self.first_edge.clone(),
+        }
     }
 }
 
-impl<N, Ix: IndexType> Node<N, Ix>  {
+impl<N, Ix: IndexType> Node<N, Ix> {
     pub fn new(weight: N) -> Self {
-        Self {weight, first_edge: EdgeIndex::end()}
+        Self {
+            weight,
+            first_edge: EdgeIndex::end(),
+        }
     }
 }
 
@@ -434,22 +458,30 @@ pub struct Edge<E, Ix = DefaultIx> {
 }
 
 impl<E, Ix> Clone for Edge<E, Ix>
-where E: Clone, Ix: Clone {
+where
+    E: Clone,
+    Ix: Clone,
+{
     fn clone(&self) -> Self {
         Edge {
             weight: self.weight.clone(),
             target: self.target.clone(),
             left: self.left.clone(),
             right: self.right.clone(),
-            balance_factor: self.balance_factor.clone(),
+            balance_factor: self.balance_factor,
         }
     }
 }
 
 impl<E, Ix: IndexType> Edge<E, Ix> {
-
     pub fn new(weight: E, target: NodeIndex<Ix>) -> Self {
-        Edge {weight, target, left: EdgeIndex::end(), right: EdgeIndex::end(), balance_factor: 0}
+        Edge {
+            weight,
+            target,
+            left: EdgeIndex::end(),
+            right: EdgeIndex::end(),
+            balance_factor: 0,
+        }
     }
 
     pub fn weight(&self) -> &E {
@@ -463,18 +495,17 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
     pub fn set_target(&mut self, target: NodeIndex<Ix>) {
         self.target = target;
     }
-
 }
 
 #[cfg(test)]
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use graph::indexing::{NodeIndex, EdgeIndex, IndexType};
     use graph::avl_graph::AvlGraph;
+    use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
     // use graph::avl_graph::dot::Dot;
 
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn test_create_graph() {
@@ -548,7 +579,7 @@ mod tests {
         graph.add_edge(q0, q1, 2);
 
         let q2 = graph.clone_node(q0);
-        assert_eq!(*graph.node_weight(q2).unwrap(), 0 as u8);
+        assert_eq!(*graph.node_weight(q2).unwrap(), 0_u8);
         assert_eq!(graph.edge_target(q2, 2), Some(q1));
     }
 
@@ -559,14 +590,14 @@ mod tests {
         let q1 = graph.add_node(1);
         let q2 = graph.add_node(2);
         graph.add_edge(q0, q1, 2);
-        assert_eq!(graph.reroute_edge(q0, q2, 2), true);
+        assert!(graph.reroute_edge(q0, q2, 2));
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
     }
 
     fn height(graph: &AvlGraph<u8, u16>, e: EdgeIndex) -> usize {
         if e == EdgeIndex::end() {
             return 0;
-        } 
+        }
         height(graph, graph.edges[e.index()].left) + height(graph, graph.edges[e.index()].right) + 1
     }
 
@@ -579,11 +610,13 @@ mod tests {
             let qi = graph.add_node(idx);
             graph.add_edge(q0, qi, idx.into());
         }
-        
+
         println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
-        println!("bf: {}", graph.edges[graph.nodes[0].first_edge.index()].balance_factor);
+        println!(
+            "bf: {}",
+            graph.edges[graph.nodes[0].first_edge.index()].balance_factor
+        );
         // assert_eq!(0, 1);
         // FIXME
     }
-
 }

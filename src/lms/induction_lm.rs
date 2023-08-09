@@ -1,7 +1,7 @@
 use dawg::Dawg;
+use graph::indexing::NodeIndex;
 use lms::LM;
 use weight::Weight;
-use graph::indexing::NodeIndex;
 
 pub struct InductionLM {
     pub name: String,
@@ -37,18 +37,30 @@ impl LM for InductionLM {
 }
 
 impl InductionLM {
-
     // Don't use smoothing, just interpolate!!!s
 
     pub fn new(name: String, train_lm: Box<dyn LM>, delta: f64) -> Self {
         let dawg = Dawg::new();
         let state = dawg.get_initial();
         let last = dawg.get_initial();
-        Self {name, train_lm, dawg, delta, state, last}
+        Self {
+            name,
+            train_lm,
+            dawg,
+            delta,
+            state,
+            last,
+        }
     }
 
     // Backoff with Kneser-Ney smoothing
-    pub fn get_probability_interp(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize, good_turing: f64) -> f64 {
+    pub fn get_probability_interp(
+        &self,
+        dawg: &Dawg<usize>,
+        state: NodeIndex,
+        label: usize,
+        good_turing: f64,
+    ) -> f64 {
         // if self.kn_max_n >= 0 {
         //     let n: u64 = self.kn_max_n.try_into().unwrap();
         //     let graph = self.dawg.get_graph();
@@ -68,16 +80,11 @@ impl InductionLM {
             None => 0,
         };
         let sum_count = self.dawg.get_weight(state).get_count();
-        
-        let back_prob;
-        match self.dawg.get_weight(state).get_failure() {
-            Some(fstate) => {
-                back_prob = self.get_probability_interp(dawg, fstate, label, good_turing);
-            }
-            None => {
-                back_prob = self.train_lm.get_probability(dawg, label, good_turing);
-            },
-        }
+
+        let back_prob = match self.dawg.get_weight(state).get_failure() {
+            Some(fstate) => self.get_probability_interp(dawg, fstate, label, good_turing),
+            None => self.train_lm.get_probability(dawg, label, good_turing),
+        };
 
         let graph = self.dawg.get_graph();
         if graph.n_edges(state) == 0 {
@@ -91,14 +98,14 @@ impl InductionLM {
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use tokenize::{Tokenize, TokenIndex};
+    use tokenize::{TokenIndex, Tokenize};
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
 
-    use lms::LM;
-    use lms::kn_lm::KNLM;
     use lms::induction_lm::InductionLM;
+    use lms::kn_lm::KNLM;
+    use lms::LM;
 
     #[test]
     fn test_get_probability_ab() {
@@ -116,23 +123,22 @@ mod tests {
 
         assert_eq!(lm.state.index(), 0);
         // No edges, skip interpolation.
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 1./3.);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 1./3.);
+        assert_eq!(lm.get_probability(&dawg, a, 0.), 1. / 3.);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 3.);
         lm.update(&dawg, a);
         assert_eq!(lm.state.index(), 1);
         // 1/2 * (1/2 + 1/3)
         assert_eq!(lm.get_probability(&dawg, a, 0.), 0.41666666666666663);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 1./6.);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 6.);
         lm.update(&dawg, b);
         // println!("{:?}", Dot::new(lm.dawg.get_graph()));
         assert_eq!(lm.state.index(), 2);
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 1./3.);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 1./3.);
+        assert_eq!(lm.get_probability(&dawg, a, 0.), 1. / 3.);
+        assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 3.);
         lm.update(&dawg, a);
         assert_eq!(lm.state.index(), 3);
         // Now b is more likely!
         assert_eq!(lm.get_probability(&dawg, a, 0.), 0.20833333333333331);
         assert_eq!(lm.get_probability(&dawg, b, 0.), 0.3958333333333333);
     }
-
 }
