@@ -1,5 +1,5 @@
-pub mod kn_lm;
 pub mod induction_lm;
+pub mod kn_lm;
 
 use dawg::Dawg;
 

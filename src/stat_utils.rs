@@ -1,13 +1,15 @@
+use serde::{Deserialize, Serialize};
 use std::cmp::Ord;
 use std::fmt::Debug;
-use serde::{Serialize, Deserialize};
 
 use dawg::Dawg;
-use weight::Weight;
 use graph::indexing::NodeIndex;
+use weight::Weight;
 
 pub fn get_entropy<E>(dawg: &Dawg<E>, state: NodeIndex) -> f64
-where E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug {
+where
+    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+{
     // let denom = counts[state.index()];
     // println!("{:?}", Dot::new(dawg.get_graph()));
 
@@ -49,8 +51,8 @@ pub fn good_turing_estimate(dawg: &Dawg<usize>, n_tokens: usize) -> f64 {
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
-    use tokenize::{Tokenize, TokenIndex};
     use stat_utils::*;
+    use tokenize::{TokenIndex, Tokenize};
 
     use graph::indexing::NodeIndex;
     use graph::vec_graph::dot::Dot;
@@ -89,7 +91,6 @@ mod tests {
 
         // println!("{:?}", Dot::new(dawg.get_graph()));
         let good_turing = good_turing_estimate(&dawg, indices.len());
-        assert_eq!(good_turing, 2./4.);
+        assert_eq!(good_turing, 2. / 4.);
     }
-
 }
