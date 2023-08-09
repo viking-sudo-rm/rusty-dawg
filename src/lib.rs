@@ -1,3 +1,4 @@
+extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
 extern crate kdam;
@@ -7,7 +8,6 @@ extern crate serde_json;
 extern crate substring;
 extern crate tempfile;
 extern crate tokenizers;
-extern crate anyhow;
 extern crate unicode_segmentation;
 
 pub mod dawg;

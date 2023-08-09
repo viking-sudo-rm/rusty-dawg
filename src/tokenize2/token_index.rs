@@ -12,7 +12,6 @@ pub struct TokenIndex<E> {
 }
 
 impl TokenIndex<usize> {
-
     pub fn new() -> Self {
         let token_to_index = HashMap::new();
         let index_to_token = Vec::new();
@@ -62,7 +61,6 @@ impl TokenIndex<usize> {
 }
 
 impl Tokenize for TokenIndex<usize> {
-
     fn build(&mut self, text: &str) {
         let tokens: Vec<usize> = text.split_whitespace().map(|x| self.add(x)).collect();
     }
@@ -118,11 +116,22 @@ mod tests {
         let mut token_index: TokenIndex<usize> = TokenIndex::new();
         token_index.build("");
         let tokens = token_index.tokenize("hello world");
-        assert_eq!(tokens, "<unk> <unk>".split_whitespace().map(|x| token_index.index(x)).collect::<Vec<usize>>());
+        assert_eq!(
+            tokens,
+            "<unk> <unk>"
+                .split_whitespace()
+                .map(|x| token_index.index(x))
+                .collect::<Vec<usize>>()
+        );
 
         token_index.build("hello wolrd");
         let tokens = token_index.tokenize("hello world");
-        assert_eq!(tokens, "hello world".split_whitespace().map(|x| token_index.index(x)).collect::<Vec<usize>>());
+        assert_eq!(
+            tokens,
+            "hello world"
+                .split_whitespace()
+                .map(|x| token_index.index(x))
+                .collect::<Vec<usize>>()
+        );
     }
-
 }

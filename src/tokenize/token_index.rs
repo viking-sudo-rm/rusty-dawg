@@ -100,5 +100,4 @@ mod tests {
         token_index.tokenize("how are you ?");
         assert_eq!(token_index.get_count(), 9);
     }
-
 }

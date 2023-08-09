@@ -7,6 +7,7 @@
 // https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
 //
 
+extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
 extern crate clap;
@@ -17,7 +18,6 @@ extern crate serde_json;
 extern crate substring;
 extern crate tempfile;
 extern crate tokenizers;
-extern crate anyhow;
 extern crate unicode_segmentation;
 
 mod dawg;
