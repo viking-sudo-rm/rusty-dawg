@@ -108,13 +108,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
-        test = (&test[0..args.truncate_test]).to_vec();
+        test = test[0..args.truncate_test].to_vec();
     }
     println!("#(test): {}/{}", test.len(), old_test_len);
 
     let gen_raw: String = match &args.gen_path {
         Some(path) => {
-            fs::read_to_string(path).expect(format!("Error loading gen path: {}", path).as_str())
+            fs::read_to_string(path).unwrap_or_else(|_| panic!("Error loading gen path: {}", path))
         }
         None => "".to_string(),
     };
@@ -136,7 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
             let good_turing = good_turing_estimate(&dawg, train.len());
             evaluator.evaluate(&dawg, idx, good_turing);
-            if args.results_path != "" {
+            if !args.results_path.is_empty() {
                 evaluator.to_json(&args.results_path)?;
             }
             match &args.gen_results_path {
@@ -152,7 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Node count: {}", dawg.node_count());
     println!("  Edge count: {}", dawg.edge_count());
 
-    if args.save_path != "" {
+    if !args.save_path.is_empty() {
         println!("Saving DAWG...");
         checkpoint(&dawg, &args.save_path)?;
         println!("Successfully saved DAWG to {}!", &args.save_path);

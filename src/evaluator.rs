@@ -117,7 +117,7 @@ impl Evaluator<'_, usize> {
 
             // Predict the perplexity of the next token before updating the state.
             for lm in self.lms.iter() {
-                let logprob = -lm.get_probability(&dawg, token, good_turing).log2();
+                let logprob = -lm.get_probability(dawg, token, good_turing).log2();
                 *cum_ppls.get_mut(lm.get_name()).unwrap() += logprob;
             }
 
@@ -154,9 +154,9 @@ impl Evaluator<'_, usize> {
         self.get_mut("suffix_counts".to_string())
             .push((cum_count as f64) / (num_tokens as f64));
         self.get_mut("suffix_entropies".to_string())
-            .push((cum_entropy as f64) / (num_tokens as f64));
+            .push(cum_entropy / (num_tokens as f64));
         for (key, ppl) in cum_ppls {
-            self.get_mut(key).push((ppl as f64) / (num_tokens as f64));
+            self.get_mut(key).push(ppl / (num_tokens as f64));
         }
     }
 }

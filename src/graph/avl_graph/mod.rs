@@ -50,7 +50,7 @@ where
     pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
         match self.nodes.get_mut(a.index()) {
             Some(ptr) => ptr.weight = value,
-            None => return,
+            None => (),
         }
     }
 
@@ -70,10 +70,10 @@ where
         }
 
         let edge_to_clone = &self.edges[first_source_idx.index()];
-        let first_clone_edge = Edge::new(edge_to_clone.weight.clone(), edge_to_clone.target);
+        let first_clone_edge = Edge::new(edge_to_clone.weight, edge_to_clone.target);
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
-        (&mut self.nodes[clone_idx.index()]).first_edge = first_clone_idx;
+        self.nodes[clone_idx.index()].first_edge = first_clone_idx;
         self.clone_edges(first_source_idx, first_clone_idx);
         clone_idx
     }
@@ -92,7 +92,7 @@ where
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
-            (&mut self.edges[new.index()]).left = new_left;
+            self.edges[new.index()].left = new_left;
             self.clone_edges(left, new_left);
         }
 
@@ -102,7 +102,7 @@ where
             let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
-            (&mut self.edges[new.index()]).right = new_right;
+            self.edges[new.index()].right = new_right;
             self.clone_edges(right, new_right);
         }
     }
@@ -124,7 +124,7 @@ where
 
         let edge_weight = self.edges[edge.index()].weight;
         if weight == edge_weight {
-            return (edge, last_edge);
+            (edge, last_edge)
         } else if weight < edge_weight {
             return self.binary_search(self.edges[edge.index()].left, edge, weight);
         } else {
@@ -154,9 +154,9 @@ where
         }
         let add_weight = self.edges[last_e.index()].weight;
         if weight < add_weight {
-            (&mut self.edges[last_e.index()]).left = edge_idx;
+            self.edges[last_e.index()].left = edge_idx;
         } else {
-            (&mut self.edges[last_e.index()]).right = edge_idx;
+            self.edges[last_e.index()].right = edge_idx;
         }
         self.edges.push(edge);
         // self.pre_update_balance_factors(first_edge, weight);
@@ -175,13 +175,13 @@ where
         }
 
         if self.edges[e.index()].weight < weight {
-            (&mut self.edges[e.index()]).balance_factor -= 1;
+            self.edges[e.index()].balance_factor -= 1;
             self.pre_update_balance_factors(self.edges[e.index()].left, weight);
             return;
         }
 
         if self.edges[e.index()].weight > weight {
-            (&mut self.edges[e.index()]).balance_factor += 1;
+            self.edges[e.index()].balance_factor += 1;
             self.pre_update_balance_factors(self.edges[e.index()].right, weight);
         }
     }
@@ -219,71 +219,69 @@ where
                     let old_rl = self.edges[r.index()].left;
                     let old_rll = self.edges[old_rl.index()].left;
                     let old_rlr = self.edges[old_rl.index()].right;
-                    (&mut self.edges[r.index()]).left = old_rlr;
+                    self.edges[r.index()].left = old_rlr;
                     // FIXME: Correct balance factor update??
                     // https://cs.stackexchange.com/questions/16313/updating-an-avl-tree-based-on-balance-factors
                     // self.update_balance_factor(r);
-                    (&mut self.edges[e.index()]).right = old_rll;
+                    self.edges[e.index()].right = old_rll;
                     // self.update_balance_factor(e);
-                    (&mut self.edges[old_rl.index()]).left = e;
-                    (&mut self.edges[old_rl.index()]).right = r;
+                    self.edges[old_rl.index()].left = e;
+                    self.edges[old_rl.index()].right = r;
                     // self.update_balance_factor(old_rl);
                     new_root = old_rl;
                 } else {
                     // Rotate left.
                     println!("  rotate left");
                     let old_rl = self.edges[r.index()].left;
-                    (&mut self.edges[e.index()]).right = old_rl;
+                    self.edges[e.index()].right = old_rl;
                     // self.update_balance_factor(e);
-                    (&mut self.edges[r.index()]).left = e;
+                    self.edges[r.index()].left = e;
                     // self.update_balance_factor(r);
                     new_root = r;
                 }
             } else {
                 if self.edges[e.index()].balance_factor < 0 {
-                    (&mut self.edges[e.index()]).balance_factor = 0;
+                    self.edges[e.index()].balance_factor = 0;
                     return false;
                 }
-                (&mut self.edges[e.index()]).balance_factor = 1;
+                self.edges[e.index()].balance_factor = 1;
                 return true;
             }
         }
         // The left-child case.
-        else {
-            if self.edges[e.index()].balance_factor < 0 {
-                let l = self.edges[e.index()].left;
-                if self.edges[l.index()].balance_factor > 0 {
-                    // Rotate left, right.
-                    println!("  rotate left/right");
-                    let old_lr = self.edges[l.index()].right;
-                    let old_lrl = self.edges[old_lr.index()].left;
-                    let old_lrr = self.edges[old_lr.index()].right;
-                    (&mut self.edges[l.index()]).right = old_lrl;
-                    // self.update_balance_factor(l);
-                    (&mut self.edges[e.index()]).left = old_lrr;
-                    // self.update_balance_factor(e);
-                    (&mut self.edges[old_lr.index()]).left = l;
-                    (&mut self.edges[old_lr.index()]).right = e;
-                    // self.update_balance_factor(old_lr);
-                    new_root = old_lr;
-                } else {
-                    // Rotate right.
-                    println!("  rotate right");
-                    let old_lr = self.edges[l.index()].right;
-                    (&mut self.edges[e.index()]).left = old_lr;
-                    // self.update_balance_factor(e);
-                    (&mut self.edges[l.index()]).right = e;
-                    // self.update_balance_factor(l);
-                    new_root = l;
-                }
+        else if self.edges[e.index()].balance_factor < 0 {
+            let l = self.edges[e.index()].left;
+            if self.edges[l.index()].balance_factor > 0 {
+                // Rotate left, right.
+                println!("  rotate left/right");
+                let old_lr = self.edges[l.index()].right;
+                let old_lrl = self.edges[old_lr.index()].left;
+                let old_lrr = self.edges[old_lr.index()].right;
+                self.edges[l.index()].right = old_lrl;
+                // self.update_balance_factor(l);
+                self.edges[e.index()].left = old_lrr;
+                // self.update_balance_factor(e);
+                self.edges[old_lr.index()].left = l;
+                self.edges[old_lr.index()].right = e;
+                // self.update_balance_factor(old_lr);
+                new_root = old_lr;
             } else {
-                if self.edges[e.index()].balance_factor > 0 {
-                    (&mut self.edges[e.index()]).balance_factor = 0;
-                    return false;
-                }
-                (&mut self.edges[e.index()]).balance_factor = -1;
-                return true;
+                // Rotate right.
+                println!("  rotate right");
+                let old_lr = self.edges[l.index()].right;
+                self.edges[e.index()].left = old_lr;
+                // self.update_balance_factor(e);
+                self.edges[l.index()].right = e;
+                // self.update_balance_factor(l);
+                new_root = l;
             }
+        } else {
+            if self.edges[e.index()].balance_factor > 0 {
+                self.edges[e.index()].balance_factor = 0;
+                return false;
+            }
+            self.edges[e.index()].balance_factor = -1;
+            return true;
         }
 
         if self.edges[p.index()].weight < weight {
@@ -293,7 +291,7 @@ where
         }
         println!("p.left: {}", self.edges[p.index()].left.index());
         println!("p.right: {}", self.edges[p.index()].right.index());
-        return true;
+        true
     }
 
     pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
@@ -302,7 +300,7 @@ where
             return None;
         }
 
-        let (e, last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight);
+        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight);
         if e == EdgeIndex::end() {
             return None;
         }
@@ -320,7 +318,7 @@ where
             return false;
         }
         self.edges[e.index()].set_target(b);
-        return true;
+        true
     }
 
     // pub fn edges(&self, a: NodeIndex<Ix>) -> Iter<'_, EdgeIndex<Ix>> {
@@ -374,7 +372,7 @@ where
     pub fn n_edges(&self, a: NodeIndex<Ix>) -> usize {
         let mut stack = vec![self.nodes[a.index()].first_edge];
         let mut count = 0;
-        while stack.len() > 0 {
+        while !stack.is_empty() {
             let top = stack.pop().unwrap();
             if top == EdgeIndex::end() {
                 continue;
@@ -470,7 +468,7 @@ where
             target: self.target.clone(),
             left: self.left.clone(),
             right: self.right.clone(),
-            balance_factor: self.balance_factor.clone(),
+            balance_factor: self.balance_factor,
         }
     }
 }

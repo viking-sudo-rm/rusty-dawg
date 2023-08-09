@@ -17,7 +17,7 @@ where
     E: Serialize + for<'b> Deserialize<'b>,
 {
     pub fn new(graph: &'a Graph<N, E, Ix>) -> Self {
-        Self { graph: graph }
+        Self { graph }
     }
 }
 
@@ -26,18 +26,18 @@ where
     E: Eq + Ord + Copy + Debug + Serialize + for<'b> Deserialize<'b>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "digraph {{\n")?;
+        writeln!(f, "digraph {{")?;
         for idx in 0..self.graph.node_count() {
             let node_index = NodeIndex::new(idx);
             let weight = self.graph.node_weight(node_index).unwrap();
-            write!(f, "  {} [{:?}]\n", idx, weight)?;
+            writeln!(f, "  {} [{:?}]", idx, weight)?;
         }
         for idx in 0..self.graph.node_count() {
             let node_index = NodeIndex::new(idx);
             for edge in self.graph.edges(node_index) {
-                write!(
+                writeln!(
                     f,
-                    "  {} -> {} [{:?}]\n",
+                    "  {} -> {} [{:?}]",
                     idx,
                     edge.target().index(),
                     edge.weight()

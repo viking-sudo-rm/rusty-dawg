@@ -74,14 +74,14 @@ where
 
         match opt_state {
             // There is no valid failure state for the new state.
-            None => (&mut self.dawg[new]).set_failure(Some(self.initial)),
+            None => self.dawg[new].set_failure(Some(self.initial)),
 
             // Found a failure state to fail to.
             Some(mut state) => {
                 let next_state = opt_next_state.unwrap();
                 if self.dawg[state].get_length() + 1 == self.dawg[next_state].get_length() {
                     // Fail to an existing state.
-                    (&mut self.dawg[new]).set_failure(Some(next_state));
+                    self.dawg[new].set_failure(Some(next_state));
                 } else {
                     // Split a state and fail to the clone of it.
                     let clone = self
@@ -99,8 +99,8 @@ where
                     // let weight = Weight40::split(&self.dawg[state], &self.dawg[next_state]);
                     // let clone = self.dawg.clone_node(state);
                     // self.dawg.set_node_weight(clone, weight);
-                    (&mut self.dawg[new]).set_failure(Some(clone));
-                    (&mut self.dawg[next_state]).set_failure(Some(clone));
+                    self.dawg[new].set_failure(Some(clone));
+                    self.dawg[next_state].set_failure(Some(clone));
 
                     // Reroute edges along failure chain.
                     let mut next_state_ = next_state;
@@ -135,11 +135,11 @@ where
         let mut opt_ptr = Some(new);
         while opt_ptr.is_some() {
             let ptr = opt_ptr.unwrap();
-            (&mut self.dawg[ptr]).increment_count();
+            self.dawg[ptr].increment_count();
             opt_ptr = self.dawg[ptr].get_failure();
         }
 
-        return new;
+        new
     }
 
     // Set the lengths field to store min factor length instead of max factor length.
@@ -154,7 +154,7 @@ where
                     if self.dawg[state].get_length() != 0 {
                         continue;
                     }
-                    (&mut self.dawg[state]).set_length(length);
+                    self.dawg[state].set_length(length);
                     for next_state in self.dawg.neighbors(state) {
                         queue.push_back((next_state, length + 1));
                     }
@@ -165,7 +165,7 @@ where
     }
 
     fn _zero_lengths(&mut self, state: NodeIndex) {
-        (&mut self.dawg[state]).set_length(0);
+        self.dawg[state].set_length(0);
         // FIXME: Use Walker object here.
         let next_states: Vec<_> = self.dawg.neighbors(state).collect();
         for next_state in next_states {
@@ -207,10 +207,10 @@ where
         match fail_state {
             Some(q) => {
                 // Not in the initial state.
-                return self.transition(q, token, use_failures);
+                self.transition(q, token, use_failures)
             }
             // Only possible in the initial state.
-            None => return Some(self.initial),
+            None => Some(self.initial),
         }
     }
 
@@ -236,10 +236,10 @@ where
             Some(q) => {
                 // If we fail, the length we're matching is the length of the largest suffix of the fail state.
                 let new_length = self.dawg[q].get_length();
-                return self.transition_and_count(q, token, new_length);
+                self.transition_and_count(q, token, new_length)
             }
             // Only possible in the initial state.
-            None => return (Some(self.initial), 0),
+            None => (Some(self.initial), 0),
         }
     }
 
@@ -254,7 +254,7 @@ where
             state = opt_state.unwrap();
             max_length = max(max_length, length);
         }
-        return max_length;
+        max_length
     }
 
     // TODO: Can build full substring vector for query.
