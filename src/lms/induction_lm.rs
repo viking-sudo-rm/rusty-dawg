@@ -1,12 +1,13 @@
 use dawg::Dawg;
 use graph::indexing::NodeIndex;
 use lms::LM;
+use weight::weight40::DefaultWeight;
 use weight::Weight;
 
 pub struct InductionLM {
     pub name: String,
     train_lm: Box<dyn LM>,
-    dawg: Dawg<usize>,
+    dawg: Dawg<usize, DefaultWeight>,
     delta: f64,
     state: NodeIndex,
     last: NodeIndex,
@@ -17,18 +18,23 @@ impl LM for InductionLM {
         self.name.as_str()
     }
 
-    fn reset(&mut self, dawg: &Dawg<usize>) {
+    fn reset(&mut self, dawg: &Dawg<usize, DefaultWeight>) {
         self.dawg = Dawg::new();
         self.state = self.dawg.get_initial();
         self.last = self.dawg.get_initial();
         self.train_lm.reset(dawg);
     }
 
-    fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f64) -> f64 {
+    fn get_probability(
+        &self,
+        dawg: &Dawg<usize, DefaultWeight>,
+        label: usize,
+        good_turing: f64,
+    ) -> f64 {
         self.get_probability_interp(dawg, self.state, label, good_turing)
     }
 
-    fn update(&mut self, dawg: &Dawg<usize>, label: usize) {
+    fn update(&mut self, dawg: &Dawg<usize, DefaultWeight>, label: usize) {
         self.last = self.dawg.extend(label, self.last);
         self.state = self.dawg.transition(self.state, label, true).unwrap();
         self.train_lm.update(dawg, label);
@@ -56,7 +62,7 @@ impl InductionLM {
     // Backoff with Kneser-Ney smoothing
     pub fn get_probability_interp(
         &self,
-        dawg: &Dawg<usize>,
+        dawg: &Dawg<usize, DefaultWeight>,
         state: NodeIndex,
         label: usize,
         good_turing: f64,

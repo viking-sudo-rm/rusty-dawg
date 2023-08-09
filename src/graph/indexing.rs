@@ -5,8 +5,34 @@ use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 
-// u40 would be nice here up to 1T tokens. u32 breaks down around 10Gi
-pub type DefaultIx = usize;
+// Int-like type for indexing nodes and edges.
+// u32 breaks down around 10Gi, but u64 uses more memory than necessary
+pub type DefaultIx = Index40;
+
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Debug, Serialize, Deserialize,
+)]
+pub struct Index48 {
+    // Index using 48 bits
+    // Higher-order bits must be stored first, or the default comparison will be incorrect
+    // Using the same type for members saves on padding space
+    // size_of(u16 x 3) = 6, but size_of(u32 + u16) = 8
+    pub hi: u16,
+    pub mid: u16,
+    pub lo: u16,
+}
+
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Debug, Serialize, Deserialize,
+)]
+pub struct Index40 {
+    // Index using 40 bits
+    pub i4: u8,
+    pub i3: u8,
+    pub i2: u8,
+    pub i1: u8,
+    pub i0: u8,
+}
 
 /// Trait for the unsigned integer type used for node and edge indices.
 ///
@@ -15,7 +41,7 @@ pub type DefaultIx = usize;
 pub unsafe trait IndexType: Copy + Default + Hash + Ord + fmt::Debug + 'static {
     fn new(x: usize) -> Self;
     fn index(&self) -> usize;
-    fn max() -> Self;
+    fn max_value() -> Self;
 }
 
 unsafe impl IndexType for usize {
@@ -28,8 +54,62 @@ unsafe impl IndexType for usize {
         *self
     }
     #[inline(always)]
-    fn max() -> Self {
+    fn max_value() -> Self {
         ::std::usize::MAX
+    }
+}
+
+unsafe impl IndexType for Index48 {
+    #[inline(always)]
+    fn new(x: usize) -> Self {
+        Index48 {
+            lo: (x & 0xFFFF) as u16,
+            mid: ((x >> 16) & 0xFFFF) as u16,
+            hi: ((x >> 32) & 0xFFFF) as u16,
+        }
+    }
+    #[inline(always)]
+    fn index(&self) -> usize {
+        ((self.hi as usize) << 32) | ((self.mid as usize) << 16) | (self.lo as usize)
+    }
+    #[inline(always)]
+    fn max_value() -> Self {
+        Index48 {
+            lo: ::std::u16::MAX,
+            mid: ::std::u16::MAX,
+            hi: ::std::u16::MAX,
+        }
+    }
+}
+
+unsafe impl IndexType for Index40 {
+    #[inline(always)]
+    fn new(x: usize) -> Self {
+        Index40 {
+            i0: (x & 0xFF) as u8,
+            i1: ((x >> 8) & 0xFF) as u8,
+            i2: ((x >> 16) & 0xFF) as u8,
+            i3: ((x >> 24) & 0xFF) as u8,
+            i4: ((x >> 32) & 0xFF) as u8,
+        }
+    }
+    #[inline(always)]
+    fn index(&self) -> usize {
+        ((self.i4 as usize) << 32)
+            | ((self.i3 as usize) << 24)
+            | ((self.i2 as usize) << 16)
+            | ((self.i1 as usize) << 8)
+            | (self.i0 as usize)
+    }
+    #[inline(always)]
+    fn max_value() -> Self {
+        Index40 {
+            i0: ::std::u8::MAX,
+            i1: ::std::u8::MAX,
+            i2: ::std::u8::MAX,
+            i3: ::std::u8::MAX,
+            i4: ::std::u8::MAX,
+        }
     }
 }
 
@@ -43,7 +123,7 @@ unsafe impl IndexType for u32 {
         *self as usize
     }
     #[inline(always)]
-    fn max() -> Self {
+    fn max_value() -> Self {
         ::std::u32::MAX
     }
 }
@@ -58,7 +138,7 @@ unsafe impl IndexType for u16 {
         *self as usize
     }
     #[inline(always)]
-    fn max() -> Self {
+    fn max_value() -> Self {
         ::std::u16::MAX
     }
 }
@@ -73,7 +153,7 @@ unsafe impl IndexType for u8 {
         *self as usize
     }
     #[inline(always)]
-    fn max() -> Self {
+    fn max_value() -> Self {
         ::std::u8::MAX
     }
 }
@@ -95,7 +175,7 @@ impl<Ix: IndexType> NodeIndex<Ix> {
 
     #[inline]
     pub fn end() -> Self {
-        NodeIndex(IndexType::max())
+        NodeIndex(IndexType::max_value())
     }
 
     fn _into_edge(self) -> EdgeIndex<Ix> {
@@ -144,7 +224,7 @@ impl<Ix: IndexType> EdgeIndex<Ix> {
     /// to end an adjacency list.
     #[inline]
     pub fn end() -> Self {
-        EdgeIndex(IndexType::max())
+        EdgeIndex(Ix::max_value())
     }
 
     fn _into_node(self) -> NodeIndex<Ix> {

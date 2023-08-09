@@ -42,7 +42,7 @@ where
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
         let node = Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
-        assert!(<Ix as IndexType>::max().index() == !0 || NodeIndex::end() != node_idx);
+        assert!(<Ix as IndexType>::max_value().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
         node_idx
     }
