@@ -1,6 +1,7 @@
 extern crate bincode;
 extern crate bitvec;
 extern crate kdam;
+extern crate memory_stats;
 extern crate petgraph;
 extern crate serde;
 extern crate serde_json;

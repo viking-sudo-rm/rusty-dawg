@@ -2,15 +2,23 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
 use crate::weight::Weight;
-use graph::indexing::NodeIndex;
+use graph::indexing::{DefaultIx, IndexType, NodeIndex};
+
+pub type DefaultWeight = WeightMinimal;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Weight40 {
-    // TODO: Use bitfields here to get 10 bytes.
     length1: u8,
     length2: u32,
     failure1: u8,
     failure2: u32,
+    count: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct WeightMinimal {
+    length: DefaultIx,
+    failure: DefaultIx,
     count: u32,
 }
 
@@ -69,6 +77,50 @@ impl Weight for Weight40 {
 
     fn get_count(&self) -> u64 {
         self.count as u64
+    }
+}
+
+impl Weight for WeightMinimal {
+    fn new(length: u64, failure: Option<NodeIndex>, count: u64) -> Self {
+        Self {
+            length: DefaultIx::new(length as usize),
+            //length: length as DefaultIx,
+            failure: match failure {
+                Some(f) => DefaultIx::new(f.index()),
+                None => DefaultIx::max_value(),
+            },
+            count: count as u32,
+        }
+    }
+
+    fn get_length(&self) -> u64 {
+        self.length.index() as u64
+    }
+
+    fn set_length(&mut self, length: u64) {
+        self.length = DefaultIx::new(length as usize);
+    }
+
+    fn get_failure(&self) -> Option<NodeIndex> {
+        if self.failure == DefaultIx::max_value() {
+            return None;
+        }
+        Some(NodeIndex::new(self.failure.index() as usize))
+    }
+
+    fn set_failure(&mut self, failure: Option<NodeIndex>) {
+        match failure {
+            Some(f) => self.failure = DefaultIx::new(f.index()),
+            None => self.failure = DefaultIx::max_value(),
+        }
+    }
+
+    fn increment_count(&mut self) {
+        self.count += 1;
+    }
+
+    fn get_count(&self) -> u64 {
+        return self.count as u64;
     }
 }
 

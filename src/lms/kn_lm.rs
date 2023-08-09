@@ -6,6 +6,7 @@ use weight::Weight;
 
 // use petgraph::graph::NodeIndex;
 use graph::indexing::NodeIndex;
+use weight::weight40::DefaultWeight;
 
 pub struct KNLM {
     pub name: String,
@@ -22,11 +23,16 @@ impl LM for KNLM {
         self.name.as_str()
     }
 
-    fn reset(&mut self, dawg: &Dawg<usize>) {
+    fn reset(&mut self, dawg: &Dawg<usize, DefaultWeight>) {
         self.state = dawg.get_initial();
     }
 
-    fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f64) -> f64 {
+    fn get_probability(
+        &self,
+        dawg: &Dawg<usize, DefaultWeight>,
+        label: usize,
+        good_turing: f64,
+    ) -> f64 {
         let mut state = self.state;
         let _initial = dawg.get_initial();
         while dawg.get_weight(state).get_count() < self.min_count {
@@ -38,7 +44,7 @@ impl LM for KNLM {
         self.get_probability_kn(dawg, state, label, good_turing)
     }
 
-    fn update(&mut self, dawg: &Dawg<usize>, label: usize) {
+    fn update(&mut self, dawg: &Dawg<usize, DefaultWeight>, label: usize) {
         self.state = dawg.transition(self.state, label, true).unwrap();
     }
 }
@@ -55,7 +61,12 @@ impl KNLM {
         }
     }
 
-    pub fn get_probability_exact(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f64 {
+    pub fn get_probability_exact(
+        &self,
+        dawg: &Dawg<usize, DefaultWeight>,
+        state: NodeIndex,
+        label: usize,
+    ) -> f64 {
         // FIXME: Handle <eos> here!!
         let denom = dawg.get_weight(state).get_count();
         let num = match dawg.transition(state, label, false) {
@@ -78,7 +89,7 @@ impl KNLM {
     // Backoff with Kneser-Ney smoothing
     pub fn get_probability_kn(
         &self,
-        dawg: &Dawg<usize>,
+        dawg: &Dawg<usize, DefaultWeight>,
         mut state: NodeIndex,
         label: usize,
         good_turing: f64,

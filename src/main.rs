@@ -12,6 +12,7 @@ extern crate bitvec;
 extern crate clap;
 extern crate kdam;
 extern crate petgraph;
+extern crate rusty_dawg;
 extern crate serde;
 extern crate serde_json;
 extern crate substring;
@@ -38,19 +39,23 @@ use kdam::tqdm;
 
 use dawg::Dawg;
 use evaluator::Evaluator;
+use graph::indexing::DefaultIx;
+use rusty_dawg::graph::indexing::Index48;
+use rusty_dawg::graph::indexing::IndexType;
 use stat_utils::*;
 use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
-use weight::Weight40;
+use weight::weight40::DefaultWeight;
+use weight::{Weight40, WeightMinimal};
 
 // Node and edge weight types.
-type N = Weight40; // FIXME: Actually pass this as a generic argument to Dawg.
+type N = DefaultWeight;
 type E = usize;
 
 #[derive(Parser, Debug)]
 #[command(
-    author = "William Merrill <willm@nyu.edu>",
-    version, about, long_about = None,
- )]
+author = "William Merrill <willm@nyu.edu>",
+version, about, long_about = None,
+)]
 struct Args {
     #[arg(long)]
     train_path: String,
@@ -129,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     create_lms(&args, &mut gen_lms);
     let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
 
-    let mut dawg: Dawg<E> = Dawg::with_capacity(2 * train.len());
+    let mut dawg: Dawg<E, N> = Dawg::with_capacity(2 * train.len());
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
@@ -197,7 +202,10 @@ fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM>>) {
     }
 }
 
-fn checkpoint(dawg: &Dawg<usize>, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn checkpoint(
+    dawg: &Dawg<usize, DefaultWeight>,
+    save_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let save_file = fs::OpenOptions::new()
         .write(true)
         .create(true)

@@ -2,13 +2,15 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ord;
 use std::fmt::Debug;
 
+use crate::weight::weight40::DefaultWeight;
 use dawg::Dawg;
 use graph::indexing::NodeIndex;
 use weight::Weight;
 
-pub fn get_entropy<E>(dawg: &Dawg<E>, state: NodeIndex) -> f64
+pub fn get_entropy<E, W>(dawg: &Dawg<E, W>, state: NodeIndex) -> f64
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+    W: Weight + Serialize + for<'a> Deserialize<'a>,
 {
     // let denom = counts[state.index()];
     // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -36,7 +38,7 @@ where
     sum_prob
 }
 
-pub fn good_turing_estimate(dawg: &Dawg<usize>, n_tokens: usize) -> f64 {
+pub fn good_turing_estimate(dawg: &Dawg<usize, DefaultWeight>, n_tokens: usize) -> f64 {
     let mut n_once = 0;
     let graph = dawg.get_graph();
     for unigram in graph.neighbors(dawg.get_initial()) {
@@ -59,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_get_entropy() {
-        let mut dawg = Dawg::new();
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&"ab".chars().collect());
         // Approximately log_2(3)
         assert_eq!(get_entropy(&dawg, NodeIndex::new(0)), 1.584962500721156);
