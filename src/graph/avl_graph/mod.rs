@@ -132,6 +132,8 @@ where
         }
     }
 
+    // insert node function (nodes in tree are edges in graph)
+    // merge Pete's update before adding code
     pub fn add_edge(
         &mut self,
         a: NodeIndex<Ix>,
@@ -141,6 +143,7 @@ where
         let edge = Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
+        // look for root, simple case where no root handled
         let first_edge = self.nodes[a.index()].first_edge;
         if first_edge == EdgeIndex::end() {
             self.nodes[a.index()].first_edge = edge_idx;
@@ -148,21 +151,30 @@ where
             return Some(edge_idx);
         }
 
+        // binary search to find pointer where we insert new edge (edge and parent pointers)
         let (e, last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight);
         if e != EdgeIndex::end() {
             return None;
         }
+        // weight of the parent
         let add_weight = self.edges[last_e.index()].weight;
+        // weight less than parent, add left else right (the tree thing, no case where weights are equal)
         if weight < add_weight {
             self.edges[last_e.index()].left = edge_idx;
         } else {
             self.edges[last_e.index()].right = edge_idx;
         }
+        // push this into the list of edges
         self.edges.push(edge);
+
+        // balance needs to be called here after we add the new edge
+    
         // self.pre_update_balance_factors(first_edge, weight);
         // if first_edge != EdgeIndex::end() {
         //     self.balance(first_edge, EdgeIndex::end(), weight);
         // }
+
+        // return idx
         Some(edge_idx)
         // FIXME: Implement recursive version!!!
     }
