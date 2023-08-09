@@ -26,6 +26,22 @@ cargo build --release
 
 Note that the `--release` flag is very important for performance. The code will be 10-100x slower without it.
 
+## Building the Python bindings
+
+The Python bindings are generated using [maturin](https://github.com/PyO3/maturin). First install maturin in your Python environment:
+
+```
+pip install maturin
+```
+
+Then `cd` into the Python bindings directory (`bindings/python`) and run:
+
+```
+make release
+```
+This will generate a Python wheel file `bindings/python/target/wheels/` which you can then install with `pip install target/wheels/*.whl`.
+Alternatively you can just run `make install` to combine those two steps.
+
 ## Running Benchmarking Script
 
 To run the benchmarking script, you need the Wikitext2/103 data. You can either download this to rusty-dawg/data path or point to an existing repository (easy on beaker, you can use my copy of the data).

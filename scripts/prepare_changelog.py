@@ -28,7 +28,7 @@ def main():
     lines.insert(insert_index, "\n")
     lines.insert(
         insert_index + 1,
-        f"## [v{VERSION}](https://github.com/allenai/python-package-template/releases/tag/v{VERSION}) - "
+        f"## [v{VERSION}](https://github.com/https://github.com/viking-sudo-rm/rusty-dawg/releases/tag/v{VERSION}) - "
         f"{datetime.now().strftime('%Y-%m-%d')}\n",
     )
 
