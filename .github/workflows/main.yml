@@ -109,6 +109,7 @@ jobs:
     name: Python bindings (linux)
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [x86_64, x86, aarch64, armv7, s390x, ppc64le]
     steps:
@@ -141,6 +142,7 @@ jobs:
     name: Python bindings (windows)
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [x64, x86]
     steps:
@@ -169,6 +171,7 @@ jobs:
     name: Python bindings (macos)
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [x86_64, aarch64]
     steps:
