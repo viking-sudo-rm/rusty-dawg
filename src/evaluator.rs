@@ -10,6 +10,7 @@ use dawg::Dawg;
 use stat_utils::*;
 use weight::Weight;
 
+use crate::weight::weight40::DefaultWeight;
 use lms::LM;
 
 // TODO:
@@ -81,7 +82,7 @@ impl Evaluator<'_, usize> {
         }
     }
 
-    pub fn evaluate(&mut self, dawg: &Dawg<usize>, idx: usize, good_turing: f64) {
+    pub fn evaluate(&mut self, dawg: &Dawg<usize, DefaultWeight>, idx: usize, good_turing: f64) {
         // println!("=== eval@{} ===", idx);
         // println!("counts: {:?}", counts);
         // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -134,7 +135,7 @@ impl Evaluator<'_, usize> {
                 cum_count += dawg.get_weight(state).get_count();
                 // cum_count += counts[state.index()];
             }
-            cum_entropy += get_entropy::<usize>(dawg, state);
+            cum_entropy += get_entropy::<usize, DefaultWeight>(dawg, state);
             num_tokens += 1;
 
             for lm in self.lms.iter_mut() {
@@ -169,6 +170,7 @@ mod tests {
     use graph::vec_graph::dot::Dot;
     use tokenize::{TokenIndex, Tokenize};
 
+    use crate::weight::weight40::DefaultWeight;
     use lms::kn_lm::KNLM;
     use lms::LM;
 
@@ -188,7 +190,7 @@ mod tests {
         let mut lms: Vec<Box<dyn LM>> = Vec::new();
         let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
 
-        let mut dawg: Dawg<usize> = Dawg::new();
+        let mut dawg: Dawg<usize, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         for (idx, token) in train.iter().enumerate() {
             last = dawg.extend(*token, last);
@@ -222,7 +224,7 @@ mod tests {
         lms.push(Box::new(unigram));
         let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
 
-        let mut dawg: Dawg<usize> = Dawg::new();
+        let mut dawg: Dawg<usize, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         for (idx, token) in train.iter().enumerate() {
             last = dawg.extend(*token, last);
