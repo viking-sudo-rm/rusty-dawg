@@ -1,6 +1,4 @@
 use graph::indexing::NodeIndex;
-use serde::{Deserialize, Serialize};
-use std::clone::Clone;
 
 pub trait Weight {
     fn get_length(&self) -> u64;

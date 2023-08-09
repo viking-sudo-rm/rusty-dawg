@@ -28,7 +28,7 @@ impl LM for KNLM {
 
     fn get_probability(&self, dawg: &Dawg<usize>, label: usize, good_turing: f64) -> f64 {
         let mut state = self.state;
-        let initial = dawg.get_initial();
+        let _initial = dawg.get_initial();
         while dawg.get_weight(state).get_count() < self.min_count {
             match dawg.get_weight(state).get_failure() {
                 Some(fstate) => state = fstate,
@@ -107,13 +107,12 @@ impl KNLM {
             Some(fstate) => {
                 let delta = self.kn_delta;
                 let back_prob = self.get_probability_kn(dawg, fstate, label, good_turing);
-                return ((1. - delta) * (count as f64) + delta * (back_count as f64) * back_prob)
-                    / (sum_count as f64);
+                ((1. - delta) * (count as f64) + delta * (back_count as f64) * back_prob)
+                    / (sum_count as f64)
             }
             None => {
                 // Put some probability here on <unk> using Good-Turing estimate.
-                return (1. - good_turing) * self.get_probability_exact(dawg, state, label)
-                    + good_turing;
+                (1. - good_turing) * self.get_probability_exact(dawg, state, label) + good_turing
             }
         }
     }

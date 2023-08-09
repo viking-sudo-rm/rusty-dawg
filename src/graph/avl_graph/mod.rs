@@ -581,7 +581,7 @@ mod tests {
         graph.add_edge(q0, q1, 2);
 
         let q2 = graph.clone_node(q0);
-        assert_eq!(*graph.node_weight(q2).unwrap(), 0 as u8);
+        assert_eq!(*graph.node_weight(q2).unwrap(), 0_u8);
         assert_eq!(graph.edge_target(q2, 2), Some(q1));
     }
 
@@ -592,7 +592,7 @@ mod tests {
         let q1 = graph.add_node(1);
         let q2 = graph.add_node(2);
         graph.add_edge(q0, q1, 2);
-        assert_eq!(graph.reroute_edge(q0, q2, 2), true);
+        assert!(graph.reroute_edge(q0, q2, 2));
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
     }
 

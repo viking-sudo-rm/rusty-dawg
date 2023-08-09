@@ -33,7 +33,7 @@ impl Weight for Weight40 {
     }
 
     fn get_length(&self) -> u64 {
-        return u64::from(self.length1) << 32 | u64::from(self.length2);
+        u64::from(self.length1) << 32 | u64::from(self.length2)
     }
 
     fn set_length(&mut self, length: u64) {
@@ -46,7 +46,7 @@ impl Weight for Weight40 {
             return None;
         }
         let idx = u64::from(self.failure1) << 32 | u64::from(self.failure2);
-        return Some(NodeIndex::new(idx as usize));
+        Some(NodeIndex::new(idx as usize))
     }
 
     fn set_failure(&mut self, failure: Option<NodeIndex>) {

@@ -35,20 +35,14 @@ where
         let mut dawg = Graph::<Weight40, E>::new();
         let initial = dawg.add_node(Weight40::initial());
         dawg[initial].increment_count();
-        Dawg {
-            dawg: dawg,
-            initial: initial,
-        }
+        Dawg { dawg, initial }
     }
 
     pub fn with_capacity(n_nodes: usize) -> Dawg<E> {
         let mut dawg = Graph::<Weight40, E>::with_capacity(n_nodes);
         let initial = dawg.add_node(Weight40::initial());
         dawg[initial].increment_count();
-        Dawg {
-            dawg: dawg,
-            initial: initial,
-        }
+        Dawg { dawg, initial }
     }
 
     pub fn build(&mut self, text: &Vec<E>) {

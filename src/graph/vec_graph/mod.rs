@@ -52,9 +52,8 @@ where
     }
 
     pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
-        match self.nodes.get_mut(a.index()) {
-            Some(ptr) => ptr.weight = value,
-            None => return,
+        if let Some(ptr) = self.nodes.get_mut(a.index()) {
+            ptr.weight = value
         }
     }
 
@@ -160,7 +159,7 @@ where
     }
 
     pub fn add_edge(&mut self, weight: E, target: NodeIndex<Ix>) -> bool {
-        if self.edges.len() == 0 {
+        if self.edges.is_empty() {
             let edge = Edge { weight, target };
             self.edges.push(edge);
             return true;
@@ -176,11 +175,12 @@ where
         } else {
             self.edges.insert(idx + 1, edge);
         }
-        return true;
+
+        true
     }
 
     pub fn edge_target(&self, weight: E) -> Option<NodeIndex<Ix>> {
-        if self.edges.len() == 0 {
+        if self.edges.is_empty() {
             return None;
         }
 
@@ -188,11 +188,11 @@ where
         if self.edges[idx].weight != weight {
             return None;
         }
-        return Some(self.edges[idx].target);
+        Some(self.edges[idx].target)
     }
 
     pub fn remove_edge(&mut self, weight: E) -> bool {
-        if self.edges.len() == 0 {
+        if self.edges.is_empty() {
             return false;
         }
 
@@ -201,11 +201,11 @@ where
             return false;
         }
         self.edges.remove(idx);
-        return true;
+        true
     }
 
     pub fn reroute_edge(&mut self, weight: E, target: NodeIndex<Ix>) -> bool {
-        if self.edges.len() == 0 {
+        if self.edges.is_empty() {
             return false;
         }
 
@@ -214,7 +214,7 @@ where
             return false;
         }
         self.edges.get_mut(idx).expect("").set_target(target);
-        return true;
+        true
     }
 
     fn _binary_search(&self, weight: E, l: usize, r: usize) -> usize {
@@ -224,9 +224,9 @@ where
         let mid = (l + r) / 2;
         let mid_weight = self.edges[mid].weight;
         if weight < mid_weight {
-            return self._binary_search(weight, l, mid);
+            self._binary_search(weight, l, mid)
         } else {
-            return self._binary_search(weight, mid, r);
+            self._binary_search(weight, mid, r)
         }
     }
 }
@@ -333,15 +333,15 @@ mod tests {
         let q2 = graph.add_node(2);
         let q3 = graph.add_node(3);
 
-        assert_eq!(graph.add_edge(q1, q2, 2), true);
+        assert!(graph.add_edge(q1, q2, 2));
         assert_eq!(weights(&graph, q1), vec![2]);
-        assert_eq!(graph.add_edge(q1, q3, 2), false);
-        assert_eq!(graph.add_edge(q1, q3, 3), true);
+        assert!(!graph.add_edge(q1, q3, 2));
+        assert!(graph.add_edge(q1, q3, 3));
         assert_eq!(weights(&graph, q1), vec![2, 3]);
-        assert_eq!(graph.add_edge(q1, q3, 4), true);
+        assert!(graph.add_edge(q1, q3, 4));
         assert_eq!(weights(&graph, q1), vec![2, 3, 4]);
-        assert_eq!(graph.add_edge(q1, q3, 3), false);
-        assert_eq!(graph.add_edge(q1, q2, 4), false);
+        assert!(!graph.add_edge(q1, q3, 3));
+        assert!(!graph.add_edge(q1, q2, 4));
 
         assert_eq!(graph.edge_target(q1, 2), Some(q2));
         assert_eq!(graph.edge_target(q1, 3), Some(q3));
@@ -357,8 +357,8 @@ mod tests {
         let q1 = graph.add_node(1);
         let q2 = graph.add_node(2);
 
-        assert_eq!(graph.add_edge(q0, q1, 'b'), true);
-        assert_eq!(graph.add_edge(q0, q2, 'a'), true);
+        assert!(graph.add_edge(q0, q1, 'b'));
+        assert!(graph.add_edge(q0, q2, 'a'));
 
         // println!("{:?}", Dot::new(&graph));
         let q0_weights: Vec<_> = graph.edges(q0).map(|x| *x.weight()).collect();
@@ -371,10 +371,10 @@ mod tests {
         let q0 = graph.add_node(0);
         let q1 = graph.add_node(1);
 
-        assert_eq!(graph.remove_edge(q0, 2), false);
-        assert_eq!(graph.add_edge(q0, q1, 2), true);
-        assert_eq!(graph.remove_edge(q0, 2), true);
-        assert_eq!(graph.remove_edge(q0, 2), false);
+        assert!(!graph.remove_edge(q0, 2));
+        assert!(graph.add_edge(q0, q1, 2));
+        assert!(graph.remove_edge(q0, 2));
+        assert!(!graph.remove_edge(q0, 2));
     }
 
     #[test]
@@ -385,7 +385,7 @@ mod tests {
         graph.add_edge(q0, q1, 2);
 
         let q2 = graph.clone_node(q0);
-        assert_eq!(*graph.node_weight(q2).unwrap(), 0 as u8);
+        assert_eq!(*graph.node_weight(q2).unwrap(), 0_u8);
         assert_eq!(graph.edge_target(q2, 2), Some(q1));
     }
 
@@ -396,7 +396,7 @@ mod tests {
         let q1 = graph.add_node(1);
         let q2 = graph.add_node(2);
         graph.add_edge(q0, q1, 2);
-        assert_eq!(graph.reroute_edge(q0, q2, 2), true);
+        assert!(graph.reroute_edge(q0, q2, 2));
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
     }
 }

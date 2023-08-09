@@ -31,7 +31,6 @@ use lms::LM;
 
 use bincode::serialize_into;
 use clap::Parser;
-use std::env;
 use std::fs;
 use std::mem::size_of;
 
@@ -199,7 +198,7 @@ fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM>>) {
 }
 
 fn checkpoint(dawg: &Dawg<usize>, save_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let mut save_file = fs::OpenOptions::new()
+    let save_file = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .open(save_path)?;

@@ -81,15 +81,10 @@ impl InductionLM {
         };
         let sum_count = self.dawg.get_weight(state).get_count();
 
-        let back_prob;
-        match self.dawg.get_weight(state).get_failure() {
-            Some(fstate) => {
-                back_prob = self.get_probability_interp(dawg, fstate, label, good_turing);
-            }
-            None => {
-                back_prob = self.train_lm.get_probability(dawg, label, good_turing);
-            }
-        }
+        let back_prob = match self.dawg.get_weight(state).get_failure() {
+            Some(fstate) => self.get_probability_interp(dawg, fstate, label, good_turing),
+            None => self.train_lm.get_probability(dawg, label, good_turing),
+        };
 
         let graph = self.dawg.get_graph();
         if graph.n_edges(state) == 0 {
