@@ -6,6 +6,7 @@ pub use self::null_token_index::NullTokenIndex;
 
 pub trait Tokenize {
     fn new() -> Self where Self: Sized;
+    fn tokenize(&mut self, text: &str);
     fn add(&mut self, token: &str) -> usize;
     fn index(&self, token: &str) -> usize;
     fn get_count(&self) -> usize;

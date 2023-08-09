@@ -36,6 +36,10 @@ impl Tokenize for TokenIndex<usize> {
         index
     }
 
+    fn tokenize(&mut self, text: &str) {
+        let tokenized_text: Vec<usize> = text.split_whitespace().map(|x| self.add(x)).collect();
+    }
+
     fn add(&mut self, token: &str) -> usize {
         let token_string = token.to_string();
         match self.token_to_index.get(token) {
@@ -82,6 +86,16 @@ mod tests {
         assert_eq!(token_index.token(342), "<unk>");
         assert_eq!(token_index.index("<unk>"), 0);
         assert_eq!(token_index.index("universe"), 0);
+    }
+
+    #[test]
+    fn test_tokenize_fn() {
+        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        token_index.tokenize("hello world");
+        assert_eq!(token_index.get_count(), 5);
+
+        token_index.tokenize("how are you ?");
+        assert_eq!(token_index.get_count(), 9);
     }
 
 }
