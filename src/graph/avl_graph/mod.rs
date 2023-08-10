@@ -36,6 +36,12 @@ where
         AvlGraph { nodes, edges }
     }
 
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
+        let nodes = Vec::with_capacity(n_nodes);
+        let edges = Vec::with_capacity(n_edges);
+        AvlGraph { nodes, edges }
+    }
+
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
         let node = Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
