@@ -1,11 +1,11 @@
-use serde::Serialize;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-use serde::*;
+use serde::{Deserialize, Serialize};
+use std::cmp::Ord;
 use dawg::Dawg;
 use stat_utils::*;
 use weight::Weight;
@@ -30,7 +30,7 @@ where
 
 impl<E> Evaluator<'_, E>
 where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + Ord + serde::Serialize + Copy + Debug,
 {
     pub fn get(&self, key: &str) -> &Vec<f64> {
         &self.metrics[key]
@@ -51,7 +51,7 @@ where
 // TODO: Generic case
 impl<E> Evaluator<'_, E> 
 where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     {
     pub fn new<'a>(
         lms: &'a mut Vec<Box<dyn LM<E>>>,

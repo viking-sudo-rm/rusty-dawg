@@ -23,7 +23,7 @@ where
 
 impl<E> LM<E> for InductionLM<E>
 where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
     {
     fn get_name(&self) -> &str {
         self.name.as_str()
@@ -55,7 +55,7 @@ where
 
 impl<E> InductionLM<E>
 where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
     {
     // Don't use smoothing, just interpolate!!!s
 

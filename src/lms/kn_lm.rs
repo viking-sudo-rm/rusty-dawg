@@ -24,28 +24,23 @@ pub struct KNLM {
 
 impl<E> LM<E> for KNLM
 where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
     {
     fn get_name(&self) -> &str {
         self.name.as_str()
     }
 
-    fn reset<E>
-    (&mut self, dawg: &Dawg<E, DefaultWeight>) 
-    where
-    E: Eq + serde::Serialize + Copy + Debug,
+    fn reset(&mut self, dawg: &Dawg<E, DefaultWeight>) 
     {
         self.state = dawg.get_initial();
     }
 
-    fn get_probability<E>(
+    fn get_probability(
         &self,
         dawg: &Dawg<E, DefaultWeight>,
         label: E,
         good_turing: f64,
     ) -> f64 
-    where
-    E: Eq + serde::Serialize + Copy + Debug,
     {
         let mut state = self.state;
         let _initial = dawg.get_initial();
@@ -58,17 +53,13 @@ where
         self.get_probability_kn(dawg, state, label, good_turing)
     }
 
-    fn update<E>(&mut self, dawg: &Dawg<E, DefaultWeight>, label: E)
-    where
-    E: Eq + serde::Serialize + Copy + Debug,
+    fn update(&mut self, dawg: &Dawg<E, DefaultWeight>, label: E)
     {
         self.state = dawg.transition(self.state, label, true).unwrap();
     }
 }
 
-impl<E> KNLM
-where
-    E: Eq + Serialize + Copy + Debug,
+impl KNLM
     {
     pub fn new(name: String, kn_delta: f64, kn_max_n: i64, min_count: u64) -> Self {
         // The state set here is correct but also unused.
@@ -88,7 +79,7 @@ where
         label: E,
     ) -> f64 
     where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
     {
         // FIXME: Handle <eos> here!!
         let denom = dawg.get_weight(state).get_count();
@@ -118,7 +109,7 @@ where
         good_turing: f64,
     ) -> f64 
     where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     {
         if self.kn_max_n >= 0 {
             let n: u64 = self.kn_max_n.try_into().unwrap();
