@@ -10,7 +10,6 @@ pub type DefaultWeight = WeightMinimal;
 pub struct WeightMinimal {
     length: DefaultIx,
     failure: DefaultIx,
-    count: u32,
 }
 
 impl Weight for WeightMinimal {
@@ -22,7 +21,6 @@ impl Weight for WeightMinimal {
                 Some(f) => DefaultIx::new(f.index()),
                 None => DefaultIx::max_value(),
             },
-            count: count as u32,
         }
     }
 
@@ -48,13 +46,9 @@ impl Weight for WeightMinimal {
         }
     }
 
-    fn increment_count(&mut self) {
-        self.count += 1;
-    }
+    fn increment_count(&mut self) { }
 
-    fn get_count(&self) -> u64 {
-        return self.count as u64;
-    }
+    fn get_count(&self) -> u64 { 0 }
 }
 
 #[cfg(test)]
