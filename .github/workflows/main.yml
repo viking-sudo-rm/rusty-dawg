@@ -45,15 +45,22 @@ jobs:
 
           - name: Benchmark
             run: |
+              # Install deps.
+              echo "=========== Installing zsh ============"
+              sudo apt-get install zsh
+
+              # Build release.
+              echo "============= Compiling ==============="
+              cargo build --release
+
               # Download data files.
+              echo "========== Downloading data ==========="
               pip install gdown
               gdown 1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby
               unzip data.zip
-              # Install deps.
-              sudo apt-get install zsh
-              # Build release.
-              cargo build --release
+
               # Run benchmark.
+              echo "========= Running benchmark ==========="
               ./scripts/benchmark.sh wikitext-2-raw
 
     steps:
