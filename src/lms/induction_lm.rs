@@ -9,21 +9,27 @@ use std::marker::Copy;
 use weight::weight40::DefaultWeight;
 use weight::Weight;
 
-pub struct InductionLM {
+pub struct InductionLM<E>
+where
+    E: Eq + serde::Serialize + Copy + Debug,
+    {
     pub name: String,
-    train_lm: Box<dyn LM>,
-    dawg: Dawg<u16, DefaultWeight>,
+    train_lm: Box<dyn LM<E>>,
+    dawg: Dawg<E, DefaultWeight>,
     delta: f64,
     state: NodeIndex,
     last: NodeIndex,
 }
 
-impl LM for InductionLM {
+impl<E> LM<E> for InductionLM<E>
+where
+    E: Eq + serde::Serialize + Copy + Debug,
+    {
     fn get_name(&self) -> &str {
         self.name.as_str()
     }
 
-    fn reset(&mut self, dawg: &Dawg<u16, DefaultWeight>) {
+    fn reset(&mut self, dawg: &Dawg<E, DefaultWeight>) {
         self.dawg = Dawg::new();
         self.state = self.dawg.get_initial();
         self.last = self.dawg.get_initial();
@@ -32,14 +38,14 @@ impl LM for InductionLM {
 
     fn get_probability(
         &self,
-        dawg: &Dawg<u16, DefaultWeight>,
-        label: u16,
+        dawg: &Dawg<E, DefaultWeight>,
+        label: E,
         good_turing: f64,
     ) -> f64 {
         self.get_probability_interp(dawg, self.state, label, good_turing)
     }
 
-    fn update(&mut self, dawg: &Dawg<u16, DefaultWeight>, label: u16) {
+    fn update(&mut self, dawg: &Dawg<E, DefaultWeight>, label: E) {
         self.last = self.dawg.extend(label, self.last);
         self.state = self.dawg.transition(self.state, label, true).unwrap();
         self.train_lm.update(dawg, label);
@@ -47,10 +53,13 @@ impl LM for InductionLM {
     }
 }
 
-impl InductionLM {
+impl<E> InductionLM<E>
+where
+    E: Eq + serde::Serialize + Copy + Debug,
+    {
     // Don't use smoothing, just interpolate!!!s
 
-    pub fn new(name: String, train_lm: Box<dyn LM>, delta: f64) -> Self {
+    pub fn new(name: String, train_lm: Box<dyn LM<E>>, delta: f64) -> Self {
         let dawg = Dawg::new();
         let state = dawg.get_initial();
         let last = dawg.get_initial();
@@ -67,9 +76,9 @@ impl InductionLM {
     // Backoff with Kneser-Ney smoothing
     pub fn get_probability_interp(
         &self,
-        dawg: &Dawg<u16, DefaultWeight>,
+        dawg: &Dawg<E, DefaultWeight>,
         state: NodeIndex,
-        label: u16,
+        label: E,
         good_turing: f64,
     ) -> f64 {
         // if self.kn_max_n >= 0 {

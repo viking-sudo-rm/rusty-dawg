@@ -78,26 +78,26 @@ impl Tokenize for TokenIndex<usize> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenize2::{TokenIndex, Tokenize};
+    use crate::tokenize::{TokenIndex, Tokenize};
 
     #[test]
     fn test_build_tokenizer() {
-        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        let mut token_index: TokenIndex<u16> = TokenIndex::new();
         token_index.build("");
         assert_eq!(token_index.get_count(), 3);
 
-        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        let mut token_index: TokenIndex<u16> = TokenIndex::new();
         token_index.build("hello");
         assert_eq!(token_index.get_count(), 4);
 
-        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        let mut token_index: TokenIndex<u16> = TokenIndex::new();
         token_index.build("hello, this is me.");
         assert_eq!(token_index.get_count(), 7);
     }
 
     #[test]
     fn test_add() {
-        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        let mut token_index: TokenIndex<u16> = TokenIndex::new();
         assert_eq!(token_index.add("hello"), 3);
         assert_eq!(token_index.add("hello"), 3);
         assert_eq!(token_index.add("world"), 4);
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_tokenize_fn() {
-        let mut token_index: TokenIndex<usize> = TokenIndex::new();
+        let mut token_index: TokenIndex<u16> = TokenIndex::new();
         token_index.build("");
         let tokens = token_index.tokenize("hello world");
         assert_eq!(
@@ -122,7 +122,7 @@ mod tests {
             "<unk> <unk>"
                 .split_whitespace()
                 .map(|x| token_index.index(x))
-                .collect::<Vec<usize>>()
+                .collect::<Vec<u16>>()
         );
 
         token_index.build("hello wolrd");
@@ -132,7 +132,7 @@ mod tests {
             "hello world"
                 .split_whitespace()
                 .map(|x| token_index.index(x))
-                .collect::<Vec<usize>>()
+                .collect::<Vec<u16>>()
         );
     }
 }
