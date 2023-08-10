@@ -179,6 +179,89 @@ where
         // FIXME: Implement recursive version!!!
     }
 
+    pub fn add_balanced_edge(
+        &mut self,
+        a: NodeIndex<Ix>,
+        b: NodeIndex<Ix>,
+        weight: E,
+    ) -> Option<EdgeIndex<Ix>> {
+        // look for root, simple case where no root handled
+        let first_edge = self.nodes[a.index()].first_edge;
+
+        // recursive insert into AVL tree
+        self.nodes[a.index()].first_edge = self.avl_insert_edge(first_edge, weight, b);
+
+    }
+
+    fn avl_insert_edge(
+        &mut self,
+        root_edge_idx: EdgeIndex<Ix>,
+        weight: E,
+        b: NodeIndex<Ix>
+    ) -> EdgeIndex<Ix> {
+
+        // if we encounter null ptr, we add edge into AVL tree
+        if root_edge_idx == EdgeIndex::end() {
+            let edge = Edge::new(weight, b);
+            self.edges.push(edge);
+            return EdgeIndex::new(self.edges.len() - 1);
+        }
+
+        // keep recursing into the tree according to balance tree insert rule
+        let root_edge: Edge<E, Ix> = self.edges[root_edge_idx.index()];
+
+        if root_edge.weight > weight {
+            let left_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].left;
+
+            // record balance factor before recursion
+            let init_balance_factor: i8 = if left_idx == EdgeIndex::end() {
+                0
+            } else {
+                self.edges[left_idx.index()].balance_factor
+            };
+
+            self.edges[root_edge_idx.index()].left = self.avl_insert_edge(left_idx, weight, b);
+
+            // record balance factor after recursion
+            let updated_balance_factor = if left_idx == EdgeIndex::end() {
+                0
+            } else {
+                self.edges[left_idx.index()].balance_factor
+            };
+
+            if init_balance_factor == 0 {
+                if updated_balance_factor == 1 || updated_balance_factor == -1 {
+                    self.edges[root_edge_idx.index()].balance_factor += 1;
+                }
+            }
+        } else if root_edge.weight < weight {
+            let right_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].right;
+
+            // record balance factor before recursion
+            let init_balance_factor: i8 = if right_idx == EdgeIndex::end() {
+                0
+            } else {
+                self.edges[right_idx.index()].balance_factor
+            };
+
+            self.edges[root_edge_idx.index()].right = self.avl_insert_edge(right_idx, weight, b);
+
+            // record balance factor after recursion
+            let updated_balance_factor = if right_idx == EdgeIndex::end() {
+                0
+            } else {
+                self.edges[right_idx.index()].balance_factor
+            };
+
+            if init_balance_factor == 0 {
+                if updated_balance_factor == 1 || updated_balance_factor == -1 {
+                    self.edges[root_edge_idx.index()].balance_factor -= 1;
+                }
+        }
+
+        return root_edge_idx;
+    }
+
     // TODO: implement a balance factor version of this
     // pub fn add_balanced_edge(
     //     &mut self,
