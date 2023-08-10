@@ -113,7 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
-        test = test[..args.truncate_test].to_vec();
+        test = test[..std::cmp::min(args.truncate_test, old_test_len)].to_vec();
     }
     println!("#(test): {}/{}", test.len(), old_test_len);
 
