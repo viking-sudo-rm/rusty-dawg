@@ -1,32 +1,33 @@
+use bincode::deserialize_from;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use std::fs;
-use bincode::deserialize_from;
 
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
-use rusty_dawg::weight::Weight;
+use rusty_dawg::weight::{Weight, WeightMinimal};
 
 #[pyclass]
 pub struct Dawg {
-    dawg: dawg::Dawg<usize>,
+    dawg: dawg::Dawg<usize, WeightMinimal>,
 }
 
 // Wrap the normal Dawg class with a Python interface.
 #[pymethods]
 impl Dawg {
-
     #[new]
     pub fn new() -> Self {
-        Self {dawg: dawg::Dawg::new()}
+        Self {
+            dawg: dawg::Dawg::new(),
+        }
     }
 
     #[classmethod]
     pub fn load(cls: &PyType, path: String) -> PyResult<Self> {
-        let mut file = fs::OpenOptions::new()
-            .read(true)
-            .open(&path)?;
-        Ok(Self {dawg: deserialize_from(&file).expect("Failed to deserialize")})
+        let mut file = fs::OpenOptions::new().read(true).open(&path)?;
+        Ok(Self {
+            dawg: deserialize_from(&file).expect("Failed to deserialize"),
+        })
     }
 
     pub fn build(&mut self, text: Vec<usize>) {
@@ -45,7 +46,12 @@ impl Dawg {
         }
     }
 
-    pub fn transition_and_count(&self, state: usize, token: usize, length: u64) -> (Option<usize>, u64) {
+    pub fn transition_and_count(
+        &self,
+        state: usize,
+        token: usize,
+        length: u64,
+    ) -> (Option<usize>, u64) {
         let state_index = NodeIndex::new(state);
         let (new_state, new_length) = self.dawg.transition_and_count(state_index, token, length);
         match new_state {
@@ -63,7 +69,10 @@ impl Dawg {
     pub fn get_edges(&self, state: usize) -> Vec<(usize, usize)> {
         let state_index = NodeIndex::new(state);
         let graph = self.dawg.get_graph();
-        graph.edges(state_index).map(|edge| (edge.target().index(), *edge.weight())).collect()
+        graph
+            .edges(state_index)
+            .map(|edge| (edge.target().index(), *edge.weight()))
+            .collect()
     }
 
     pub fn recompute_lengths(&mut self) {
@@ -77,11 +86,11 @@ impl Dawg {
     pub fn edge_count(&self) -> usize {
         self.dawg.edge_count()
     }
-
 }
 
 impl Dawg {
-    pub fn get_dawg(&self) -> &dawg::Dawg<usize> {
+    pub fn get_dawg(&self) -> &dawg::Dawg<usize, WeightMinimal> {
         &self.dawg
     }
 }
+

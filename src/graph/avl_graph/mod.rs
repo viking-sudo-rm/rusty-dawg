@@ -15,7 +15,7 @@ use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx> {
     #[serde(bound(
         serialize = "N: Serialize, E: Serialize, Ix: Serialize",
@@ -48,9 +48,8 @@ where
     }
 
     pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
-        match self.nodes.get_mut(a.index()) {
-            Some(ptr) => ptr.weight = value,
-            None => (),
+        if let Some(ptr) = self.nodes.get_mut(a.index()) {
+            ptr.weight = value;
         }
     }
 
@@ -372,8 +371,7 @@ where
     pub fn n_edges(&self, a: NodeIndex<Ix>) -> usize {
         let mut stack = vec![self.nodes[a.index()].first_edge];
         let mut count = 0;
-        while !stack.is_empty() {
-            let top = stack.pop().unwrap();
+        while let Some(top) = stack.pop() {
             if top == EdgeIndex::end() {
                 continue;
             }
