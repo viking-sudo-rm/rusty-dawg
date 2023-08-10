@@ -16,7 +16,7 @@ pub mod dot;
 // use self::dot::Dot;
 
 // Potential feature: Avoid binary search on filled entries, or "fill" almost filled entries?
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Graph<N, E, Ix = DefaultIx> {
     #[serde(bound(
         serialize = "N: Serialize, E: Serialize, Ix: Serialize",

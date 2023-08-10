@@ -27,6 +27,16 @@ where
     initial: NodeIndex,
 }
 
+impl<E, W> Default for Dawg<E, W>
+where
+    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+    W: Weight + Serialize + for<'a> Deserialize<'a>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
@@ -46,7 +56,7 @@ where
         Dawg { dawg, initial }
     }
 
-    pub fn build(&mut self, text: &Vec<E>) {
+    pub fn build(&mut self, text: &[E]) {
         let mut last = self.initial;
         for token in text.iter() {
             last = self.extend(*token, last);
@@ -118,14 +128,11 @@ where
                                 state = q;
                             }
                         }
-                        match self.transition(state, token, false) {
-                            Some(value) => {
-                                next_state_ = value;
-                                if next_state_ != next_state {
-                                    break;
-                                }
+                        if let Some(value) = self.transition(state, token, false) {
+                            next_state_ = value;
+                            if next_state_ != next_state {
+                                break;
                             }
-                            None => {}
                         }
                     }
                 }
@@ -149,18 +156,13 @@ where
         let mut queue: LinkedList<(NodeIndex, u64)> = LinkedList::new();
         queue.push_back((self.initial, 0));
 
-        loop {
-            match queue.pop_front() {
-                Some((state, length)) => {
-                    if self.dawg[state].get_length() != 0 {
-                        continue;
-                    }
-                    self.dawg[state].set_length(length);
-                    for next_state in self.dawg.neighbors(state) {
-                        queue.push_back((next_state, length + 1));
-                    }
-                }
-                None => break,
+        while let Some((state, length)) = queue.pop_front() {
+            if self.dawg[state].get_length() != 0 {
+                continue;
+            }
+            self.dawg[state].set_length(length);
+            for next_state in self.dawg.neighbors(state) {
+                queue.push_back((next_state, length + 1));
             }
         }
     }
@@ -177,14 +179,9 @@ where
     // Compute the min factor length of this state dynamically.
     pub fn get_length(&self, mut state: NodeIndex) -> u64 {
         let mut count = 0;
-        loop {
-            match self.dawg[state].get_failure() {
-                Some(fstate) => {
-                    state = fstate;
-                    count += 1;
-                }
-                None => break,
-            }
+        while let Some(fstate) = self.dawg[state].get_failure() {
+            state = fstate;
+            count += 1;
         }
         count
     }
@@ -299,7 +296,7 @@ mod tests {
     #[test]
     fn test_build_bab() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"bab".chars().collect());
+        dawg.build(&['b', 'a', 'b']);
 
         let q0 = NodeIndex::new(0);
         let q1 = NodeIndex::new(1);
@@ -325,7 +322,7 @@ mod tests {
     #[test]
     fn test_build_abcab() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abcab".chars().collect());
+        dawg.build(&['a', 'b', 'c', 'a', 'b']);
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
         assert_eq!(dawg.get_max_factor_length("abc".chars().collect()), 3);
@@ -344,7 +341,7 @@ mod tests {
     #[test]
     fn test_build_abb() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abb".chars().collect());
+        dawg.build(&['a', 'b', 'b']);
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 1);
         assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
@@ -365,7 +362,8 @@ mod tests {
         relatively isolated rural communities **h urbanization appears to be";
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         println!("Start build!");
-        dawg.build(&corpus.chars().collect());
+        let chars: Vec<char> = corpus.chars().collect();
+        dawg.build(&chars);
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);
         assert_eq!(dawg.get_max_factor_length("However,".chars().collect()), 8);
@@ -382,7 +380,7 @@ mod tests {
     #[test]
     fn test_get_length() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"ab".chars().collect());
+        dawg.build(&['a', 'b']);
         let state = NodeIndex::new(2);
         assert_eq!(dawg.dawg[state].get_length(), 2);
         assert_eq!(dawg.get_length(state), 1);
@@ -393,7 +391,7 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_to_string() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abcd".chars().collect());
+        dawg.build(&['a', 'b', 'c', 'd']);
 
         let encoded: Vec<u8> = bincode::serialize(&dawg).unwrap();
         let decoded: Dawg<char, DefaultWeight> = bincode::deserialize(&encoded[..]).unwrap();
@@ -403,7 +401,7 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_to_file() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abcd".chars().collect());
+        dawg.build(&['a', 'b', 'c', 'd']);
 
         let mut file = NamedTempFile::new().expect("Failed to create file");
         serialize_into(&file, &dawg).expect("Failed to serialize");

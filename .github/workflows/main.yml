@@ -41,7 +41,7 @@ jobs:
           - name: Lint
             run: |
               rustup component add clippy
-              cargo clippy --all-targets -- -D warnings
+              make lint
 
           - name: Benchmark
             run: |
