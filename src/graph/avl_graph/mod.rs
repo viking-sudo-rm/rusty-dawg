@@ -210,6 +210,7 @@ where
         let root_edge: Edge<E, Ix> = self.edges[root_edge_idx.index()];
 
         if root_edge.weight > weight {
+            // go left of the current node
             let left_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].left;
 
             // record balance factor before recursion
@@ -233,7 +234,18 @@ where
                     self.edges[root_edge_idx.index()].balance_factor += 1;
                 }
             }
+
+            let current_balance_factor: i8 = root_edge.balance_factor;
+
+            if current_balance_factor == 2 {
+                if updated_balance_factor == 1 {
+                    return self.rotate_from_left(root_edge_idx);
+                } else if updated_balance_factor == -1 {
+                    return self.double_rotate_from_left(root_edge_idx);
+                }
+            }
         } else if root_edge.weight < weight {
+            // go right of the current node
             let right_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].right;
 
             // record balance factor before recursion
@@ -256,6 +268,17 @@ where
                 if updated_balance_factor == 1 || updated_balance_factor == -1 {
                     self.edges[root_edge_idx.index()].balance_factor -= 1;
                 }
+            }
+
+            let current_balance_factor: i8 = root_edge.balance_factor;
+
+            if current_balance_factor == -2 {
+                if updated_balance_factor == -1 {
+                    return self.rotate_from_right(root_edge_idx);
+                } else if updated_balance_factor == 1 {
+                    return self.double_rotate_from_right(root_edge_idx);
+                }
+            }
         }
 
         return root_edge_idx;
@@ -337,6 +360,14 @@ where
         self.edges[node_ptr.index()].right = self.edges[p.index()].left;
         self.edges[p.index()].left = node_ptr;
 
+        // update balance-factors
+        // update rules taken from: https://cs.stackexchange.com/questions/48861/balance-factor-changes-after-local-rotations-in-avl-tree
+        // p is l' and p.left (node_ptr) is n'
+        // b(n') = b(n) + 1 - min(b(l), 0)
+        // b(l') = b(l) + 1 + max(b(n'), 0)
+        self.edges[node_ptr.index()].balance_factor += 1 - std::cmp::min(self.edges[p.index()].balance_factor, 0);
+        self.edges[p.index()].balance_factor += 1 + std::cmp::max(self.edges[node_ptr.index()].balance_factor, 0);
+
         return p;
     }
 
@@ -347,6 +378,14 @@ where
         let p: EdgeIndex<Ix> = self.edges[node_ptr.index()].left;
         self.edges[node_ptr.index()].left = self.edges[p.index()].right;
         self.edges[p.index()].right = node_ptr;
+
+        // update balance-factors
+        // update rules taken from: https://cs.stackexchange.com/questions/48861/balance-factor-changes-after-local-rotations-in-avl-tree
+        // p is l' and p.right (node_ptr) is n'
+        // b(n') = b(n) - 1 - max(b(l), 0)
+        // b(l') = b(l) - 1 + min(b(n'), 0)
+        self.edges[node_ptr.index()].balance_factor -= 1 + std::cmp::max(self.edges[p.index()].balance_factor, 0);
+        self.edges[p.index()].balance_factor -= 1 - std::cmp::min(self.edges[node_ptr.index()].balance_factor, 0);
 
         return p;
     }
