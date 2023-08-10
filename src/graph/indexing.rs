@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 // Int-like type for indexing nodes and edges.
 // u32 breaks down around 10Gi, but u64 uses more memory than necessary
-pub type DefaultIx = usize;
+pub type DefaultIx = Index40;
 
 #[derive(
     Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Debug, Serialize, Deserialize,

@@ -49,7 +49,7 @@ use weight::WeightMinimal;
 
 // Node and edge weight types.
 type N = DefaultWeight;
-type E = usize;
+type E = u16;
 
 #[derive(Parser, Debug)]
 #[command(
