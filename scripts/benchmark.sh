@@ -9,13 +9,11 @@ DATA_PATH="${DATA:-data}"
 #     MAX_MEMORY_UNITS=MB
 # fi
 
-TIMEFMT='================================'$'\n'\
-'runtime:         %*E sec'$'\n'\
-'max memory:      %M KB'
+TIMEFMT='max memory:      %M KB'
 
-time ./target/release/rusty-dawg \
-    --train-path "$DATA_PATH/$1/wiki.train.raw" \
-    --test-path "$DATA_PATH/$1/wiki.valid.raw" \
+command time --format "$TIMEFMT" ./target/release/rusty-dawg \
+    --train-path "$1" \
+    --test-path "$2" \
     --save-path "" \
     --results-path "" \
     --n-eval 0 \
