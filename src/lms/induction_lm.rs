@@ -1,13 +1,18 @@
 use dawg::Dawg;
 use graph::indexing::NodeIndex;
 use lms::LM;
+use std::cmp::{Eq, Ord};
+use std::fmt::Debug;
+use serde::Deserialize;
+use serde::Serialize;
+use std::marker::Copy;
 use weight::weight40::DefaultWeight;
 use weight::Weight;
 
 pub struct InductionLM {
     pub name: String,
     train_lm: Box<dyn LM>,
-    dawg: Dawg<usize, DefaultWeight>,
+    dawg: Dawg<u16, DefaultWeight>,
     delta: f64,
     state: NodeIndex,
     last: NodeIndex,
@@ -18,7 +23,7 @@ impl LM for InductionLM {
         self.name.as_str()
     }
 
-    fn reset(&mut self, dawg: &Dawg<usize, DefaultWeight>) {
+    fn reset(&mut self, dawg: &Dawg<u16, DefaultWeight>) {
         self.dawg = Dawg::new();
         self.state = self.dawg.get_initial();
         self.last = self.dawg.get_initial();
@@ -27,14 +32,14 @@ impl LM for InductionLM {
 
     fn get_probability(
         &self,
-        dawg: &Dawg<usize, DefaultWeight>,
-        label: usize,
+        dawg: &Dawg<u16, DefaultWeight>,
+        label: u16,
         good_turing: f64,
     ) -> f64 {
         self.get_probability_interp(dawg, self.state, label, good_turing)
     }
 
-    fn update(&mut self, dawg: &Dawg<usize, DefaultWeight>, label: usize) {
+    fn update(&mut self, dawg: &Dawg<u16, DefaultWeight>, label: u16) {
         self.last = self.dawg.extend(label, self.last);
         self.state = self.dawg.transition(self.state, label, true).unwrap();
         self.train_lm.update(dawg, label);
@@ -62,9 +67,9 @@ impl InductionLM {
     // Backoff with Kneser-Ney smoothing
     pub fn get_probability_interp(
         &self,
-        dawg: &Dawg<usize, DefaultWeight>,
+        dawg: &Dawg<u16, DefaultWeight>,
         state: NodeIndex,
-        label: usize,
+        label: u16,
         good_turing: f64,
     ) -> f64 {
         // if self.kn_max_n >= 0 {
@@ -116,7 +121,7 @@ mod tests {
     #[test]
     fn test_get_probability_ab() {
         let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();

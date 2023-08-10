@@ -36,10 +36,10 @@ impl Tokenize for PretrainedTokenizer {
         // do nothing (pretrained tokenizer is already built)
     }
 
-    fn tokenize(&mut self, text: &str) -> Vec<usize> {
-        let tokenized_text: Vec<usize> = text
+    fn tokenize(&mut self, text: &str) -> Vec<u16> {
+        let tokenized_text: Vec<u16> = text
             .split_whitespace()
-            .map(|x| self.tokenizer.token_to_id(x).unwrap_or_default() as usize)
+            .map(|x| self.tokenizer.token_to_id(x).unwrap_or_default() as u16)
             .collect();
         tokenized_text
     }

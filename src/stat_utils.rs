@@ -38,7 +38,7 @@ where
     sum_prob
 }
 
-pub fn good_turing_estimate(dawg: &Dawg<usize, DefaultWeight>, n_tokens: usize) -> f64 {
+pub fn good_turing_estimate(dawg: &Dawg<u16, DefaultWeight>, n_tokens: usize) -> f64 {
     let mut n_once = 0;
     let graph = dawg.get_graph();
     for unigram in graph.neighbors(dawg.get_initial()) {

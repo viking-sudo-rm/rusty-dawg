@@ -52,12 +52,13 @@ impl TokenIndex<usize> {
         }
     }
 
-    fn index(&self, token: &str) -> usize {
+    fn index(&self, token: &str) -> u16 {
         match self.token_to_index.get(token) {
-            Some(ptr) => *ptr,
-            None => self.unk,
+            Some(ptr) => *ptr as u16, // Convert usize to u16
+            None => self.unk as u16,  // Convert usize to u16
         }
     }
+    
 }
 
 impl Tokenize for TokenIndex<usize> {
@@ -65,8 +66,8 @@ impl Tokenize for TokenIndex<usize> {
         let tokens: Vec<usize> = text.split_whitespace().map(|x| self.add(x)).collect();
     }
 
-    fn tokenize(&mut self, text: &str) -> Vec<usize> {
-        let tokenized_text: Vec<usize> = text.split_whitespace().map(|x| self.index(x)).collect();
+    fn tokenize(&mut self, text: &str) -> Vec<u16> {
+        let tokenized_text: Vec<u16> = text.split_whitespace().map(|x| self.index(x)).collect();
         tokenized_text
     }
 

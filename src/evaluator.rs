@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-
+use serde::*;
 use dawg::Dawg;
 use stat_utils::*;
 use weight::Weight;
@@ -28,9 +28,7 @@ where
     max_length: u64,
 }
 
-impl<E> Evaluator<'_, E>
-where
-    E: Eq + serde::Serialize + Copy + Debug,
+impl Evaluator<'_, u16>
 {
     pub fn get(&self, key: &str) -> &Vec<f64> {
         &self.metrics[key]
@@ -49,12 +47,12 @@ where
 }
 
 // TODO: Generic case
-impl Evaluator<'_, usize> {
+impl Evaluator<'_, u16> {
     pub fn new<'a>(
         lms: &'a mut Vec<Box<dyn LM>>,
-        test: &'a Vec<usize>,
+        test: &'a Vec<u16>,
         max_length: u64,
-    ) -> Evaluator<'a, usize> {
+    ) -> Evaluator<'a, u16> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
@@ -82,7 +80,7 @@ impl Evaluator<'_, usize> {
         }
     }
 
-    pub fn evaluate(&mut self, dawg: &Dawg<usize, DefaultWeight>, idx: usize, good_turing: f64) {
+    pub fn evaluate(&mut self, dawg: &Dawg<u16, DefaultWeight>, idx: usize, good_turing: f64) {
         // println!("=== eval@{} ===", idx);
         // println!("counts: {:?}", counts);
         // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -135,7 +133,7 @@ impl Evaluator<'_, usize> {
                 cum_count += dawg.get_weight(state).get_count();
                 // cum_count += counts[state.index()];
             }
-            cum_entropy += get_entropy::<usize, DefaultWeight>(dawg, state);
+            cum_entropy += get_entropy::<u16, DefaultWeight>(dawg, state);
             num_tokens += 1;
 
             for lm in self.lms.iter_mut() {
@@ -183,14 +181,14 @@ mod tests {
         let train_tokens = vec!["a", "b", "b"];
         let test_tokens = vec!["a", "b", "c"];
 
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-        let mut lms: Vec<Box<dyn LM>> = Vec::new();
-        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
+        let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
+        let mut evaluator: Evaluator = Evaluator::new(&mut lms, &test, 3);
 
-        let mut dawg: Dawg<usize, DefaultWeight> = Dawg::new();
+        let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         for (idx, token) in train.iter().enumerate() {
             last = dawg.extend(*token, last);
@@ -215,16 +213,16 @@ mod tests {
         let train_tokens = vec!["a", "a"];
         let test_tokens = vec!["a", "a", "a"];
 
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
         let mut lms: Vec<Box<dyn LM>> = Vec::new();
         let unigram = KNLM::new("unigram".to_string(), 0., 0, 0);
         lms.push(Box::new(unigram));
-        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
+        let mut evaluator: Evaluator = Evaluator::new(&mut lms, &test, 3);
 
-        let mut dawg: Dawg<usize, DefaultWeight> = Dawg::new();
+        let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         for (idx, token) in train.iter().enumerate() {
             last = dawg.extend(*token, last);

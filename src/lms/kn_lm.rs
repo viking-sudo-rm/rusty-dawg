@@ -3,6 +3,10 @@ use std::convert::TryInto;
 use dawg::Dawg;
 use lms::LM;
 use weight::Weight;
+use std::fmt::Debug;
+use std::marker::Copy;
+use serde::Serialize;
+use serde::Deserialize;
 
 // use petgraph::graph::NodeIndex;
 use graph::indexing::NodeIndex;
@@ -11,26 +15,27 @@ use weight::weight40::DefaultWeight;
 pub struct KNLM {
     pub name: String,
     // index: &'a TokenIndex<usize>,
-    // dawg: &'a Dawg<usize>,
+    // dawg: &'a Dawg<u16>,
     kn_delta: f64,
     kn_max_n: i64,
     min_count: u64, // Backoff to states that occur at least this much.
     state: NodeIndex,
 }
 
-impl LM for KNLM {
+impl LM for KNLM 
+    {
     fn get_name(&self) -> &str {
         self.name.as_str()
     }
 
-    fn reset(&mut self, dawg: &Dawg<usize, DefaultWeight>) {
+    fn reset(&mut self, dawg: &Dawg<u16, DefaultWeight>) {
         self.state = dawg.get_initial();
     }
 
     fn get_probability(
         &self,
-        dawg: &Dawg<usize, DefaultWeight>,
-        label: usize,
+        dawg: &Dawg<u16, DefaultWeight>,
+        label: u16,
         good_turing: f64,
     ) -> f64 {
         let mut state = self.state;
@@ -44,7 +49,7 @@ impl LM for KNLM {
         self.get_probability_kn(dawg, state, label, good_turing)
     }
 
-    fn update(&mut self, dawg: &Dawg<usize, DefaultWeight>, label: usize) {
+    fn update(&mut self, dawg: &Dawg<u16, DefaultWeight>, label: u16) {
         self.state = dawg.transition(self.state, label, true).unwrap();
     }
 }
@@ -63,9 +68,9 @@ impl KNLM {
 
     pub fn get_probability_exact(
         &self,
-        dawg: &Dawg<usize, DefaultWeight>,
+        dawg: &Dawg<u16, DefaultWeight>,
         state: NodeIndex,
-        label: usize,
+        label: u16,
     ) -> f64 {
         // FIXME: Handle <eos> here!!
         let denom = dawg.get_weight(state).get_count();
@@ -76,7 +81,7 @@ impl KNLM {
         (num as f64) / (denom as f64)
     }
 
-    // pub fn get_probability_simple_smoothing(&self, dawg: &Dawg<usize>, state: NodeIndex, label: usize) -> f64 {
+    // pub fn get_probability_simple_smoothing(&self, dawg: &Dawg<u16>, state: NodeIndex, label: usize) -> f64 {
     //     let n_types = (index.count - 1) as u64;  // Ignore <bos>
     //     let smooth_denom = dawg.get_weight(state).get_count() + n_types;
     //     let smooth_num = match dawg.transition(state, label, false) {
@@ -89,9 +94,9 @@ impl KNLM {
     // Backoff with Kneser-Ney smoothing
     pub fn get_probability_kn(
         &self,
-        dawg: &Dawg<usize, DefaultWeight>,
+        dawg: &Dawg<u16, DefaultWeight>,
         mut state: NodeIndex,
-        label: usize,
+        label: u16,
         good_turing: f64,
     ) -> f64 {
         if self.kn_max_n >= 0 {
@@ -144,7 +149,7 @@ mod tests {
     #[test]
     fn test_get_probability_exact() {
         let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
@@ -163,7 +168,7 @@ mod tests {
     #[test]
     fn test_get_probability_kn_reduces_to_exact() {
         let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
@@ -185,7 +190,7 @@ mod tests {
     #[test]
     fn test_get_probability_kn_with_delta() {
         let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
@@ -214,7 +219,7 @@ mod tests {
     #[test]
     fn test_get_probability_kn_ngram() {
         let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
@@ -230,7 +235,7 @@ mod tests {
     #[test]
     fn test_get_probability_abab() {
         let tokens = vec!["a", "b", "a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();

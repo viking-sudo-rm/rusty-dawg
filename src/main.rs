@@ -53,7 +53,7 @@ use weight::{Weight40, WeightMinimal};
 
 // Node and edge weight types.
 type N = DefaultWeight;
-type E = usize;
+type E = u16;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -97,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sizeof(node): {}B", size_of::<N>());
 
     let args = Args::parse();
-    let mut index: Box<dyn Tokenize> = Box::new(TokenIndex::<usize>::new());
+    let mut index: Box<dyn Tokenize> = Box::new(TokenIndex::new());
     // let mut index: Box<dyn Tokenize> = if args.tokenize {
     //     Box::new(TokenIndex::<usize>::new())
     // } else {
@@ -107,7 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let train_raw: String =
         fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
     index.build(&train_raw);
-    let train: Vec<usize> = index.tokenize(&train_raw);
+    let train: Vec<u16> = index.tokenize(&train_raw);
     // let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
     let eval_threshold = if args.n_eval != 0 {
         train.len() / args.n_eval
@@ -117,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(train): {}", train.len());
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
-    let mut test: Vec<usize> = index.tokenize(&test_raw);
+    let mut test: Vec<u16> = index.tokenize(&test_raw);
     // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
@@ -212,7 +212,7 @@ fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM>>) {
 }
 
 fn checkpoint(
-    dawg: &Dawg<usize, DefaultWeight>,
+    dawg: &Dawg<u16, DefaultWeight>,
     save_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let save_file = fs::OpenOptions::new()

@@ -8,6 +8,6 @@ pub use self::token_index::TokenIndex;
 
 pub trait Tokenize {
     fn build(&mut self, text: &str);
-    fn tokenize(&mut self, text: &str) -> Vec<usize>;
+    fn tokenize(&mut self, text: &str) -> Vec<u16>;
     fn get_count(&self) -> usize;
 }
