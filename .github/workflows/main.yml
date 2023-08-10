@@ -50,7 +50,7 @@ jobs:
               gdown 1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby
               unzip data.zip
               # Install deps.
-              apt-get install zsh
+              sudo apt-get install zsh
               # Build release.
               cargo build --release
               # Run benchmark.
