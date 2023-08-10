@@ -179,6 +179,54 @@ where
         // FIXME: Implement recursive version!!!
     }
 
+    // TODO: implement a balance factor version of this
+    // pub fn add_balanced_edge(
+    //     &mut self,
+    //     a: NodeIndex<Ix>,
+    //     b: NodeIndex<Ix>,
+    //     weight: E,
+    // ) -> Option<EdgeIndex<Ix>> {
+    //     // node_ptr: root_ptr, x: element
+    //     if node_ptr == None {
+    //         node_ptr = new Node();
+    //         // assign new data 
+    //         return
+    //     }
+
+    //     if node_ptr.data > x {
+    //         // add node_ptr.left, x
+    //         self.add_balanced_edge(a, b, weight);
+
+    //         // check if there is a balance issue
+    //         if node_ptr.left.balance_factor != node_ptr.right_balance_factor {
+    //             if node_ptr.left.data > x {
+    //                 // outside case
+    //                 node_ptr = self.rotate_from_left(node_ptr);
+    //             } else {
+    //                 // inside case
+    //                 node_ptr = self.double_rotate_from_left(node_ptr);
+    //             }
+    //         }
+    //     } else if node_ptr.data < x {
+    //         // add node_ptr.right, x
+    //         self.add_balanced_edge(a, b, weight);
+
+    //         // check if there is a balance issue
+    //         if node_ptr.left.balance_factor != node_ptr.right.balance_factor {
+    //             // this condition remains same
+    //             if node_ptr.left.data > x {
+    //                 // outside case
+    //                 node_ptr = self.rotate_from_right(node_ptr);
+    //             } else {
+    //                 // inside case
+    //                 node_ptr = self.double_rotate_from_right(node_ptr);
+    //             }
+    //         }
+    //     } else {
+    //         raise Exception("duplicate data being inserted");
+    //     }
+    // }
+
     // Return the difference in max heights (right - left).
     // See https://en.wikipedia.org/wiki/AVL_tree
     fn pre_update_balance_factors(&mut self, e: EdgeIndex<Ix>, weight: E) {
@@ -196,6 +244,45 @@ where
             self.edges[e.index()].balance_factor += 1;
             self.pre_update_balance_factors(self.edges[e.index()].right, weight);
         }
+    }
+
+    // AVL tree balance insert functions
+    fn rotate_from_right(
+        &mut self,
+        node_ptr: EdgeIndex<Ix>,
+    ) -> EdgeIndex<Ix> {
+        let p: EdgeIndex<Ix> = self.edges[node_ptr.index()].right;
+        self.edges[node_ptr.index()].right = self.edges[p.index()].left;
+        self.edges[p.index()].left = node_ptr;
+
+        return p;
+    }
+
+    fn rotate_from_left(
+        &mut self,
+        node_ptr: EdgeIndex<Ix>,
+    ) -> EdgeIndex<Ix> {
+        let p: EdgeIndex<Ix> = self.edges[node_ptr.index()].left;
+        self.edges[node_ptr.index()].left = self.edges[p.index()].right;
+        self.edges[p.index()].right = node_ptr;
+
+        return p;
+    }
+
+    fn double_rotate_from_right(
+        &mut self,
+        node_ptr: EdgeIndex<Ix>
+    ) -> EdgeIndex<Ix> {
+        self.edges[node_ptr.index()].right = self.rotate_from_left(self.edges[node_ptr.index()].right);
+        return self.rotate_from_right(node_ptr);
+    }
+
+    fn double_rotate_from_left(
+        &mut self,
+        node_ptr: EdgeIndex<Ix>
+    ) -> EdgeIndex<Ix> {
+        self.edges[node_ptr.index()].left = self.rotate_from_right(self.edges[node_ptr.index()].left);
+        return self.rotate_from_left(node_ptr);
     }
 
     // Return whether we have done a balance somewhere.
