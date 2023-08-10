@@ -16,7 +16,7 @@ on:
 
 jobs:
   rust_checks:
-    name: ${{ matrix.task.name }}
+    name: ${{ matrix.task.name }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
@@ -43,8 +43,32 @@ jobs:
               rustup component add clippy
               cargo clippy --all-targets -- -D warnings
 
+          - name: Benchmark
+            run: |
+              # Install deps.
+              echo "=========== Installing zsh ============"
+              sudo apt-get install zsh
+
+              # Build release.
+              echo "============= Compiling ==============="
+              cargo build --release
+
+              # Download data files.
+              echo "========== Downloading data ==========="
+              pip install gdown
+              gdown 1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby
+              unzip data.zip
+
+              # Run benchmark.
+              echo "========= Running benchmark ==========="
+              ./scripts/benchmark.sh wikitext-2-raw
+
     steps:
       - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
       - name: Prepare environment (ubuntu-latest)
         if: matrix.os == 'ubuntu-latest'
@@ -106,7 +130,7 @@ jobs:
         run: sccache --stop-server || true
 
   python_build_linux:
-    name: Python bindings (linux)
+    name: Python bindings (linux, ${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -139,7 +163,7 @@ jobs:
           path: bindings/python/dist
 
   python_build_windows:
-    name: Python bindings (windows)
+    name: Python bindings (windows, ${{ matrix.target }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -168,7 +192,7 @@ jobs:
           path: bindings/python/dist
 
   python_build_macos:
-    name: Python bindings (macos)
+    name: Python bindings (macos, ${{ matrix.target }})
     runs-on: macos-latest
     strategy:
       fail-fast: false
