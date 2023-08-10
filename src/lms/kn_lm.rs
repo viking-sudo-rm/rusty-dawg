@@ -145,7 +145,7 @@ mod tests {
     fn test_get_probability_exact() {
         let tokens = vec!["a", "b"];
         let mut index: TokenIndex<usize> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+        let indices: Vec<usize> = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
         dawg.build(&indices);
@@ -164,7 +164,7 @@ mod tests {
     fn test_get_probability_kn_reduces_to_exact() {
         let tokens = vec!["a", "b"];
         let mut index: TokenIndex<usize> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+        let indices: Vec<usize> = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
         dawg.build(&indices);
@@ -186,7 +186,7 @@ mod tests {
     fn test_get_probability_kn_with_delta() {
         let tokens = vec!["a", "b"];
         let mut index: TokenIndex<usize> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+        let indices: Vec<usize> = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
         dawg.build(&indices);
@@ -215,7 +215,7 @@ mod tests {
     fn test_get_probability_kn_ngram() {
         let tokens = vec!["a", "b"];
         let mut index: TokenIndex<usize> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+        let indices: Vec<usize> = tokens.iter().map(|x| index.add(x)).collect();
 
         let mut dawg = Dawg::new();
         dawg.build(&indices);
