@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 use std::ops::{Index, IndexMut};
+use std::fmt::Debug;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
@@ -27,7 +28,7 @@ pub struct AvlGraph<N, E, Ix = DefaultIx> {
 
 impl<N, E, Ix: IndexType> AvlGraph<N, E, Ix>
 where
-    E: Eq + Ord + Copy,
+    E: Eq + Ord + Copy + Debug,
 {
     pub fn new() -> Self {
         let nodes = Vec::new();
@@ -145,8 +146,7 @@ where
         }
     }
 
-    // insert node function (nodes in tree are edges in graph)
-    // merge Pete's update before adding code
+    // DONT USE THIS, here for legacy test reasons
     pub fn add_edge(
         &mut self,
         a: NodeIndex<Ix>,
@@ -179,15 +179,6 @@ where
         }
         // push this into the list of edges
         self.edges.push(edge);
-
-        // balance needs to be called here after we add the new edge
-    
-        // self.pre_update_balance_factors(first_edge, weight);
-        // if first_edge != EdgeIndex::end() {
-        //     self.balance(first_edge, EdgeIndex::end(), weight);
-        // }
-
-        // return idx
         Some(edge_idx)
         // FIXME: Implement recursive version!!!
     }
@@ -222,34 +213,30 @@ where
         // keep recursing into the tree according to balance tree insert rule
         let root_edge_weight = self.edges[root_edge_idx.index()].weight;
 
-        if root_edge_weight > weight {
-            // go left of the current node
-            let left_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].left;
-
-            // record balance factor before recursion
-            let init_balance_factor: i8 = if left_idx == EdgeIndex::end() {
+        if weight < root_edge_weight {
+            let init_left_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].left;
+            let init_balance_factor: i8 = if init_left_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges[left_idx.index()].balance_factor
+                self.edges[init_left_idx.index()].balance_factor
             };
 
-            self.edges[root_edge_idx.index()].left = self.avl_insert_edge(left_idx, weight, b);
+            self.edges[root_edge_idx.index()].left = self.avl_insert_edge(init_left_idx, weight, b);
 
-            // record balance factor after recursion
-            let updated_balance_factor = if left_idx == EdgeIndex::end() {
+            let updated_left_idx = self.edges[root_edge_idx.index()].left;
+            let updated_balance_factor = if updated_left_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges[left_idx.index()].balance_factor
+                self.edges[updated_left_idx.index()].balance_factor
             };
 
             if init_balance_factor == 0 {
-                if updated_balance_factor == 1 || updated_balance_factor == -1 {
+                if init_left_idx == EdgeIndex::end() || updated_balance_factor == 1 || updated_balance_factor == -1 {
                     self.edges[root_edge_idx.index()].balance_factor += 1;
                 }
             }
 
             let current_balance_factor: i8 = self.edges[root_edge_idx.index()].balance_factor;
-
             if current_balance_factor == 2 {
                 if updated_balance_factor == 1 {
                     return self.rotate_from_left(root_edge_idx);
@@ -258,33 +245,29 @@ where
                 }
             }
         } else if root_edge_weight < weight {
-            // go right of the current node
-            let right_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].right;
-
-            // record balance factor before recursion
-            let init_balance_factor: i8 = if right_idx == EdgeIndex::end() {
+            let init_right_idx: EdgeIndex<Ix> = self.edges[root_edge_idx.index()].right;
+            let init_balance_factor: i8 = if init_right_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges[right_idx.index()].balance_factor
+                self.edges[init_right_idx.index()].balance_factor
             };
 
-            self.edges[root_edge_idx.index()].right = self.avl_insert_edge(right_idx, weight, b);
+            self.edges[root_edge_idx.index()].right = self.avl_insert_edge(init_right_idx, weight, b);
 
-            // record balance factor after recursion
-            let updated_balance_factor = if right_idx == EdgeIndex::end() {
+            let updated_right_idx = self.edges[root_edge_idx.index()].right;
+            let updated_balance_factor = if updated_right_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges[right_idx.index()].balance_factor
+                self.edges[updated_right_idx.index()].balance_factor
             };
 
             if init_balance_factor == 0 {
-                if updated_balance_factor == 1 || updated_balance_factor == -1 {
+                if init_right_idx == EdgeIndex::end() || updated_balance_factor == 1 || updated_balance_factor == -1 {
                     self.edges[root_edge_idx.index()].balance_factor -= 1;
                 }
             }
 
             let current_balance_factor: i8 = self.edges[root_edge_idx.index()].balance_factor;
-
             if current_balance_factor == -2 {
                 if updated_balance_factor == -1 {
                     return self.rotate_from_right(root_edge_idx);
@@ -350,114 +333,6 @@ where
     ) -> EdgeIndex<Ix> {
         self.edges[node_ptr.index()].left = self.rotate_from_right(self.edges[node_ptr.index()].left);
         return self.rotate_from_left(node_ptr);
-    }
-
-    // Return whether we have done a balance somewhere.
-    // Implementation of: https://en.wikipedia.org/wiki/AVL_tree
-    fn balance(&mut self, e: EdgeIndex<Ix>, p: EdgeIndex<Ix>, weight: E) -> bool {
-        println!("  balancing {}", e.index());
-
-        // Nothing to balance.
-        if e == EdgeIndex::end() || self.edges[e.index()].weight == weight {
-            return false;
-        }
-
-        // Balance everything below and return if nothing changes.
-        if weight < self.edges[e.index()].weight {
-            self.balance(self.edges[e.index()].left, e, weight);
-        } else {
-            self.balance(self.edges[e.index()].right, e, weight);
-        }
-
-        // The loop terminates at the null parent pointer.
-        if p == EdgeIndex::end() {
-            return true;
-        }
-        let new_root;
-
-        // The right-child case.
-        if e == self.edges[p.index()].right {
-            if self.edges[e.index()].balance_factor > 0 {
-                let r = self.edges[e.index()].right;
-                if self.edges[r.index()].balance_factor < 0 {
-                    // Rotate right, left.
-                    println!("  rotate right/left");
-                    let old_rl = self.edges[r.index()].left;
-                    let old_rll = self.edges[old_rl.index()].left;
-                    let old_rlr = self.edges[old_rl.index()].right;
-                    self.edges[r.index()].left = old_rlr;
-                    // FIXME: Correct balance factor update??
-                    // https://cs.stackexchange.com/questions/16313/updating-an-avl-tree-based-on-balance-factors
-                    // self.update_balance_factor(r);
-                    self.edges[e.index()].right = old_rll;
-                    // self.update_balance_factor(e);
-                    self.edges[old_rl.index()].left = e;
-                    self.edges[old_rl.index()].right = r;
-                    // self.update_balance_factor(old_rl);
-                    new_root = old_rl;
-                } else {
-                    // Rotate left.
-                    println!("  rotate left");
-                    let old_rl = self.edges[r.index()].left;
-                    self.edges[e.index()].right = old_rl;
-                    // self.update_balance_factor(e);
-                    self.edges[r.index()].left = e;
-                    // self.update_balance_factor(r);
-                    new_root = r;
-                }
-            } else {
-                if self.edges[e.index()].balance_factor < 0 {
-                    self.edges[e.index()].balance_factor = 0;
-                    return false;
-                }
-                self.edges[e.index()].balance_factor = 1;
-                return true;
-            }
-        }
-        // The left-child case.
-        else if self.edges[e.index()].balance_factor < 0 {
-            let l = self.edges[e.index()].left;
-            if self.edges[l.index()].balance_factor > 0 {
-                // Rotate left, right.
-                println!("  rotate left/right");
-                let old_lr = self.edges[l.index()].right;
-                let old_lrl = self.edges[old_lr.index()].left;
-                let old_lrr = self.edges[old_lr.index()].right;
-                self.edges[l.index()].right = old_lrl;
-                // self.update_balance_factor(l);
-                self.edges[e.index()].left = old_lrr;
-                // self.update_balance_factor(e);
-                self.edges[old_lr.index()].left = l;
-                self.edges[old_lr.index()].right = e;
-                // self.update_balance_factor(old_lr);
-                new_root = old_lr;
-            } else {
-                // Rotate right.
-                println!("  rotate right");
-                let old_lr = self.edges[l.index()].right;
-                self.edges[e.index()].left = old_lr;
-                // self.update_balance_factor(e);
-                self.edges[l.index()].right = e;
-                // self.update_balance_factor(l);
-                new_root = l;
-            }
-        } else {
-            if self.edges[e.index()].balance_factor > 0 {
-                self.edges[e.index()].balance_factor = 0;
-                return false;
-            }
-            self.edges[e.index()].balance_factor = -1;
-            return true;
-        }
-
-        if self.edges[p.index()].weight < weight {
-            self.edges[p.index()].right = new_root;
-        } else {
-            self.edges[p.index()].left = new_root;
-        }
-        println!("p.left: {}", self.edges[p.index()].left.index());
-        println!("p.right: {}", self.edges[p.index()].right.index());
-        true
     }
 
     pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
@@ -779,7 +654,34 @@ mod tests {
         assert_eq!(graph.edge_target(q1, 42), None);
 
         assert_eq!(graph.n_edges(q1), 14);
-        assert_eq!(graph.edge_tree_height(q1), 0)
+        assert_eq!(graph.edge_tree_height(q1), 4)
+    }
+
+    #[test]
+    fn test_tree_construction() {
+        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
+        let q0 = graph.add_node(0);
+        let q1 = graph.add_node(1);
+
+        graph.add_balanced_edge(q1, q0, 0);
+        graph.add_balanced_edge(q1, q0, 1);
+
+        let mut root = graph.nodes[q1.index()].first_edge;
+        let mut left: EdgeIndex = graph.edges[root.index()].left;
+        let mut right: EdgeIndex = graph.edges[root.index()].right;
+        assert_eq!(graph.edges[root.index()].balance_factor, -1);
+        assert_eq!(left, EdgeIndex::end());
+        assert_eq!(graph.edges[right.index()].weight, 1);
+
+        graph.add_balanced_edge(q1, q0, 2);
+
+        root = graph.nodes[q1.index()].first_edge;
+        left = graph.edges[root.index()].left;
+        right = graph.edges[root.index()].right;
+        assert_eq!(graph.edges[root.index()].balance_factor, 0);
+        assert_eq!(graph.edges[root.index()].weight, 1);
+        assert_eq!(graph.edges[left.index()].weight, 0);
+        assert_eq!(graph.edges[right.index()].weight, 2);
     }
 
     #[test]
@@ -812,22 +714,22 @@ mod tests {
         height(graph, graph.edges[e.index()].left) + height(graph, graph.edges[e.index()].right) + 1
     }
 
-    #[test]
-    fn test_update_balance_factors() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        for idx in 1..8 {
-            println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
-            let qi = graph.add_node(idx);
-            graph.add_edge(q0, qi, idx.into());
-        }
+    // #[test]
+    // fn test_update_balance_factors() {
+    //     let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
+    //     let q0 = graph.add_node(0);
+    //     for idx in 1..8 {
+    //         println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
+    //         let qi = graph.add_node(idx);
+    //         graph.add_edge(q0, qi, idx.into());
+    //     }
 
-        println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
-        println!(
-            "bf: {}",
-            graph.edges[graph.nodes[0].first_edge.index()].balance_factor
-        );
-        // assert_eq!(0, 1);
-        // FIXME
-    }
+    //     println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
+    //     println!(
+    //         "bf: {}",
+    //         graph.edges[graph.nodes[0].first_edge.index()].balance_factor
+    //     );
+    //     // assert_eq!(0, 1);
+    //     // FIXME
+    // }
 }
