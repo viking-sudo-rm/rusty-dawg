@@ -1,13 +1,24 @@
+from rusty_dawg import Dawg
+from transformers.tokenization_utils import PreTrainedTokenizer
+from typing import Dict
+
+
 class PyDawg:
     """
     Provides a Python API to query a DAWG.
     """
 
-    def __init__(self, dawg, tokenizer):
+    def __init__(self, dawg: Dawg, tokenizer: PreTrainedTokenizer):
+        """
+        Construct DAWG API wrapper.
+        """
         self.dawg = dawg
         self.tokenizer = tokenizer
 
-    def get_suffix_context(self, query):
+    def get_suffix_context(self, query: str):
+        """
+        Given a `query` string, compute the suffix context for each prefix.
+        """
         tokens = self.tokenizer.encode(query)
         state = self.dawg.get_initial()
         length = 0
@@ -23,7 +34,9 @@ class PyDawg:
         res = {"tokens": tokens, "suffix_contexts": lengths, "context_counts": counts}
         return res
 
-    def get_matching_substrings(self, query, min_length=1, remove_redundant=True):
+    def get_matching_substrings(
+        self, query: str, min_length: int = 1, remove_redundant: bool = True
+    ):
         """
         Get list of all substrings of `query` that exist are present in the corpus.
         """
@@ -65,7 +78,7 @@ class PyDawg:
         return res
 
     @staticmethod
-    def remove_redundant_substrings(matching_substrings):
+    def remove_redundant_substrings(matching_substrings: Dict):
         """
         Remove substrings that only occur in train data as part of a longer substring.
         """
