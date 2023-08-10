@@ -16,8 +16,7 @@ command time --format "$TIMEFMT" ./target/release/rusty-dawg \
     --test-path "$2" \
     --save-path "" \
     --results-path "" \
-    --n-eval 0 \
-    --tokenize
+    --n-eval 0
 
 # size=$(ls -lh /tmp/$1.dawg | awk '{print  $5}')
 # rm /tmp/$1.dawg
