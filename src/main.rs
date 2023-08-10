@@ -136,10 +136,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("#(gen): {}", gen.len());
     println!("#(vocab): {}", index.get_count());
 
-    let mut lms: Vec<Box<dyn LM>> = Vec::new();
+    let mut lms: Vec<Box<dyn LM<E>>> = Vec::new();
     create_lms(&args, &mut lms);
     let mut evaluator = Evaluator::new(&mut lms, &test, args.max_length);
-    let mut gen_lms: Vec<Box<dyn LM>> = Vec::new();
+    let mut gen_lms: Vec<Box<dyn LM<E>>> = Vec::new();
     create_lms(&args, &mut gen_lms);
     let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
 
@@ -174,7 +174,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM>>) {
+fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM<E>>>) {
     for min_freq in args.min_freq.iter() {
         for delta in args.delta.iter() {
             let maxgram = KNLM::new(

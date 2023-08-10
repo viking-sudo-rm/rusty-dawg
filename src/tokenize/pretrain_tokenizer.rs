@@ -51,7 +51,7 @@ impl Tokenize for PretrainedTokenizer {
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenize2::{PretrainedTokenizer, Tokenize};
+    use crate::tokenize::{PretrainedTokenizer, Tokenize};
     use std::convert::TryFrom;
 
     #[test]

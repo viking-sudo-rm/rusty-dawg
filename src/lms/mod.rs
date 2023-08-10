@@ -10,17 +10,20 @@ use serde::Deserialize;
 use crate::weight::weight40::DefaultWeight;
 use dawg::Dawg;
 
-pub trait LM {
+pub trait LM<E> 
+where
+    E: Eq + serde::Serialize + Copy + Debug,
+    {
     fn get_name(&self) -> &str;
 
-    fn reset(&mut self, dawg: &Dawg<u16, DefaultWeight>);
+    fn reset(&mut self, dawg: &Dawg<E, DefaultWeight>);
 
     fn get_probability(
         &self,
-        dawg: &Dawg<u16, DefaultWeight>,
-        label: u16,
+        dawg: &Dawg<E, DefaultWeight>,
+        label: E,
         good_turing: f64,
     ) -> f64;
 
-    fn update(&mut self, dawg: &Dawg<u16, DefaultWeight>, label: u16);
+    fn update(&mut self, dawg: &Dawg<E, DefaultWeight>, label: E);
 }
