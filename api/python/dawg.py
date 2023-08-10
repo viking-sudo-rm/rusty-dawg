@@ -1,6 +1,11 @@
 from py_rusty_dawg import Dawg
 
 
+def remove_redundant_substrings(res):
+    # TODO implement.
+    return res
+
+
 class PyDawg:
     """
     Provides a Python API to conveniently query a DAWG.
@@ -20,6 +25,7 @@ class PyDawg:
         lengths = []
         counts = []
         for token in tokens:
+            # TODO check on correctness.
             state, length = self.dawg.transition_and_count(state, token, length)
             lengths.append(length)
             count = self.dawg.get_count(state)
@@ -28,12 +34,11 @@ class PyDawg:
         res = {"tokens": tokens, "suffix_contexts": lengths, "context_counts": counts}
         return res
 
-    def get_matching_substrings(self, query):
+    def get_matching_substrings(self, query, min_length=1):
         """
         Get list of all substrings of `query` that exist are present in the corpus.
         """
-        # TODO in progress. Need to remove redundant substrings.
-
+        # TODO remove redundant substrings. Need to remove redundant substrings.
         sc = self.get_suffix_context(query)
 
         # Get all longest matching substrings and counts for each.
@@ -41,6 +46,7 @@ class PyDawg:
         for i in range(len(sc["tokens"])):
             token_prefix = sc["tokens"][: i + 1]
             suffix_context = sc["suffix_contexts"][i]
+
             # If there's no match for this token, skip.
             if suffix_context == 0:
                 continue
@@ -64,5 +70,10 @@ class PyDawg:
                 "text": self.tokenizer.decode(substring),
             }
             res.append(entry)
+
+        res = remove_redundant_substrings(res)
+
+        # Only keep substrings above the min length.
+        res = [entry for entry in res if len(entry["tokens"]) >= min_length]
 
         return res
