@@ -23,8 +23,8 @@ impl Dawg {
     }
 
     #[classmethod]
-    pub fn load(cls: &PyType, path: String) -> PyResult<Self> {
-        let mut file = fs::OpenOptions::new().read(true).open(&path)?;
+    pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
+        let file = fs::OpenOptions::new().read(true).open(&path)?;
         Ok(Self {
             dawg: deserialize_from(&file).expect("Failed to deserialize"),
         })
@@ -93,4 +93,3 @@ impl Dawg {
         &self.dawg
     }
 }
-
