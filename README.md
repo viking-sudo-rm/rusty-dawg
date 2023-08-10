@@ -51,8 +51,8 @@ To run the benchmarking script, you need the Wikitext2/103 data. You can either 
 You can point to a custom path where the Wikitext data lives. For example, if you're running on Beaker, you can do:
 
 ```
-DATA=/home/willm/splits source scripts/benchmark.sh wikitext-2-raw
-DATA/home/willm/splits source scripts/benchmark.sh wikitext-103-raw
+DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
+DATA/home/willm/splits ./scripts/benchmark.sh wikitext-103-raw
 ```
 
 ### (Optional) Downloading the Data Locally
@@ -60,8 +60,8 @@ DATA/home/willm/splits source scripts/benchmark.sh wikitext-103-raw
 You first need to download the [data](https://drive.google.com/file/d/1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby/view?usp=sharing) directory, unzip it, and put it in the root of the repository directory (i.e., rusty-dawg/data). Then you can run:
 
 ```
-source scripts/benchmark.sh wikitext-2-raw
-source scripts/benchmark.sh wikitext-103-raw
+./scripts/benchmark.sh wikitext-2-raw
+./scripts/benchmark.sh wikitext-103-raw
 ```
 
 ### Interpreting the Output
