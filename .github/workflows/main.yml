@@ -108,7 +108,6 @@ jobs:
   python_build_linux:
     name: Python bindings (linux)
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64
     strategy:
       fail-fast: false
       matrix:
@@ -122,7 +121,7 @@ jobs:
 
       - name: Install system dependencies
         run:
-          yum install -y openssl-devel
+          sudo apt-get install -y pkg-config libssl-dev libudev-dev
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
