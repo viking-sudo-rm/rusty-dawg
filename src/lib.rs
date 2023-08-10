@@ -10,6 +10,7 @@ extern crate substring;
 extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
+extern crate num;
 
 pub mod dawg;
 pub mod evaluator;

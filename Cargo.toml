@@ -25,3 +25,4 @@ anyhow = "1.0"
 tokenizers = "0.13.3"
 unicode-segmentation = "1.10"
 openssl = { version = "0.10", features = ["vendored"] }
+num = "0.4.1"

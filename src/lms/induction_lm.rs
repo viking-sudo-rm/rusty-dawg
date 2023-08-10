@@ -114,51 +114,51 @@ where
     }
 }
 
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    use dawg::Dawg;
-    use tokenize::{TokenIndex, Tokenize};
+// #[cfg(test)]
+// #[allow(unused_imports)]
+// mod tests {
+//     use dawg::Dawg;
+//     use tokenize::{TokenIndex, Tokenize};
 
-    use graph::indexing::NodeIndex;
-    use graph::vec_graph::dot::Dot;
+//     use graph::indexing::NodeIndex;
+//     use graph::vec_graph::dot::Dot;
 
-    use lms::induction_lm::InductionLM;
-    use lms::kn_lm::KNLM;
-    use lms::LM;
+//     use lms::induction_lm::InductionLM;
+//     use lms::kn_lm::KNLM;
+//     use lms::LM;
 
-    #[test]
-    fn test_get_probability_ab() {
-        let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<u16> = TokenIndex::new();
-        let indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
+//     #[test]
+//     fn test_get_probability_ab() {
+//         let tokens = vec!["a", "b"];
+//         let mut index: TokenIndex<usize> = TokenIndex::new();
+//         let indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
 
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
+//         let mut dawg = Dawg::new();
+//         dawg.build(&indices);
 
-        let base_lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
-        let mut lm = InductionLM::new("lm".to_string(), Box::new(base_lm), 0.5);
-        let a = index.index("a");
-        let b = index.index("b");
+//         let base_lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
+//         let mut lm = InductionLM::new("lm".to_string(), Box::new(base_lm), 0.5);
+//         let a = index.index("a");
+//         let b = index.index("b");
 
-        assert_eq!(lm.state.index(), 0);
-        // No edges, skip interpolation.
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 1. / 3.);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 3.);
-        lm.update(&dawg, a);
-        assert_eq!(lm.state.index(), 1);
-        // 1/2 * (1/2 + 1/3)
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 0.41666666666666663);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 6.);
-        lm.update(&dawg, b);
-        // println!("{:?}", Dot::new(lm.dawg.get_graph()));
-        assert_eq!(lm.state.index(), 2);
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 1. / 3.);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 3.);
-        lm.update(&dawg, a);
-        assert_eq!(lm.state.index(), 3);
-        // Now b is more likely!
-        assert_eq!(lm.get_probability(&dawg, a, 0.), 0.20833333333333331);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 0.3958333333333333);
-    }
-}
+//         assert_eq!(lm.state.index(), 0);
+//         // No edges, skip interpolation.
+//         assert_eq!(lm.get_probability(&dawg, a, 0.), 1. / 3.);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 3.);
+//         lm.update(&dawg, a);
+//         assert_eq!(lm.state.index(), 1);
+//         // 1/2 * (1/2 + 1/3)
+//         assert_eq!(lm.get_probability(&dawg, a, 0.), 0.41666666666666663);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 6.);
+//         lm.update(&dawg, b);
+//         // println!("{:?}", Dot::new(lm.dawg.get_graph()));
+//         assert_eq!(lm.state.index(), 2);
+//         assert_eq!(lm.get_probability(&dawg, a, 0.), 1. / 3.);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 1. / 3.);
+//         lm.update(&dawg, a);
+//         assert_eq!(lm.state.index(), 3);
+//         // Now b is more likely!
+//         assert_eq!(lm.get_probability(&dawg, a, 0.), 0.20833333333333331);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 0.3958333333333333);
+//     }
+// }

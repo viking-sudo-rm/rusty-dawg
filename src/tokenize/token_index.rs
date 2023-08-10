@@ -1,5 +1,11 @@
 use std::collections::HashMap;
-
+use std::fmt::Debug;
+use std::io::Write;
+use std::marker::Copy;
+use serde::Serialize;
+use serde::Deserialize;
+use std::convert::TryInto;
+use std::convert::TryFrom;
 use crate::tokenize::Tokenize;
 
 pub struct TokenIndex<E> {
@@ -11,15 +17,19 @@ pub struct TokenIndex<E> {
     unk: E,
 }
 
-impl TokenIndex<usize> {
+impl<E> TokenIndex<E> 
+where
+    E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,
+    usize: TryFrom<E>,
+{
     pub fn new() -> Self {
         let token_to_index = HashMap::new();
         let index_to_token = Vec::new();
-        let mut index = TokenIndex {
+        let mut index: TokenIndex<E> = TokenIndex {
             token_to_index,
             index_to_token,
             count: 0,
-            unk: 0,
+            unk: E::try_from(0).unwrap_or_else(|_| panic!("Err!!!")),
         };
         index.add("<unk>");
         index.add("<bos>");
@@ -27,47 +37,53 @@ impl TokenIndex<usize> {
         index
     }
 
-    pub fn token(&self, index: usize) -> &str {
-        if index < self.count {
-            return self.index_to_token[index].as_str();
+    pub fn token(&self, index: E) -> &str {
+        if index.try_into().unwrap_or_else(|_| panic!("Err!!!")) < self.count {
+            let usize_index: usize = index.try_into().unwrap_or_else(|_| panic!("Err!!!"));
+            return self.index_to_token[usize_index].as_str();
         }
         return self.token(self.unk);
     }
 
-    pub fn eos(&self) -> usize {
-        2
+    pub fn eos(&self) -> E {
+        // E::from(2)
+        2.try_into().unwrap_or_else(|_| panic!("Err!!!"))
     }
 
-    fn add(&mut self, token: &str) -> usize {
+    fn add(&mut self, token: &str) -> E {
         let token_string = token.to_string();
         match self.token_to_index.get(token) {
             Some(ptr) => *ptr,
             None => {
-                self.token_to_index.insert(token_string, self.count);
+                self.token_to_index.insert(token_string, (self.count).try_into().unwrap_or_else(|_| panic!("Err!!!")));
                 // TODO: Could optimize this to only store each string once.
                 self.index_to_token.push(token.to_string());
                 self.count += 1;
-                self.count - 1
+                (self.count - 1).try_into().unwrap_or_else(|_| panic!("Err!!!"))
             }
         }
     }
 
-    fn index(&self, token: &str) -> u16 {
+    fn index(&self, token: &str) -> E {
         match self.token_to_index.get(token) {
-            Some(ptr) => *ptr as u16, // Convert usize to u16
-            None => self.unk as u16,  // Convert usize to u16
+            Some(ptr) => *ptr as E, // Convert usize to u16
+            None => self.unk as E,  // Convert usize to u16
         }
     }
     
 }
 
-impl Tokenize for TokenIndex<usize> {
+impl<E> Tokenize<E> for TokenIndex<E> 
+where
+    E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,
+    usize: TryFrom<E>,
+    {
     fn build(&mut self, text: &str) {
-        let tokens: Vec<usize> = text.split_whitespace().map(|x| self.add(x)).collect();
+        let tokens: Vec<_> = text.split_whitespace().map(|x| self.add(x)).collect();
     }
 
-    fn tokenize(&mut self, text: &str) -> Vec<u16> {
-        let tokenized_text: Vec<u16> = text.split_whitespace().map(|x| self.index(x)).collect();
+    fn tokenize(&mut self, text: &str) -> Vec<E> {
+        let tokenized_text: Vec<E> = text.split_whitespace().map(|x| self.index(x).into()).collect();
         tokenized_text
     }
 

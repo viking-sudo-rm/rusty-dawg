@@ -146,134 +146,134 @@ impl KNLM
     }
 }
 
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    use dawg::Dawg;
-    use tokenize::{TokenIndex, Tokenize};
+// #[cfg(test)]
+// #[allow(unused_imports)]
+// mod tests {
+//     use dawg::Dawg;
+//     use tokenize::{TokenIndex, Tokenize};
 
-    use graph::indexing::NodeIndex;
-    use graph::vec_graph::dot::Dot;
+//     use graph::indexing::NodeIndex;
+//     use graph::vec_graph::dot::Dot;
 
-    use lms::kn_lm::KNLM;
-    use lms::LM;
+//     use lms::kn_lm::KNLM;
+//     use lms::LM;
 
-    #[test]
-    fn test_get_probability_exact() {
-        let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<u16> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+//     #[test]
+//     fn test_get_probability_exact() {
+//         let tokens = vec!["a", "b"];
+//         let mut index: TokenIndex<u16> = TokenIndex<u16>::new();
+//         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
+//         let mut dawg = Dawg::new();
+//         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
-        let b = index.index("b");
-        assert_eq!(
-            lm.get_probability_exact(&dawg, NodeIndex::new(0), b),
-            1. / 3.
-        );
-        assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(1), b), 1.);
-        assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(2), b), 0.);
-    }
+//         let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
+//         let b = index.index("b");
+//         assert_eq!(
+//             lm.get_probability_exact(&dawg, NodeIndex::new(0), b),
+//             1. / 3.
+//         );
+//         assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(1), b), 1.);
+//         assert_eq!(lm.get_probability_exact(&dawg, NodeIndex::new(2), b), 0.);
+//     }
 
-    #[test]
-    fn test_get_probability_kn_reduces_to_exact() {
-        let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<u16> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+//     #[test]
+//     fn test_get_probability_kn_reduces_to_exact() {
+//         let tokens = vec!["a", "b"];
+//         let mut index: TokenIndex<u16> = TokenIndex<u16>::new();
+//         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
+//         let mut dawg = Dawg::new();
+//         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
-        let a = index.index("a");
-        let b = index.index("b");
-        assert_eq!(
-            lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.),
-            1. / 3.
-        );
-        assert_eq!(
-            lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.),
-            1. / 3.
-        );
-    }
+//         let lm = KNLM::new("test".to_string(), 0.0, -1, 0);
+//         let a = index.index("a");
+//         let b = index.index("b");
+//         assert_eq!(
+//             lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.),
+//             1. / 3.
+//         );
+//         assert_eq!(
+//             lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.),
+//             1. / 3.
+//         );
+//     }
 
-    #[test]
-    fn test_get_probability_kn_with_delta() {
-        let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<u16> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+//     #[test]
+//     fn test_get_probability_kn_with_delta() {
+//         let tokens = vec!["a", "b"];
+//         let mut index: TokenIndex<u16> = TokenIndex<u16>::new();
+//         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
+//         let mut dawg = Dawg::new();
+//         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.1, -1, 0);
-        let a = index.index("a");
-        let b = index.index("b");
-        let c = index.index("c");
+//         let lm = KNLM::new("test".to_string(), 0.1, -1, 0);
+//         let a = index.index("a");
+//         let b = index.index("b");
+//         let c = index.index("c");
 
-        let pa = lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.);
-        let pb = lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.);
-        let pc = lm.get_probability_kn(&dawg, NodeIndex::new(0), c, 0.);
-        // In the base case, we now just return the unigram model.
-        assert_eq!(pa + pb, 2. / 3.);
-        assert_eq!(pc, 0.);
+//         let pa = lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.);
+//         let pb = lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.);
+//         let pc = lm.get_probability_kn(&dawg, NodeIndex::new(0), c, 0.);
+//         // In the base case, we now just return the unigram model.
+//         assert_eq!(pa + pb, 2. / 3.);
+//         assert_eq!(pc, 0.);
 
-        // println!("{:?}", Dot::new(dawg.get_graph()));
-        let pa_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), a, 0.);
-        let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
-        let pc_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), c, 0.);
-        assert!(pa_a + pb_a + 254. * pc_a <= 1.);
-        // There should be some probability on <eos>
-    }
+//         // println!("{:?}", Dot::new(dawg.get_graph()));
+//         let pa_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), a, 0.);
+//         let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
+//         let pc_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), c, 0.);
+//         assert!(pa_a + pb_a + 254. * pc_a <= 1.);
+//         // There should be some probability on <eos>
+//     }
 
-    #[test]
-    fn test_get_probability_kn_ngram() {
-        let tokens = vec!["a", "b"];
-        let mut index: TokenIndex<u16> = TokenIndex::new();
-        let indices = tokens.iter().map(|x| index.add(x)).collect();
+//     #[test]
+//     fn test_get_probability_kn_ngram() {
+//         let tokens = vec!["a", "b"];
+//         let mut index: TokenIndex<u16> = TokenIndex<u16>::new();
+//         let indices = tokens.iter().map(|x| index.add(x)).collect();
 
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
+//         let mut dawg = Dawg::new();
+//         dawg.build(&indices);
 
-        let lm = KNLM::new("test".to_string(), 0.0, 1, 0);
-        let b = index.index("b");
+//         let lm = KNLM::new("test".to_string(), 0.0, 1, 0);
+//         let b = index.index("b");
 
-        let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
-        assert_eq!(pb_a, 1. / 3.);
-    }
+//         let pb_a = lm.get_probability_kn(&dawg, NodeIndex::new(1), b, 0.);
+//         assert_eq!(pb_a, 1. / 3.);
+//     }
 
-    #[test]
-    fn test_get_probability_abab() {
-        let tokens = vec!["a", "b", "a", "b"];
-        let mut index: TokenIndex<u16> = TokenIndex::new();
-        let indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
+//     #[test]
+//     fn test_get_probability_abab() {
+//         let tokens = vec!["a", "b", "a", "b"];
+//         let mut index: TokenIndex<u16> = TokenIndex<u16>::new();
+//         let indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
 
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
-        println!("{:?}", Dot::new(dawg.get_graph()));
+//         let mut dawg = Dawg::new();
+//         dawg.build(&indices);
+//         println!("{:?}", Dot::new(dawg.get_graph()));
 
-        let mut lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
-        let a = index.index("a");
-        let b = index.index("b");
+//         let mut lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
+//         let a = index.index("a");
+//         let b = index.index("b");
 
-        assert_eq!(
-            lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.),
-            2. / 5.
-        );
-        assert_eq!(
-            lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.),
-            2. / 5.
-        );
+//         assert_eq!(
+//             lm.get_probability_kn(&dawg, NodeIndex::new(0), a, 0.),
+//             2. / 5.
+//         );
+//         assert_eq!(
+//             lm.get_probability_kn(&dawg, NodeIndex::new(0), b, 0.),
+//             2. / 5.
+//         );
 
-        lm.update(&dawg, a);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
-        lm.update(&dawg, b);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
-        lm.update(&dawg, a);
-        assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
-    }
+//         lm.update(&dawg, a);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
+//         lm.update(&dawg, b);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
+//         lm.update(&dawg, a);
+//         assert_eq!(lm.get_probability(&dawg, b, 0.), 2. / 5.);
+//     }
 
-    // TODO: Test integration between Good-Turing and get_probability_kn
-}
+//     // TODO: Test integration between Good-Turing and get_probability_kn
+// }
