@@ -42,4 +42,4 @@ pub mod basic_weight;
 pub use self::basic_weight::BasicWeight;
 
 pub mod weight40;
-pub use self::weight40::{Weight40, WeightMinimal};
+pub use self::weight40::{WeightMinimal};
