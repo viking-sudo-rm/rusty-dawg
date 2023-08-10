@@ -7,8 +7,10 @@ Convenient API to query a DAWG and examine the results in Python.
 ```python
 from transformers import GPT2Tokenizer
 from api.python.dawg import PyDawg
+from py_rusty_dawg import Dawg
 
 dawg_path = [path-to-dawg]
+dawg = Dawg.load(dawg_path)
 
 # Make sure the tokenizer matches the one used to construct the DAWG.
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')

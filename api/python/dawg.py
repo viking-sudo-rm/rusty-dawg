@@ -1,21 +1,10 @@
-from py_rusty_dawg import Dawg
-
-
-def remove_redundant_substrings(res):
-    # TODO implement.
-    return res
-
-
 class PyDawg:
     """
-    Provides a Python API to conveniently query a DAWG.
+    Provides a Python API to query a DAWG.
     """
 
-    def __init__(self, dawg_path, tokenizer):
-        """
-
-        """
-        self.dawg = Dawg.load(dawg_path)
+    def __init__(self, dawg, tokenizer):
+        self.dawg = dawg
         self.tokenizer = tokenizer
 
     def get_suffix_context(self, query):
@@ -34,15 +23,14 @@ class PyDawg:
         res = {"tokens": tokens, "suffix_contexts": lengths, "context_counts": counts}
         return res
 
-    def get_matching_substrings(self, query, min_length=1):
+    def get_matching_substrings(self, query, min_length=1, remove_redundant=True):
         """
         Get list of all substrings of `query` that exist are present in the corpus.
         """
-        # TODO remove redundant substrings. Need to remove redundant substrings.
         sc = self.get_suffix_context(query)
 
         # Get all longest matching substrings and counts for each.
-        matching_substrings = {}
+        matching_substrings = []
         for i in range(len(sc["tokens"])):
             token_prefix = sc["tokens"][: i + 1]
             suffix_context = sc["suffix_contexts"][i]
@@ -53,27 +41,48 @@ class PyDawg:
 
             count_loop = sc["context_counts"][i]
             longest_match = tuple(token_prefix[-suffix_context:])
-            if longest_match in matching_substrings:
-                # If we've already seen this string before, confirm the count matches.
-                if count_loop != matching_substrings[longest_match]:
-                    raise ValueError("Count mismatch!")
-            # Otherwise, add to dict.
-            else:
-                matching_substrings[longest_match] = count_loop
+            text = self.tokenizer.decode(longest_match)
+            token_indices = tuple(range(i - suffix_context + 1, i + 1))
 
-        # Convert to list of dicts.
-        res = []
-        for substring, count in matching_substrings.items():
-            entry = {
-                "tokens": substring,
-                "count": count,
-                "text": self.tokenizer.decode(substring),
+            to_append = {
+                "tokens": longest_match,
+                "token_indices": token_indices,
+                "text": text,
+                "count": count_loop,
             }
-            res.append(entry)
+            matching_substrings.append(to_append)
 
-        res = remove_redundant_substrings(res)
+        if remove_redundant:
+            matching_substrings = self.remove_redundant_substrings(matching_substrings)
 
         # Only keep substrings above the min length.
-        res = [entry for entry in res if len(entry["tokens"]) >= min_length]
+        matching_substrings = [
+            entry for entry in matching_substrings if len(entry["tokens"]) >= min_length
+        ]
+
+        res = {"query": query, "tokens": sc["tokens"], "matches": matching_substrings}
 
         return res
+
+    @staticmethod
+    def remove_redundant_substrings(matching_substrings):
+        """
+        Remove substrings that only occur in train data as part of a longer substring.
+        """
+        res = []
+
+        successor = matching_substrings[-1]
+        res.append(successor)
+
+        for entry in matching_substrings[:-1][::-1]:
+            prefix_of_successor = (
+                entry["token_indices"]
+                == successor["token_indices"][: len(entry["token_indices"])]
+            )
+            same_count_as_successor = entry["count"] == successor["count"]
+            if (not prefix_of_successor) or (not same_count_as_successor):
+                res.append(entry)
+                successor = entry
+
+        # Convert back to original order.
+        return res[::-1]
