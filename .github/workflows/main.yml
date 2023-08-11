@@ -210,7 +210,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: 'false'
           working-directory: bindings/python
 
       - name: Upload wheels
