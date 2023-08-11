@@ -761,6 +761,18 @@ mod tests {
     }
 
     #[test]
+    fn test_add_balanced_edge_left_branching() {
+        let mut graph: AvlGraph<u8, u64> = AvlGraph::new();
+        let q0 = graph.add_node(0);
+        let q1 = graph.add_node(1);
+        for idx in (0..127).rev() {
+            graph.add_balanced_edge(q0, q1, idx);
+        }
+        assert_eq!(graph.n_edges(q0), 127);
+        assert_eq!(graph.edge_tree_height(q0), 7)
+    }
+
+    #[test]
     fn test_tree_construction() {
         let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
         let q0 = graph.add_node(0);
