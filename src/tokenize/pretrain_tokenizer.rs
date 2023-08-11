@@ -77,15 +77,7 @@ mod tests {
         
         println!("vocab size: {:?}", token_index.get_count());
         println!("{:?}", token_index.tokenize("hello"));
-
-        // let mut token_index2: PretrainedTokenizer = PretrainedTokenizer::new("gpt2");
-        // assert_eq!(
-        //     token_index2.tokenize("hello"),
-        //     vec! {usize::try_from(
-        //     token_index2.tokenizer.token_to_id("hello").unwrap())
-        //     .unwrap()}
-        // );
-
+        
         assert_eq!(token_index.get_count(), 50257);
 
         assert_eq!(token_index.tokenize("hello world"), [31373, 995]);

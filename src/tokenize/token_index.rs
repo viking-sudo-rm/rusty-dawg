@@ -50,7 +50,7 @@ where
         2.try_into().unwrap_or_else(|_| panic!("Err!!!"))
     }
 
-    fn add(&mut self, token: &str) -> E {
+    pub fn add(&mut self, token: &str) -> E {
         let token_string = token.to_string();
         match self.token_to_index.get(token) {
             Some(ptr) => *ptr,
@@ -64,7 +64,7 @@ where
         }
     }
 
-    fn index(&self, token: &str) -> E {
+    pub fn index(&self, token: &str) -> E {
         match self.token_to_index.get(token) {
             Some(ptr) => *ptr as E, // Convert usize to u16
             None => self.unk as E,  // Convert usize to u16

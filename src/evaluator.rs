@@ -165,77 +165,77 @@ where
     }
 }
 
-// #[cfg(test)]
-// #[allow(unused_imports)]
-// mod tests {
-//     use dawg::Dawg;
-//     use evaluator::Evaluator;
-//     use graph::vec_graph::dot::Dot;
-//     use tokenize::{TokenIndex, Tokenize};
+#[cfg(test)]
+#[allow(unused_imports)]
+mod tests {
+    use dawg::Dawg;
+    use evaluator::Evaluator;
+    use graph::vec_graph::dot::Dot;
+    use tokenize::{TokenIndex, Tokenize};
 
-//     use crate::weight::weight40::DefaultWeight;
-//     use lms::kn_lm::KNLM;
-//     use lms::LM;
+    use crate::weight::weight40::DefaultWeight;
+    use lms::kn_lm::KNLM;
+    use lms::LM;
 
-//     #[test]
-//     fn test_timeseries_short() {
-//         // Max factor of train that is suffix of test, throughout train steps:
-//         //   Step #0: [a, , ,] => 1 / 3
-//         //   Step #1: [a, ab, ] => 3 / 3
-//         //   Step #2: [a, ab, ] => 3 / 3
-//         let train_tokens = vec!["a", "b", "b"];
-//         let test_tokens = vec!["a", "b", "c"];
+    #[test]
+    fn test_timeseries_short() {
+        // Max factor of train that is suffix of test, throughout train steps:
+        //   Step #0: [a, , ,] => 1 / 3
+        //   Step #1: [a, ab, ] => 3 / 3
+        //   Step #2: [a, ab, ] => 3 / 3
+        let train_tokens = vec!["a", "b", "b"];
+        let test_tokens = vec!["a", "b", "c"];
 
-//         let mut index: TokenIndex<u16> = TokenIndex::new();
-//         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
-//         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
+        let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
+        let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-//         let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
-//         let mut evaluator: Evaluator<u16> = Evaluator::new(&mut lms, &test, 3);
+        let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
+        let mut evaluator: Evaluator<u16> = Evaluator::new(&mut lms, &test, 3);
 
-//         let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
-//         let mut last = dawg.get_initial();
-//         for (idx, token) in train.iter().enumerate() {
-//             last = dawg.extend(*token, last);
-//             evaluator.evaluate(&dawg, idx, 0.);
-//         }
-//         assert_eq!(*evaluator.get("suffix_lengths"), vec![1. / 3., 1., 1.]);
-//         assert_eq!(*evaluator.get("length0_count"), vec![2., 1., 1.]);
-//         assert_eq!(*evaluator.get("length1_count"), vec![1., 1., 1.]);
-//         assert_eq!(*evaluator.get("length2_count"), vec![0., 1., 1.]);
-//         assert_eq!(*evaluator.get("length3_count"), vec![0., 0., 0.]);
-//         assert_eq!(
-//             *evaluator.get("suffix_counts"),
-//             vec![1. / 3., 2. / 3., 2. / 3.]
-//         );
-//     }
+        let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
+        let mut last = dawg.get_initial();
+        for (idx, token) in train.iter().enumerate() {
+            last = dawg.extend(*token, last);
+            evaluator.evaluate(&dawg, idx, 0.);
+        }
+        assert_eq!(*evaluator.get("suffix_lengths"), vec![1. / 3., 1., 1.]);
+        assert_eq!(*evaluator.get("length0_count"), vec![2., 1., 1.]);
+        assert_eq!(*evaluator.get("length1_count"), vec![1., 1., 1.]);
+        assert_eq!(*evaluator.get("length2_count"), vec![0., 1., 1.]);
+        assert_eq!(*evaluator.get("length3_count"), vec![0., 0., 0.]);
+        assert_eq!(
+            *evaluator.get("suffix_counts"),
+            vec![1. / 3., 2. / 3., 2. / 3.]
+        );
+    }
 
-//     #[test]
-//     fn test_timeseries_repeated() {
-//         // Max factor of train that is suffix of test, throughout train steps:
-//         //   Step #0: [a, a, a] => 3 / 3
-//         //   Step #1: [a, aa, aa] => 5 / 3
-//         let train_tokens = vec!["a", "a"];
-//         let test_tokens = vec!["a", "a", "a"];
+    #[test]
+    fn test_timeseries_repeated() {
+        // Max factor of train that is suffix of test, throughout train steps:
+        //   Step #0: [a, a, a] => 3 / 3
+        //   Step #1: [a, aa, aa] => 5 / 3
+        let train_tokens = vec!["a", "a"];
+        let test_tokens = vec!["a", "a", "a"];
 
-//         let mut index: TokenIndex<u16> = TokenIndex<u16>::new();
-//         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
-//         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
+        let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
+        let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-//         let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
-//         let unigram = KNLM::new("unigram".to_string(), 0., 0, 0);
-//         lms.push(Box::new(unigram));
-//         let mut evaluator: Evaluator<u16> = Evaluator::new(&mut lms, &test, 3);
+        let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
+        let unigram = KNLM::new("unigram".to_string(), 0., 0, 0);
+        lms.push(Box::new(unigram));
+        let mut evaluator: Evaluator<u16> = Evaluator::new(&mut lms, &test, 3);
 
-//         let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
-//         let mut last = dawg.get_initial();
-//         for (idx, token) in train.iter().enumerate() {
-//             last = dawg.extend(*token, last);
-//             evaluator.evaluate(&dawg, idx, 0.);
-//         }
-//         assert_eq!(*evaluator.get("suffix_lengths"), vec![1., 5. / 3.]);
-//         assert_eq!(*evaluator.get("suffix_counts"), vec![1., 4. / 3.]);
-//         // Is this right? This is cross-entropy/token.
-//         assert_eq!(*evaluator.get("unigram"), vec![1., 0.5849625007211563]);
-//     }
-// }
+        let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
+        let mut last = dawg.get_initial();
+        for (idx, token) in train.iter().enumerate() {
+            last = dawg.extend(*token, last);
+            evaluator.evaluate(&dawg, idx, 0.);
+        }
+        assert_eq!(*evaluator.get("suffix_lengths"), vec![1., 5. / 3.]);
+        assert_eq!(*evaluator.get("suffix_counts"), vec![1., 4. / 3.]);
+        // Is this right? This is cross-entropy/token.
+        assert_eq!(*evaluator.get("unigram"), vec![1., 0.5849625007211563]);
+    }
+}
