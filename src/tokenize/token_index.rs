@@ -16,6 +16,16 @@ pub struct TokenIndex<E> {
     unk: E,
 }
 
+impl<E> Default for TokenIndex<E> 
+where
+    E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,
+    usize: TryFrom<E>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E> TokenIndex<E>
 where
     E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,

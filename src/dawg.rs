@@ -27,6 +27,16 @@ where
     initial: NodeIndex,
 }
 
+impl<E, W> Default for Dawg<E, W>
+where
+    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+    W: Weight + Serialize + for<'a> Deserialize<'a>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
@@ -46,7 +56,7 @@ where
         Dawg { dawg, initial }
     }
 
-    pub fn build(&mut self, text: &Vec<E>) {
+    pub fn build(&mut self, text: &[E]) {
         let mut last = self.initial;
         for token in text.iter() {
             last = self.extend(*token, last);
@@ -118,14 +128,11 @@ where
                                 state = q;
                             }
                         }
-                        match self.transition(state, token, false) {
-                            Some(value) => {
-                                next_state_ = value;
-                                if next_state_ != next_state {
-                                    break;
-                                }
+                        if let Some(value) = self.transition(state, token, false) {
+                            next_state_ = value;
+                            if next_state_ != next_state {
+                                break;
                             }
-                            None => {}
                         }
                     }
                 }
@@ -149,18 +156,13 @@ where
         let mut queue: LinkedList<(NodeIndex, u64)> = LinkedList::new();
         queue.push_back((self.initial, 0));
 
-        loop {
-            match queue.pop_front() {
-                Some((state, length)) => {
-                    if self.dawg[state].get_length() != 0 {
-                        continue;
-                    }
-                    self.dawg[state].set_length(length);
-                    for next_state in self.dawg.neighbors(state) {
-                        queue.push_back((next_state, length + 1));
-                    }
-                }
-                None => break,
+        while let Some((state, length)) = queue.pop_front() {
+            if self.dawg[state].get_length() != 0 {
+                continue;
+            }
+            self.dawg[state].set_length(length);
+            for next_state in self.dawg.neighbors(state) {
+                queue.push_back((next_state, length + 1));
             }
         }
     }
@@ -178,12 +180,9 @@ where
     pub fn get_length(&self, mut state: NodeIndex) -> u64 {
         let mut count = 0;
         loop {
-            match self.dawg[state].get_failure() {
-                Some(fstate) => {
-                    state = fstate;
-                    count += 1;
-                }
-                None => break,
+            while let Some(fstate) = self.dawg[state].get_failure() {
+                state = fstate;
+                count += 1;
             }
         }
         count
