@@ -2,5 +2,10 @@
 target/
 data/
 data.zip
+
+# Rust profiler
+flame.svg
+cargo-flamegraph.stacks
+
+# Python
 **/__pycache__/**
-scratch*

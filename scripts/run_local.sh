@@ -1,10 +1,10 @@
 #!/usr/bin/bash
 
 ./target/release/rusty-dawg \
-    --train-path /Users/willm/Desktop/wikitext-2-raw/wiki.train.raw \
-    --test-path /Users/willm/Desktop/wikitext-2-raw/wiki.valid.raw \
-    --save-path /Users/willm/Desktop/wikitext2.dawg \
-    --results-path /Users/willm/Desktop/wikitext2.json \
+    --train-path data/$1/wiki.train.raw \
+    --test-path data/$1/wiki.valid.raw \
+    --save-path ~/Desktop/$1.dawg \
+    --results-path ~/Desktop/$1.json \
     --n-eval 0 \
     --tokenize
     # -f 0 -f 1024 -f 2048 -f 4096 -f 8192 -f 16384 \
