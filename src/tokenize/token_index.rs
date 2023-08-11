@@ -56,7 +56,9 @@ where
             None => {
                 self.token_to_index.insert(
                     token_string,
-                    (self.count).try_into().unwrap_or_else(|_| panic!("Err!!!")),
+                    (self.count).try_into().unwrap_or_else(|_| {
+                        panic!("Error converting count {} to index type", self.count)
+                    }),
                 );
                 // TODO: Could optimize this to only store each string once.
                 self.index_to_token.push(token.to_string());
