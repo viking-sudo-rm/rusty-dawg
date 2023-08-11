@@ -11,9 +11,7 @@ use std::cmp::{Eq, Ord};
 use std::collections::LinkedList;
 use std::fmt::Debug;
 
-// use vec_graph::dot::Dot;
 use graph::indexing::NodeIndex;
-// use graph::vec_graph::Graph;
 use graph::avl_graph::AvlGraph;
 use weight::Weight;
 

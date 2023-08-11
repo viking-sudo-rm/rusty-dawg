@@ -39,6 +39,9 @@ use kdam::tqdm;
 
 use dawg::Dawg;
 use evaluator::Evaluator;
+use graph::indexing::DefaultIx;
+use rusty_dawg::graph::indexing::Index48;
+use rusty_dawg::graph::indexing::IndexType;
 use stat_utils::*;
 use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
 use weight::weight40::DefaultWeight;
