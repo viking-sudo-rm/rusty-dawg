@@ -14,16 +14,16 @@ NLP = spacy.load("en_core_web_sm")
 TOKENIZER = GPT2Tokenizer.from_pretrained("gpt2")
 PY_DAWG = PyDawg(DAWG, TOKENIZER)
 COLORS = [
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-    "#bcbd22",
-    "#17becf",
+    "#a1c9f4",
+    "#ffb482",
+    "#8de5a1",
+    "#ff9f9b",
+    "#d0bbff",
+    "#debb9b",
+    "#fab0e4",
+    "#cfcfcf",
+    "#fffea3",
+    "#b9f2f0",
 ]
 
 
@@ -65,10 +65,10 @@ def find_token_indices(doc: spacy.tokens.doc.Doc, substring: str):
 def make_spacy_spans(doc, matches):
     spans = []
 
-    for i, match in enumerate(matches):
+    for match in matches:
         substring = match["text"]
         occurrences = find_token_indices(doc, substring)
-        span_id = f"{i}:{match['count']}"
+        span_id = f"{match['id']}|{match['length']}|{match['count']}"
 
         for occurrence in occurrences:
             # NOTE: We add 1 because Spacy spans are exclusive on the right, but our
@@ -91,12 +91,11 @@ def make_html(standardized_query, matches):
     color_map = {label: color for label, color in zip(uniq_labels, color_wheel)}
 
     options = {"colors": color_map}
-    html = displacy.render(doc, style="span", page=True, options=options)
-    html = (
-        "<div style='max-width:100%; max-height:360px; overflow:auto'>"
-        + html
-        + "</div>"
-    )
+    html = displacy.render(doc, style="span", page=False, options=options)
+
+    # Don't make the font size too small for the span annotations.
+    html = html.replace("font-size: 0.6em; ", " ")
+
     return html
 
 
@@ -104,17 +103,18 @@ def run_query(query, min_tokens):
     matching_substrings = PY_DAWG.get_matching_substrings(query)
 
     # Only keep the substrings that are long enough.
-    matches = [
-        match
-        for match in matching_substrings["matches"]
-        if len(match["tokens"]) >= min_tokens
-    ]
+    id_counter = 0
+    matches = []
+    for match in matching_substrings["matches"]:
+        if len(match["tokens"]) >= min_tokens:
+            match["length"] = len(match["tokens"])
+            match["id"] = id_counter
+            matches.append(match)
+            id_counter += 1
 
     # Make DataFrame to display of all matching substrings.
-    for entry in matches:
-        entry["length"] = len(entry["tokens"])
     df = pd.DataFrame(
-        [{k: entry[k] for k in ["length", "count", "text"]} for entry in matches]
+        [{k: entry[k] for k in ["id", "length", "count", "text"]} for entry in matches]
     )
 
     # Whitespace is removed from the `text` of the `matching substrings` when the
