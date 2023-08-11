@@ -130,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     create_lms(&args, &mut gen_lms);
     let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
 
-    let mut dawg: Dawg<E, N> = Dawg::with_capacity(2 * train.len());
+    let mut dawg: Dawg<E, N> = Dawg::with_capacity(2 * train.len(), 3 * train.len());
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
@@ -152,6 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Completed!");
     println!("  Node count: {}", dawg.node_count());
     println!("  Edge count: {}", dawg.edge_count());
+    println!("  balance ratio (q0): {}", dawg.balance_ratio(1));
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");

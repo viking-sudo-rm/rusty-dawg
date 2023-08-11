@@ -136,7 +136,7 @@ mod tests {
     use tokenize::{TokenIndex, Tokenize};
 
     use graph::indexing::NodeIndex;
-    use graph::vec_graph::dot::Dot;
+    // use graph::vec_graph::dot::Dot;
 
     use lms::kn_lm::KNLM;
     use lms::LM;
@@ -235,7 +235,6 @@ mod tests {
 
         let mut dawg = Dawg::new();
         dawg.build(&indices);
-        println!("{:?}", Dot::new(dawg.get_graph()));
 
         let mut lm = KNLM::new("unigram".to_string(), 0.0, 0, 0);
         let a = index.index("a");
