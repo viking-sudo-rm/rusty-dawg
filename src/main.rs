@@ -29,6 +29,12 @@ mod stat_utils;
 mod tokenize;
 mod weight;
 
+use serde::{Deserialize, Serialize};
+use std::cmp::Ord;
+use std::convert::TryFrom;
+use std::convert::TryInto;
+use std::fmt::Debug;
+
 use lms::induction_lm::InductionLM;
 use lms::kn_lm::KNLM;
 use lms::LM;
@@ -50,7 +56,6 @@ use weight::weight40::DefaultWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;
-type E = u32;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -78,6 +83,9 @@ struct Args {
     #[arg(long)]
     tokenizer: String,
 
+    #[arg(long, default_value = "u32")]
+    utype: String,
+
     #[arg(long, default_value_t = 10000)]
     truncate_test: usize,
     #[arg(long, default_value_t = 20)]
@@ -96,10 +104,39 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+
+    // type E = u32;
+    if args.utype == "u16" {
+        run_rusty_dawg::<u16>(args)
+    } else if args.utype == "u32" {
+        run_rusty_dawg::<u32>(args)
+    } else if args.utype == "usize" {
+        run_rusty_dawg::<usize>(args)
+    } else {
+        panic!("Invalid usize type: {}", args.utype);
+    }
+    // run_rusty_dawg::<E>(args)
+}
+
+fn run_rusty_dawg<E>(args: Args) -> Result<(), Box<dyn std::error::Error>>
+where
+    E: Eq
+        + Ord
+        + Serialize
+        + for<'a> Deserialize<'a>
+        + Copy
+        + Debug
+        + TryInto<usize>
+        + TryFrom<usize>
+        + 'static
+        + TryInto<u32>
+        + TryFrom<u32>,
+    usize: TryFrom<E>,
+{
     println!("sizeof(edge): {}B", size_of::<E>());
     println!("sizeof(node): {}B", size_of::<N>());
 
-    let args = Args::parse();
     let mut index: Box<dyn Tokenize<E>> = if args.tokenizer == "whitespace" {
         Box::new(TokenIndex::new())
     } else {
@@ -184,7 +221,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM<E>>>) {
+fn create_lms<E>(args: &Args, lms: &mut Vec<Box<dyn LM<E>>>)
+where
+    E: Eq
+        + Ord
+        + Serialize
+        + for<'a> Deserialize<'a>
+        + Copy
+        + Debug
+        + TryInto<usize>
+        + TryFrom<usize>
+        + 'static,
+    usize: TryFrom<E>,
+{
     for min_freq in args.min_freq.iter() {
         for delta in args.delta.iter() {
             let maxgram = KNLM::new(
@@ -214,17 +263,21 @@ fn create_lms(args: &Args, lms: &mut Vec<Box<dyn LM<E>>>) {
                         Box::new(induct_backoff),
                         *induct_delta,
                     );
-                    lms.push(Box::new(induct))
+                    let induct = Box::new(induct);
+                    lms.push(induct)
                 }
             }
         }
     }
 }
 
-fn checkpoint(
+fn checkpoint<E>(
     dawg: &Dawg<E, DefaultWeight>,
     save_path: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+{
     let save_file = fs::OpenOptions::new()
         .write(true)
         .create(true)
