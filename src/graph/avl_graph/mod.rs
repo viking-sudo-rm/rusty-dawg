@@ -404,6 +404,45 @@ where
     }
 }
 
+pub struct Neighbors<N, E, Ix>
+where Ix: IndexType,
+{
+    neighbors: Vec<NodeIndex<Ix>>,
+    next: usize,
+}
+
+// impl<'a, E, Ix> Iterator for Neighbors<'a, E, Ix>
+// where
+//     Ix: IndexType,
+// {
+//     type Item = NodeIndex<Ix>;
+
+//     fn next(&mut self) -> Option<NodeIndex<Ix>> {
+//         if self.next < self.edges.len() {
+//             self.next += 1;
+//             return Some(self.edges[self.next - 1].target());
+//         }
+//         None
+//     }
+// }
+
+impl<'a, Ix> Neighbors
+where
+    Ix: IndexType,
+{
+    pub fn new(graph: &'a Graph<_, _, Ix>, node: NodeIndex<Ix>) -> Self {
+        let first_edge = graph.nodes[node.index()].first_edge;
+        let neighbors = Vec::new();
+        Self {
+            first_edge: first_edge,
+            neighbors: neighbors,
+            next: 0,
+        }
+    }
+
+    pub fn merge_edges(edge: EdgeIndex<Ix>) -> 
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct Node<N, Ix = DefaultIx> {
     #[serde(bound(
