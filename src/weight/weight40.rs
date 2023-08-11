@@ -36,7 +36,7 @@ impl Weight for WeightMinimal {
         if self.failure == DefaultIx::max_value() {
             return None;
         }
-        Some(NodeIndex::new(self.failure.index() as usize))
+        Some(NodeIndex::new(self.failure.index()))
     }
 
     fn set_failure(&mut self, failure: Option<NodeIndex>) {

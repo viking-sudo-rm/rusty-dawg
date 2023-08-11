@@ -1,9 +1,8 @@
 use pyo3::prelude::*;
 
 use crate::dawg::Dawg;
-use rusty_dawg::lms::LM;
 use rusty_dawg::lms::kn_lm;
-use rusty_dawg::graph::indexing::NodeIndex;
+use rusty_dawg::lms::LM;
 
 #[pyclass]
 pub struct KNLM {
@@ -12,10 +11,11 @@ pub struct KNLM {
 
 #[pymethods]
 impl KNLM {
-
     #[new]
     pub fn new(name: String, kn_delta: f64, kn_max_n: i64, min_freq: u64) -> Self {
-        Self {lm: kn_lm::KNLM::new(name, kn_delta, kn_max_n, min_freq)}
+        Self {
+            lm: kn_lm::KNLM::new(name, kn_delta, kn_max_n, min_freq),
+        }
     }
 
     pub fn reset(&mut self, dawg: &Dawg) {
@@ -29,7 +29,6 @@ impl KNLM {
     pub fn update(&mut self, dawg: &Dawg, label: usize) {
         self.lm.update(dawg.get_dawg(), label);
     }
-
 }
 
 // impl KNLM {
@@ -37,3 +36,4 @@ impl KNLM {
 //         self.lm
 //     }
 // }
+
