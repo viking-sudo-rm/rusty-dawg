@@ -32,7 +32,6 @@ impl NullTokenIndex {
     {
         let index = self.index(token);
         let index_usize = usize::try_from(index).unwrap_or_else(|_| panic!("Err!!!")) + 1;
-        println!("index usize: {}", index_usize);
         self.count = max(
             self.count,
             index_usize.try_into().unwrap_or_else(|_| panic!("Err!!!")),
