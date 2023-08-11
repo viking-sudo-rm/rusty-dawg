@@ -50,8 +50,7 @@ use dawg::Dawg;
 use evaluator::Evaluator;
 
 use stat_utils::*;
-// use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
-use tokenize::{PretrainedTokenizer, TokenIndex, Tokenize};
+use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::weight40::DefaultWeight;
 
 // Node and edge weight types.
@@ -144,6 +143,8 @@ where
 
     let mut index: Box<dyn Tokenize<E>> = if args.tokenizer == "whitespace" {
         Box::new(TokenIndex::new())
+    } else if args.tokenizer == "null" {
+        Box::new(NullTokenIndex::new())
     } else {
         Box::new(PretrainedTokenizer::new(&args.tokenizer))
     };
