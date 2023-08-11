@@ -1,13 +1,13 @@
-use serde::Serialize;
+use dawg::Dawg;
+use serde::{Deserialize, Serialize};
+use stat_utils::*;
 use std::cmp::max;
+use std::cmp::Ord;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-
-use dawg::Dawg;
-use stat_utils::*;
 use weight::Weight;
 
 use crate::weight::weight40::DefaultWeight;
@@ -20,7 +20,7 @@ where
     E: Eq + serde::Serialize + Copy + Debug,
 {
     #[serde(skip)]
-    lms: &'a mut Vec<Box<dyn LM>>,
+    lms: &'a mut Vec<Box<dyn LM<E>>>,
     #[serde(skip)]
     test: &'a Vec<E>,
     indices: Vec<usize>,
@@ -30,7 +30,7 @@ where
 
 impl<E> Evaluator<'_, E>
 where
-    E: Eq + serde::Serialize + Copy + Debug,
+    E: Eq + Ord + serde::Serialize + Copy + Debug,
 {
     pub fn get(&self, key: &str) -> &Vec<f64> {
         &self.metrics[key]
@@ -49,12 +49,15 @@ where
 }
 
 // TODO: Generic case
-impl Evaluator<'_, usize> {
+impl<E> Evaluator<'_, E>
+where
+    E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+{
     pub fn new<'a>(
-        lms: &'a mut Vec<Box<dyn LM>>,
-        test: &'a Vec<usize>,
+        lms: &'a mut Vec<Box<dyn LM<E>>>,
+        test: &'a Vec<E>,
         max_length: u64,
-    ) -> Evaluator<'a, usize> {
+    ) -> Evaluator<'a, E> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
@@ -82,7 +85,7 @@ impl Evaluator<'_, usize> {
         }
     }
 
-    pub fn evaluate(&mut self, dawg: &Dawg<usize, DefaultWeight>, idx: usize, good_turing: f64) {
+    pub fn evaluate(&mut self, dawg: &Dawg<E, DefaultWeight>, idx: usize, good_turing: f64) {
         // println!("=== eval@{} ===", idx);
         // println!("counts: {:?}", counts);
         // println!("{:?}", Dot::new(dawg.get_graph()));
@@ -135,7 +138,7 @@ impl Evaluator<'_, usize> {
                 cum_count += dawg.get_weight(state).get_count();
                 // cum_count += counts[state.index()];
             }
-            cum_entropy += get_entropy::<usize, DefaultWeight>(dawg, state);
+            cum_entropy += get_entropy::<E, DefaultWeight>(dawg, state);
             num_tokens += 1;
 
             for lm in self.lms.iter_mut() {
@@ -183,14 +186,14 @@ mod tests {
         let train_tokens = vec!["a", "b", "b"];
         let test_tokens = vec!["a", "b", "c"];
 
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-        let mut lms: Vec<Box<dyn LM>> = Vec::new();
-        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
+        let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
+        let mut evaluator: Evaluator<u16> = Evaluator::new(&mut lms, &test, 3);
 
-        let mut dawg: Dawg<usize, DefaultWeight> = Dawg::new();
+        let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         for (idx, token) in train.iter().enumerate() {
             last = dawg.extend(*token, last);
@@ -215,16 +218,16 @@ mod tests {
         let train_tokens = vec!["a", "a"];
         let test_tokens = vec!["a", "a", "a"];
 
-        let mut index: TokenIndex<usize> = TokenIndex::new();
+        let mut index: TokenIndex<u16> = TokenIndex::new();
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
         let test: Vec<_> = test_tokens.iter().map(|x| index.index(x)).collect();
 
-        let mut lms: Vec<Box<dyn LM>> = Vec::new();
+        let mut lms: Vec<Box<dyn LM<u16>>> = Vec::new();
         let unigram = KNLM::new("unigram".to_string(), 0., 0, 0);
         lms.push(Box::new(unigram));
-        let mut evaluator: Evaluator<usize> = Evaluator::new(&mut lms, &test, 3);
+        let mut evaluator: Evaluator<u16> = Evaluator::new(&mut lms, &test, 3);
 
-        let mut dawg: Dawg<usize, DefaultWeight> = Dawg::new();
+        let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         for (idx, token) in train.iter().enumerate() {
             last = dawg.extend(*token, last);
