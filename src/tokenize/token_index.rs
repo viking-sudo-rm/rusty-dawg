@@ -1,6 +1,5 @@
 use crate::tokenize::Tokenize;
 
-
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::convert::TryInto;

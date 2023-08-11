@@ -1,8 +1,6 @@
 pub mod induction_lm;
 pub mod kn_lm;
 
-
-
 use std::fmt::Debug;
 
 use std::marker::Copy;

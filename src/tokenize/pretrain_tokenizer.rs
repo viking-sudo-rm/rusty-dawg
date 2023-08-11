@@ -1,7 +1,5 @@
 use crate::tokenize::Tokenize;
-use anyhow::{anyhow};
-
-
+use anyhow::anyhow;
 
 use std::convert::TryFrom;
 use std::convert::TryInto;
@@ -9,7 +7,6 @@ use std::fmt::Debug;
 
 use std::marker::Copy;
 use tokenizers::tokenizer::Tokenizer;
-
 
 // pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
 //     s.split_word_bounds().filter(|w| {
@@ -72,7 +69,6 @@ where
 #[cfg(test)]
 mod tests {
     use crate::tokenize::{PretrainedTokenizer, Tokenize};
-    
 
     #[test]
     fn test_gpt2_tokenizer() {

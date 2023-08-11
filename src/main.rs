@@ -43,13 +43,11 @@ use kdam::tqdm;
 use dawg::Dawg;
 use evaluator::Evaluator;
 
-
 use rusty_dawg::graph::indexing::IndexType;
 use stat_utils::*;
 // use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
 use tokenize::{TokenIndex, Tokenize};
 use weight::weight40::DefaultWeight;
-
 
 // Node and edge weight types.
 type N = DefaultWeight;

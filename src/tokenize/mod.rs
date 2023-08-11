@@ -2,8 +2,7 @@
 pub mod pretrain_tokenizer;
 pub mod token_index;
 
-
-use std::cmp::{Eq};
+use std::cmp::Eq;
 use std::fmt::Debug;
 use std::marker::Copy;
 // pub use self::null_token_index::NullTokenIndex;
