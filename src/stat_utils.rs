@@ -10,7 +10,7 @@ use weight::Weight;
 pub fn get_entropy<E, W>(dawg: &Dawg<E, W>, state: NodeIndex) -> f64
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     // let denom = counts[state.index()];
     // println!("{:?}", Dot::new(dawg.get_graph()));

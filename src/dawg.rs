@@ -21,7 +21,7 @@ use weight::Weight;
 pub struct Dawg<E, W>
 where
     E: Eq + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     #[serde(bound(serialize = "E: Serialize", deserialize = "E: Deserialize<'de>",))]
     dawg: AvlGraph<W, E>,
@@ -31,7 +31,7 @@ where
 impl<E, W> Default for Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -41,7 +41,7 @@ where
 impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     pub fn new() -> Dawg<E, W> {
         let mut dawg = AvlGraph::<W, E>::new();
