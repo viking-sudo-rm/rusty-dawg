@@ -101,6 +101,11 @@ struct Args {
     n_gram: Vec<i64>,
     #[arg(long, short = 'i')]
     induct_delta: Vec<f64>,
+
+    #[arg(long, default_value_t = 2.)]
+    nodes_ratio: f64,
+    #[arg(long, default_value_t = 3.)]
+    edges_ratio: f64,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -189,7 +194,9 @@ where
     create_lms(&args, &mut gen_lms);
     let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
 
-    let mut dawg: Dawg<E, N> = Dawg::with_capacity(2 * train.len(), 3 * train.len());
+    let n_nodes = (args.nodes_ratio * (train.len() as f64)).ceil() as usize;
+    let n_edges = (args.edges_ratio * (train.len() as f64)).ceil() as usize;
+    let mut dawg: Dawg<E, N> = Dawg::with_capacity(n_nodes, n_edges);
     let mut last = dawg.get_initial();
     for (idx, token) in tqdm!(train.iter()).enumerate() {
         last = dawg.extend(*token, last);
@@ -209,9 +216,17 @@ where
         }
     }
     println!("Completed!");
-    println!("  Node count: {}", dawg.node_count());
-    println!("  Edge count: {}", dawg.edge_count());
-    println!("  balance ratio (q0): {}", dawg.balance_ratio(1));
+    println!(
+        "  Node ratio: {:.2} (total={})",
+        (dawg.node_count() as f64) / (train.len() as f64),
+        dawg.node_count()
+    );
+    println!(
+        "  Edge ratio: {:.2} (total={})",
+        (dawg.edge_count() as f64) / (train.len() as f64),
+        dawg.edge_count()
+    );
+    println!("  Balance ratio: {}", dawg.balance_ratio(1));
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");
