@@ -33,13 +33,11 @@ with gr.Blocks(css=span_css) as demo:
                 with gr.Column(scale=1, min_width=50):
                     button = gr.Button(value="Run query", variant="primary")
                 with gr.Column(scale=2, min_width=50):
-                    slider = (
-                        gr.Slider(1, 5, value=4, step=1, label="Min n-gram display length")
+                    slider = gr.Slider(
+                        1, 5, value=4, step=1, label="Min n-gram display length"
                     )
         with gr.Column(scale=1, min_width=400):
-            examples = gr.Examples(
-                examples=examples, inputs=query
-            )
+            examples = gr.Examples(examples=examples, inputs=query)
     with gr.Row(variant="panel"):
         html = gr.HTML()
 
@@ -48,4 +46,4 @@ with gr.Blocks(css=span_css) as demo:
     button.click(run_query, inputs=[query, slider], outputs=[html, df])
 
 
-demo.launch()
+demo.launch(share=True)

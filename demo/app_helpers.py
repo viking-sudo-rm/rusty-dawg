@@ -8,7 +8,8 @@ import pandas as pd
 
 # Globals
 
-dawg_path = "../dawg/wikitext-2-raw.dawg"
+# dawg_path = "../dawg/wikitext-2-raw.dawg"
+dawg_path = "/net/nfs.cirrascale/allennlp/willm/wikitext-103-raw.dawg"
 DAWG = Dawg.load(dawg_path)
 NLP = spacy.load("en_core_web_sm")
 TOKENIZER = GPT2Tokenizer.from_pretrained("gpt2")
