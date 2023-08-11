@@ -179,11 +179,9 @@ where
     // Compute the min factor length of this state dynamically.
     pub fn get_length(&self, mut state: NodeIndex) -> u64 {
         let mut count = 0;
-        loop {
-            while let Some(fstate) = self.dawg[state].get_failure() {
-                state = fstate;
-                count += 1;
-            }
+        while let Some(fstate) = self.dawg[state].get_failure() {
+            state = fstate;
+            count += 1;
         }
         count
     }
@@ -298,7 +296,7 @@ mod tests {
     #[test]
     fn test_build_bab() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"bab".chars().collect());
+        dawg.build(&['b', 'a', 'b']);
 
         let q0 = NodeIndex::new(0);
         let q1 = NodeIndex::new(1);
@@ -324,7 +322,7 @@ mod tests {
     #[test]
     fn test_build_abcab() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abcab".chars().collect());
+        dawg.build(&['a', 'b', 'c', 'a', 'b']);
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("ab".chars().collect()), 2);
         assert_eq!(dawg.get_max_factor_length("abc".chars().collect()), 3);
@@ -343,7 +341,7 @@ mod tests {
     #[test]
     fn test_build_abb() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abb".chars().collect());
+        dawg.build(&['a', 'b', 'b']);
         assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
         assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 1);
         assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
@@ -364,7 +362,8 @@ mod tests {
         relatively isolated rural communities **h urbanization appears to be";
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         println!("Start build!");
-        dawg.build(&corpus.chars().collect());
+        let chars: Vec<char> = corpus.chars().collect();
+        dawg.build(&chars);
         dawg.recompute_lengths();
         assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);
         assert_eq!(dawg.get_max_factor_length("However,".chars().collect()), 8);
@@ -381,7 +380,7 @@ mod tests {
     #[test]
     fn test_get_length() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"ab".chars().collect());
+        dawg.build(&['a', 'b']);
         let state = NodeIndex::new(2);
         assert_eq!(dawg.dawg[state].get_length(), 2);
         assert_eq!(dawg.get_length(state), 1);
@@ -392,7 +391,7 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_to_string() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abcd".chars().collect());
+        dawg.build(&['a', 'b', 'c', 'd']);
 
         let encoded: Vec<u8> = bincode::serialize(&dawg).unwrap();
         let decoded: Dawg<char, DefaultWeight> = bincode::deserialize(&encoded[..]).unwrap();
@@ -402,7 +401,7 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_to_file() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"abcd".chars().collect());
+        dawg.build(&['a', 'b', 'c', 'd']);
 
         let mut file = NamedTempFile::new().expect("Failed to create file");
         serialize_into(&file, &dawg).expect("Failed to serialize");

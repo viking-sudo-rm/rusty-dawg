@@ -16,7 +16,7 @@ pub struct TokenIndex<E> {
     unk: E,
 }
 
-impl<E> Default for TokenIndex<E> 
+impl<E> Default for TokenIndex<E>
 where
     E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,
     usize: TryFrom<E>,
@@ -98,10 +98,7 @@ where
     }
 
     fn tokenize(&mut self, text: &str) -> Vec<E> {
-        let tokenized_text: Vec<E> = text
-            .split_whitespace()
-            .map(|x| self.index(x))
-            .collect();
+        let tokenized_text: Vec<E> = text.split_whitespace().map(|x| self.index(x)).collect();
         tokenized_text
     }
 

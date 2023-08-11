@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn test_get_entropy() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&"ab".chars().collect());
+        dawg.build(&['a', 'b']);
         // Approximately log_2(3)
         assert_eq!(get_entropy(&dawg, NodeIndex::new(0)), 1.584962500721156);
         assert_eq!(get_entropy(&dawg, NodeIndex::new(1)), 0.);
