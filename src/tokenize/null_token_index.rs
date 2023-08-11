@@ -10,6 +10,12 @@ pub struct NullTokenIndex {
     pub count: usize,
 }
 
+impl Default for NullTokenIndex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NullTokenIndex {
     pub fn new() -> Self {
         NullTokenIndex { count: 0 }
@@ -32,10 +38,7 @@ impl NullTokenIndex {
     {
         let index = self.index(token);
         let index_usize = usize::try_from(index).unwrap_or_else(|_| panic!("Err!!!")) + 1;
-        self.count = max(
-            self.count,
-            index_usize.try_into().unwrap_or_else(|_| panic!("Err!!!")),
-        );
+        self.count = max(self.count, index_usize);
         index
     }
 }
@@ -61,7 +64,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenize::{NullTokenIndex, TokenIndex, Tokenize};
+    use crate::tokenize::{NullTokenIndex, Tokenize};
 
     #[test]
     fn test_build_tokenizer() {
