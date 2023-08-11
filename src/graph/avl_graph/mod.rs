@@ -384,6 +384,14 @@ where
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
+
+    pub fn neighbors(&self, node: NodeIndex<Ix>) -> Neighbors<N, E, Ix> {
+        Neighbors::new(self, node)
+    }
+
+    pub fn edges(&self, edges: NodeIndex<Ix>) -> Edges<N, E, Ix> {
+        Edges::new(self, edges)
+    }
 }
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
@@ -405,43 +413,99 @@ where
     }
 }
 
-pub struct Neighbors<N, E, Ix>
+pub struct Neighbors<'a, N, E, Ix>
 where Ix: IndexType,
 {
-    neighbors: Vec<NodeIndex<Ix>>,
-    next: usize,
+    graph: &'a AvlGraph<N, E, Ix>,
+    queue: Vec<EdgeIndex<Ix>>,
 }
 
-// impl<'a, E, Ix> Iterator for Neighbors<'a, E, Ix>
-// where
-//     Ix: IndexType,
-// {
-//     type Item = NodeIndex<Ix>;
-
-//     fn next(&mut self) -> Option<NodeIndex<Ix>> {
-//         if self.next < self.edges.len() {
-//             self.next += 1;
-//             return Some(self.edges[self.next - 1].target());
-//         }
-//         None
-//     }
-// }
-
-impl<'a, Ix> Neighbors
+impl<'a, N, E, Ix> Iterator for Neighbors<'a, N, E, Ix>
 where
     Ix: IndexType,
 {
-    pub fn new(graph: &'a Graph<_, _, Ix>, node: NodeIndex<Ix>) -> Self {
-        let first_edge = graph.nodes[node.index()].first_edge;
-        let neighbors = Vec::new();
-        Self {
-            first_edge: first_edge,
-            neighbors: neighbors,
-            next: 0,
+    type Item = NodeIndex<Ix>;
+
+    fn next(&mut self) -> Option<NodeIndex<Ix>> {
+        match self.queue.pop() {
+            None => None,
+            Some(idx) => {
+                if idx == EdgeIndex::end() {
+                    // Only hit for an empty tree.
+                    return None;
+                }
+
+                let left = self.graph.edges[idx.index()].left;
+                if left != EdgeIndex::end() {
+                    self.queue.push(left);
+                }
+                let right = self.graph.edges[idx.index()].right;
+                if right != EdgeIndex::end() {
+                    self.queue.push(right);
+                }
+                let target = self.graph.edges[idx.index()].target;
+                Some(target)
+            },
         }
     }
+}
 
-    pub fn merge_edges(edge: EdgeIndex<Ix>) -> 
+impl<'a, N, E, Ix> Neighbors<'a, N, E, Ix>
+where
+    Ix: IndexType,
+{
+    pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
+        let root = graph.nodes[node.index()].first_edge;
+        let queue = vec![root];
+        Self {graph, queue}
+    }
+}
+
+pub struct Edges<'a, N, E, Ix>
+where Ix: IndexType,
+{
+    graph: &'a AvlGraph<N, E, Ix>,
+    queue: Vec<EdgeIndex<Ix>>,
+}
+
+impl<'a, N, E, Ix> Iterator for Edges<'a, N, E, Ix>
+where
+    Ix: IndexType,
+{
+    type Item = &'a Edge<E, Ix>;
+
+    fn next(&mut self) -> Option<&'a Edge<E, Ix>> {
+        match self.queue.pop() {
+            None => None,
+            Some(idx) => {
+                if idx == EdgeIndex::end() {
+                    // Only hit for an empty tree.
+                    return None;
+                }
+
+                let left = self.graph.edges[idx.index()].left;
+                if left != EdgeIndex::end() {
+                    self.queue.push(left);
+                }
+                let right = self.graph.edges[idx.index()].right;
+                if right != EdgeIndex::end() {
+                    self.queue.push(right);
+                }
+                Some(&self.graph.edges[idx.index()])
+            },
+        }
+    }
+}
+
+impl<'a, N, E, Ix> Edges<'a, N, E, Ix>
+where
+    Ix: IndexType,
+{
+    pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
+        let root = graph.nodes[node.index()].first_edge;
+        let queue = vec![root];
+        Self {graph, queue}
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -646,7 +710,7 @@ mod tests {
         let e2 = graph.add_edge(q0, q1, 4).unwrap();
         let e3 = graph.add_edge(q0, q1, 0).unwrap();
         let e4 = graph.add_edge(q0, q1, 2).unwrap();
-
+        
         graph.edges[root.index()].balance_factor = 1;
         graph.edges[e1.index()].balance_factor = 0;
         graph.edges[e2.index()].balance_factor = 0;
