@@ -46,12 +46,12 @@ use evaluator::Evaluator;
 use rusty_dawg::graph::indexing::IndexType;
 use stat_utils::*;
 // use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
-use tokenize::{TokenIndex, Tokenize};
+use tokenize::{PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::weight40::DefaultWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;
-type E = u16;
+type E = u32;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -71,8 +71,14 @@ struct Args {
     gen_path: Option<String>,
     #[arg(long)]
     gen_results_path: Option<String>,
-    #[arg(long, default_value_t = false)]
-    tokenize: bool,
+    // #[arg(long, default_value_t = false)]
+    // tokenize: bool,
+
+    // This value can take on the following values:
+    // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
+    #[arg(long)]
+    tokenizer: String,
+
     #[arg(long, default_value_t = 10000)]
     truncate_test: usize,
     #[arg(long, default_value_t = 20)]
@@ -95,7 +101,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sizeof(node): {}B", size_of::<N>());
 
     let args = Args::parse();
-    let mut index: Box<dyn Tokenize<E>> = Box::new(TokenIndex::new());
+    let mut index: Box<dyn Tokenize<E>> = if args.tokenizer == "whitespace" {
+        Box::new(TokenIndex::new())
+    } else {
+        Box::new(PretrainedTokenizer::new(&args.tokenizer))
+    };
+    // let mut index: Box<dyn Tokenize<E>> = Box::new(TokenIndex::new());
+    // let mut index: Box<dyn Tokenize<E>> = Box::new(PretrainedTokenizer::new("gpt2"));
     // let mut index: Box<dyn Tokenize> = if args.tokenize {
     //     Box::new(TokenIndex::<usize>::new())
     // } else {
