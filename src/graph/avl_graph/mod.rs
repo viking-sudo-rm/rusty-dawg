@@ -9,9 +9,9 @@
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
+use std::collections::LinkedList;
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
-use std::collections::LinkedList;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
@@ -419,7 +419,8 @@ where
 }
 
 pub struct Neighbors<'a, N, E, Ix>
-where Ix: IndexType,
+where
+    Ix: IndexType,
 {
     edges: Edges<'a, N, E, Ix>,
 }
@@ -444,12 +445,13 @@ where
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
         let edges = Edges::new(graph, node);
-        Self {edges}
+        Self { edges }
     }
 }
 
 pub struct Edges<'a, N, E, Ix>
-where Ix: IndexType,
+where
+    Ix: IndexType,
 {
     graph: &'a AvlGraph<N, E, Ix>,
     stack: Vec<EdgeIndex<Ix>>,
@@ -483,7 +485,7 @@ where
                     self.stack.push(right);
                 }
                 Some(&self.graph.edges[idx.index()])
-            },
+            }
         }
     }
 }
@@ -497,7 +499,7 @@ where
         let stack = vec![root];
         // let mut stack = LinkedList::new();
         // stack.push_back(root);
-        Self {graph, stack}
+        Self { graph, stack }
     }
 }
 
@@ -703,7 +705,7 @@ mod tests {
         let e2 = graph.add_edge(q0, q1, 4).unwrap();
         let e3 = graph.add_edge(q0, q1, 0).unwrap();
         let e4 = graph.add_edge(q0, q1, 2).unwrap();
-        
+
         graph.edges[root.index()].balance_factor = 1;
         graph.edges[e1.index()].balance_factor = 0;
         graph.edges[e2.index()].balance_factor = 0;
@@ -823,11 +825,16 @@ mod tests {
         for idx in 0..7 {
             graph.add_balanced_edge(q0, q1, idx);
         }
-        let edges: Vec<_> = graph.edges(q0).map(|x| (*x.weight(), x.target().index())).collect();
-        assert_eq!(edges, vec![(3, 1), (5, 1), (6, 1), (4, 1), (1, 1), (2, 1), (0, 1)]);
+        let edges: Vec<_> = graph
+            .edges(q0)
+            .map(|x| (*x.weight(), x.target().index()))
+            .collect();
+        assert_eq!(
+            edges,
+            vec![(3, 1), (5, 1), (6, 1), (4, 1), (1, 1), (2, 1), (0, 1)]
+        );
 
         assert_eq!(graph.balance_ratio(q0), 1.0);
         // FIXME: But stilll take the time tho
     }
-
 }

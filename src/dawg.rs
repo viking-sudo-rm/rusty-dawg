@@ -11,8 +11,8 @@ use std::cmp::{Eq, Ord};
 use std::collections::LinkedList;
 use std::fmt::Debug;
 
-use graph::indexing::NodeIndex;
 use graph::avl_graph::AvlGraph;
+use graph::indexing::NodeIndex;
 use weight::Weight;
 
 #[derive(Serialize, Deserialize)]
@@ -29,7 +29,7 @@ where
 impl<E, W> Default for Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     fn default() -> Self {
         Self::new()
