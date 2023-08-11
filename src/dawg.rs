@@ -13,24 +13,25 @@ use std::fmt::Debug;
 
 // use vec_graph::dot::Dot;
 use graph::indexing::NodeIndex;
-use graph::vec_graph::Graph;
+// use graph::vec_graph::Graph;
+use graph::avl_graph::AvlGraph;
 use weight::Weight;
 
 #[derive(Serialize, Deserialize)]
 pub struct Dawg<E, W>
 where
     E: Eq + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     #[serde(bound(serialize = "E: Serialize", deserialize = "E: Deserialize<'de>",))]
-    dawg: Graph<W, E>,
+    dawg: AvlGraph<W, E>,
     initial: NodeIndex,
 }
 
 impl<E, W> Default for Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -40,17 +41,17 @@ where
 impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a>,
+    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
 {
     pub fn new() -> Dawg<E, W> {
-        let mut dawg = Graph::<W, E>::new();
+        let mut dawg = AvlGraph::<W, E>::new();
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
 
-    pub fn with_capacity(n_nodes: usize) -> Dawg<E, W> {
-        let mut dawg = Graph::<W, E>::with_capacity(n_nodes);
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W> {
+        let mut dawg = AvlGraph::<W, E>::with_capacity(n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
@@ -95,17 +96,21 @@ where
                     self.dawg[new].set_failure(Some(next_state));
                 } else {
                     // Split a state and fail to the clone of it.
-                    let clone = self
-                        .dawg
-                        .add_node(W::split(&self.dawg[state], &self.dawg[next_state]));
-                    let edges: Vec<_> = self
-                        .dawg
-                        .edges(next_state)
-                        .map(|edge| (edge.target(), *edge.weight()))
-                        .collect();
-                    for (target, weight) in edges {
-                        self.dawg.add_edge(clone, target, weight);
-                    }
+                    let clone = self.dawg.clone_node(next_state);
+                    // ==========================================
+                    // let clone = self
+                    //     .dawg
+                    //     .add_node(W::split(&self.dawg[state], &self.dawg[next_state]));
+                    // let edges: Vec<_> = self
+                    //     .dawg
+                    //     .edges(next_state)
+                    //     .map(|edge| (edge.target(), *edge.weight()))
+                    //     .collect();
+                    // for (target, weight) in edges {
+                    //     self.dawg.add_edge(clone, target, weight);
+                    // }
+                    // ==========================================
+
                     // FIXME: For some reason, calling clone has infinite loop/hangs. Theoretically, it should be better??
                     // let weight = Weight40::split(&self.dawg[state], &self.dawg[next_state]);
                     // let clone = self.dawg.clone_node(state);
@@ -273,7 +278,7 @@ where
         self.dawg.edge_count()
     }
 
-    pub fn get_graph(&self) -> &Graph<W, E> {
+    pub fn get_graph(&self) -> &AvlGraph<W, E> {
         &self.dawg
     }
 }

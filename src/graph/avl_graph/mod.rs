@@ -9,8 +9,8 @@
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
-use std::ops::{Index, IndexMut};
 use std::fmt::Debug;
+use std::ops::{Index, IndexMut};
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
@@ -33,6 +33,12 @@ where
     pub fn new() -> Self {
         let nodes = Vec::new();
         let edges = Vec::new();
+        AvlGraph { nodes, edges }
+    }
+
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
+        let nodes = Vec::with_capacity(n_nodes);
+        let edges = Vec::with_capacity(n_edges);
         AvlGraph { nodes, edges }
     }
 
@@ -183,12 +189,7 @@ where
         // FIXME: Implement recursive version!!!
     }
 
-    pub fn add_balanced_edge(
-        &mut self,
-        a: NodeIndex<Ix>,
-        b: NodeIndex<Ix>,
-        weight: E,
-    ) {
+    pub fn add_balanced_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) {
         // look for root, simple case where no root handled
         let first_edge = self.nodes[a.index()].first_edge;
 
@@ -200,9 +201,8 @@ where
         &mut self,
         root_edge_idx: EdgeIndex<Ix>,
         weight: E,
-        b: NodeIndex<Ix>
+        b: NodeIndex<Ix>,
     ) -> EdgeIndex<Ix> {
-
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
             let edge = Edge::new(weight, b);
@@ -231,7 +231,10 @@ where
             };
 
             if init_balance_factor == 0 {
-                if init_left_idx == EdgeIndex::end() || updated_balance_factor == 1 || updated_balance_factor == -1 {
+                if init_left_idx == EdgeIndex::end()
+                    || updated_balance_factor == 1
+                    || updated_balance_factor == -1
+                {
                     self.edges[root_edge_idx.index()].balance_factor += 1;
                 }
             }
@@ -252,7 +255,8 @@ where
                 self.edges[init_right_idx.index()].balance_factor
             };
 
-            self.edges[root_edge_idx.index()].right = self.avl_insert_edge(init_right_idx, weight, b);
+            self.edges[root_edge_idx.index()].right =
+                self.avl_insert_edge(init_right_idx, weight, b);
 
             let updated_right_idx = self.edges[root_edge_idx.index()].right;
             let updated_balance_factor = if updated_right_idx == EdgeIndex::end() {
@@ -262,7 +266,10 @@ where
             };
 
             if init_balance_factor == 0 {
-                if init_right_idx == EdgeIndex::end() || updated_balance_factor == 1 || updated_balance_factor == -1 {
+                if init_right_idx == EdgeIndex::end()
+                    || updated_balance_factor == 1
+                    || updated_balance_factor == -1
+                {
                     self.edges[root_edge_idx.index()].balance_factor -= 1;
                 }
             }
@@ -281,10 +288,7 @@ where
     }
 
     // AVL tree balance insert functions
-    fn rotate_from_right(
-        &mut self,
-        node_ptr: EdgeIndex<Ix>,
-    ) -> EdgeIndex<Ix> {
+    fn rotate_from_right(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
         let p: EdgeIndex<Ix> = self.edges[node_ptr.index()].right;
         self.edges[node_ptr.index()].right = self.edges[p.index()].left;
         self.edges[p.index()].left = node_ptr;
@@ -294,16 +298,15 @@ where
         // p is l' and p.left (node_ptr) is n'
         // b(n') = b(n) + 1 - min(b(l), 0)
         // b(l') = b(l) + 1 + max(b(n'), 0)
-        self.edges[node_ptr.index()].balance_factor += 1 - std::cmp::min(self.edges[p.index()].balance_factor, 0);
-        self.edges[p.index()].balance_factor += 1 + std::cmp::max(self.edges[node_ptr.index()].balance_factor, 0);
+        self.edges[node_ptr.index()].balance_factor +=
+            1 - std::cmp::min(self.edges[p.index()].balance_factor, 0);
+        self.edges[p.index()].balance_factor +=
+            1 + std::cmp::max(self.edges[node_ptr.index()].balance_factor, 0);
 
         return p;
     }
 
-    fn rotate_from_left(
-        &mut self,
-        node_ptr: EdgeIndex<Ix>,
-    ) -> EdgeIndex<Ix> {
+    fn rotate_from_left(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
         let p: EdgeIndex<Ix> = self.edges[node_ptr.index()].left;
         self.edges[node_ptr.index()].left = self.edges[p.index()].right;
         self.edges[p.index()].right = node_ptr;
@@ -313,25 +316,23 @@ where
         // p is l' and p.right (node_ptr) is n'
         // b(n') = b(n) - 1 - max(b(l), 0)
         // b(l') = b(l) - 1 + min(b(n'), 0)
-        self.edges[node_ptr.index()].balance_factor -= 1 + std::cmp::max(self.edges[p.index()].balance_factor, 0);
-        self.edges[p.index()].balance_factor -= 1 - std::cmp::min(self.edges[node_ptr.index()].balance_factor, 0);
+        self.edges[node_ptr.index()].balance_factor -=
+            1 + std::cmp::max(self.edges[p.index()].balance_factor, 0);
+        self.edges[p.index()].balance_factor -=
+            1 - std::cmp::min(self.edges[node_ptr.index()].balance_factor, 0);
 
         return p;
     }
 
-    fn double_rotate_from_right(
-        &mut self,
-        node_ptr: EdgeIndex<Ix>
-    ) -> EdgeIndex<Ix> {
-        self.edges[node_ptr.index()].right = self.rotate_from_left(self.edges[node_ptr.index()].right);
+    fn double_rotate_from_right(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
+        self.edges[node_ptr.index()].right =
+            self.rotate_from_left(self.edges[node_ptr.index()].right);
         return self.rotate_from_right(node_ptr);
     }
 
-    fn double_rotate_from_left(
-        &mut self,
-        node_ptr: EdgeIndex<Ix>
-    ) -> EdgeIndex<Ix> {
-        self.edges[node_ptr.index()].left = self.rotate_from_right(self.edges[node_ptr.index()].left);
+    fn double_rotate_from_left(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
+        self.edges[node_ptr.index()].left =
+            self.rotate_from_right(self.edges[node_ptr.index()].left);
         return self.rotate_from_left(node_ptr);
     }
 
@@ -645,7 +646,6 @@ mod tests {
         let e2 = graph.add_edge(q0, q1, 4).unwrap();
         let e3 = graph.add_edge(q0, q1, 0).unwrap();
         let e4 = graph.add_edge(q0, q1, 2).unwrap();
-        
 
         graph.edges[root.index()].balance_factor = 1;
         graph.edges[e1.index()].balance_factor = 0;
