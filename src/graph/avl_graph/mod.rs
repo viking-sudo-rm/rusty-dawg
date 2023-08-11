@@ -235,8 +235,11 @@ where
                 self.edges[updated_left_idx.index()].balance_factor
             };
 
-            if init_balance_factor == 0 && (init_left_idx == EdgeIndex::end()
-                    || updated_balance_factor == 1 || updated_balance_factor == -1) {
+            if init_balance_factor == 0
+                && (init_left_idx == EdgeIndex::end()
+                    || updated_balance_factor == 1
+                    || updated_balance_factor == -1)
+            {
                 self.edges[root_edge_idx.index()].balance_factor += 1;
             }
 
@@ -266,8 +269,11 @@ where
                 self.edges[updated_right_idx.index()].balance_factor
             };
 
-            if init_balance_factor == 0 && (init_right_idx == EdgeIndex::end()
-                    || updated_balance_factor == 1 || updated_balance_factor == -1) {
+            if init_balance_factor == 0
+                && (init_right_idx == EdgeIndex::end()
+                    || updated_balance_factor == 1
+                    || updated_balance_factor == -1)
+            {
                 self.edges[root_edge_idx.index()].balance_factor -= 1;
             }
 
