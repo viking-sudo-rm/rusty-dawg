@@ -1,13 +1,13 @@
+use dawg::Dawg;
+use serde::{Deserialize, Serialize};
+use stat_utils::*;
 use std::cmp::max;
+use std::cmp::Ord;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-use serde::{Deserialize, Serialize};
-use std::cmp::Ord;
-use dawg::Dawg;
-use stat_utils::*;
 use weight::Weight;
 
 use crate::weight::weight40::DefaultWeight;
@@ -49,10 +49,10 @@ where
 }
 
 // TODO: Generic case
-impl<E> Evaluator<'_, E> 
+impl<E> Evaluator<'_, E>
 where
     E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    {
+{
     pub fn new<'a>(
         lms: &'a mut Vec<Box<dyn LM<E>>>,
         test: &'a Vec<E>,

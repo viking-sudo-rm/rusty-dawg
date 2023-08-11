@@ -1,10 +1,10 @@
 // pub mod null_token_index;
 pub mod pretrain_tokenizer;
 pub mod token_index;
-use std::cmp::{Eq, Ord};
-use std::fmt::Debug;
 use serde::Deserialize;
 use serde::Serialize;
+use std::cmp::{Eq, Ord};
+use std::fmt::Debug;
 use std::marker::Copy;
 // pub use self::null_token_index::NullTokenIndex;
 pub use self::pretrain_tokenizer::PretrainedTokenizer;

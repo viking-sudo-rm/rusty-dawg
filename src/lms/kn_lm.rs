@@ -2,11 +2,11 @@ use std::convert::TryInto;
 
 use dawg::Dawg;
 use lms::LM;
-use weight::Weight;
+use serde::Deserialize;
+use serde::Serialize;
 use std::fmt::Debug;
 use std::marker::Copy;
-use serde::Serialize;
-use serde::Deserialize;
+use weight::Weight;
 
 // use petgraph::graph::NodeIndex;
 use graph::indexing::NodeIndex;
@@ -25,23 +25,16 @@ pub struct KNLM {
 impl<E> LM<E> for KNLM
 where
     E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
-    {
+{
     fn get_name(&self) -> &str {
         self.name.as_str()
     }
 
-    fn reset(&mut self, dawg: &Dawg<E, DefaultWeight>) 
-    {
+    fn reset(&mut self, dawg: &Dawg<E, DefaultWeight>) {
         self.state = dawg.get_initial();
     }
 
-    fn get_probability(
-        &self,
-        dawg: &Dawg<E, DefaultWeight>,
-        label: E,
-        good_turing: f64,
-    ) -> f64 
-    {
+    fn get_probability(&self, dawg: &Dawg<E, DefaultWeight>, label: E, good_turing: f64) -> f64 {
         let mut state = self.state;
         let _initial = dawg.get_initial();
         while dawg.get_weight(state).get_count() < self.min_count {
@@ -53,14 +46,12 @@ where
         self.get_probability_kn(dawg, state, label, good_turing)
     }
 
-    fn update(&mut self, dawg: &Dawg<E, DefaultWeight>, label: E)
-    {
+    fn update(&mut self, dawg: &Dawg<E, DefaultWeight>, label: E) {
         self.state = dawg.transition(self.state, label, true).unwrap();
     }
 }
 
-impl KNLM
-    {
+impl KNLM {
     pub fn new(name: String, kn_delta: f64, kn_max_n: i64, min_count: u64) -> Self {
         // The state set here is correct but also unused.
         Self {
@@ -77,9 +68,9 @@ impl KNLM
         dawg: &Dawg<E, DefaultWeight>,
         state: NodeIndex,
         label: E,
-    ) -> f64 
+    ) -> f64
     where
-    E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
+        E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
     {
         // FIXME: Handle <eos> here!!
         let denom = dawg.get_weight(state).get_count();
@@ -107,9 +98,9 @@ impl KNLM
         mut state: NodeIndex,
         label: E,
         good_turing: f64,
-    ) -> f64 
+    ) -> f64
     where
-    E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+        E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     {
         if self.kn_max_n >= 0 {
             let n: u64 = self.kn_max_n.try_into().unwrap();

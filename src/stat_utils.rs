@@ -38,7 +38,7 @@ where
     sum_prob
 }
 
-pub fn good_turing_estimate<E>(dawg: &Dawg<E, DefaultWeight>, n_tokens: usize) -> f64 
+pub fn good_turing_estimate<E>(dawg: &Dawg<E, DefaultWeight>, n_tokens: usize) -> f64
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
 {

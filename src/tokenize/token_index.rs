@@ -1,12 +1,12 @@
+use crate::tokenize::Tokenize;
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::fmt::Debug;
 use std::io::Write;
 use std::marker::Copy;
-use serde::Serialize;
-use serde::Deserialize;
-use std::convert::TryInto;
-use std::convert::TryFrom;
-use crate::tokenize::Tokenize;
 
 pub struct TokenIndex<E> {
     // TODO: Could optimize this to only store each string once.
@@ -17,7 +17,7 @@ pub struct TokenIndex<E> {
     unk: E,
 }
 
-impl<E> TokenIndex<E> 
+impl<E> TokenIndex<E>
 where
     E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,
     usize: TryFrom<E>,
@@ -55,11 +55,16 @@ where
         match self.token_to_index.get(token) {
             Some(ptr) => *ptr,
             None => {
-                self.token_to_index.insert(token_string, (self.count).try_into().unwrap_or_else(|_| panic!("Err!!!")));
+                self.token_to_index.insert(
+                    token_string,
+                    (self.count).try_into().unwrap_or_else(|_| panic!("Err!!!")),
+                );
                 // TODO: Could optimize this to only store each string once.
                 self.index_to_token.push(token.to_string());
                 self.count += 1;
-                (self.count - 1).try_into().unwrap_or_else(|_| panic!("Err!!!"))
+                (self.count - 1)
+                    .try_into()
+                    .unwrap_or_else(|_| panic!("Err!!!"))
             }
         }
     }
@@ -70,20 +75,22 @@ where
             None => self.unk as E,  // Convert usize to u16
         }
     }
-    
 }
 
-impl<E> Tokenize<E> for TokenIndex<E> 
+impl<E> Tokenize<E> for TokenIndex<E>
 where
     E: Eq + serde::Serialize + Copy + Debug + TryInto<usize> + TryFrom<usize>,
     usize: TryFrom<E>,
-    {
+{
     fn build(&mut self, text: &str) {
         let tokens: Vec<_> = text.split_whitespace().map(|x| self.add(x)).collect();
     }
 
     fn tokenize(&mut self, text: &str) -> Vec<E> {
-        let tokenized_text: Vec<E> = text.split_whitespace().map(|x| self.index(x).into()).collect();
+        let tokenized_text: Vec<E> = text
+            .split_whitespace()
+            .map(|x| self.index(x).into())
+            .collect();
         tokenized_text
     }
 

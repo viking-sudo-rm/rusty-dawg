@@ -1,15 +1,15 @@
+use crate::tokenize::Tokenize;
 use anyhow::{anyhow, Result};
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
-use tokenizers::tokenizer::Tokenizer;
-use unicode_segmentation::UnicodeSegmentation;
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::fmt::Debug;
 use std::io::Write;
 use std::marker::Copy;
-use serde::Serialize;
-use serde::Deserialize;
-use std::convert::TryFrom;
-use std::convert::TryInto;
-use crate::tokenize::Tokenize;
+use tokenizers::tokenizer::Tokenizer;
+use unicode_segmentation::UnicodeSegmentation;
 
 // pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
 //     s.split_word_bounds().filter(|w| {
@@ -37,7 +37,7 @@ impl PretrainedTokenizer {
     }
 }
 
-impl<E> Tokenize<E> for PretrainedTokenizer 
+impl<E> Tokenize<E> for PretrainedTokenizer
 where
     E: Eq + serde::Serialize + Copy + Debug + TryFrom<u32>,
 {
@@ -55,9 +55,12 @@ where
         // tokenized_text
         // self.tokenizer.encode(text, false).unwrap_or_else(|_| panic!("Err!!!"))
         let output = self.tokenizer.encode(text, true);
-        let bindings = output.expect("REASON");//.get_ids();
+        let bindings = output.expect("REASON"); //.get_ids();
         let ids = bindings.get_ids();
-        let converted_values: Vec<E> = ids.iter().map(|&num| num.try_into().unwrap_or_else(|_| panic!("Err!!!"))).collect();
+        let converted_values: Vec<E> = ids
+            .iter()
+            .map(|&num| num.try_into().unwrap_or_else(|_| panic!("Err!!!")))
+            .collect();
         converted_values
     }
 
@@ -74,10 +77,10 @@ mod tests {
     #[test]
     fn test_gpt2_tokenizer() {
         let mut token_index: Box<dyn Tokenize<u16>> = Box::new(PretrainedTokenizer::new("gpt2"));
-        
+
         println!("vocab size: {:?}", token_index.get_count());
         println!("{:?}", token_index.tokenize("hello"));
-        
+
         assert_eq!(token_index.get_count(), 50257);
 
         assert_eq!(token_index.tokenize("hello world"), [31373, 995]);

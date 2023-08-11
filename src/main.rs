@@ -47,8 +47,8 @@ use rusty_dawg::graph::indexing::Index48;
 use rusty_dawg::graph::indexing::IndexType;
 use stat_utils::*;
 // use tokenize::{NullTokenIndex, TokenIndex, Tokenize};
-use weight::weight40::DefaultWeight;
 use tokenize::{TokenIndex, Tokenize};
+use weight::weight40::DefaultWeight;
 use weight::{Weight40, WeightMinimal};
 
 // Node and edge weight types.

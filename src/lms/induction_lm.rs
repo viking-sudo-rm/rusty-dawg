@@ -1,10 +1,10 @@
 use dawg::Dawg;
 use graph::indexing::NodeIndex;
 use lms::LM;
-use std::cmp::{Eq, Ord};
-use std::fmt::Debug;
 use serde::Deserialize;
 use serde::Serialize;
+use std::cmp::{Eq, Ord};
+use std::fmt::Debug;
 use std::marker::Copy;
 use weight::weight40::DefaultWeight;
 use weight::Weight;
@@ -12,7 +12,7 @@ use weight::Weight;
 pub struct InductionLM<E>
 where
     E: Eq + serde::Serialize + Copy + Debug,
-    {
+{
     pub name: String,
     train_lm: Box<dyn LM<E>>,
     dawg: Dawg<E, DefaultWeight>,
@@ -24,7 +24,7 @@ where
 impl<E> LM<E> for InductionLM<E>
 where
     E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
-    {
+{
     fn get_name(&self) -> &str {
         self.name.as_str()
     }
@@ -36,12 +36,7 @@ where
         self.train_lm.reset(dawg);
     }
 
-    fn get_probability(
-        &self,
-        dawg: &Dawg<E, DefaultWeight>,
-        label: E,
-        good_turing: f64,
-    ) -> f64 {
+    fn get_probability(&self, dawg: &Dawg<E, DefaultWeight>, label: E, good_turing: f64) -> f64 {
         self.get_probability_interp(dawg, self.state, label, good_turing)
     }
 
@@ -56,7 +51,7 @@ where
 impl<E> InductionLM<E>
 where
     E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
-    {
+{
     // Don't use smoothing, just interpolate!!!s
 
     pub fn new(name: String, train_lm: Box<dyn LM<E>>, delta: f64) -> Self {
