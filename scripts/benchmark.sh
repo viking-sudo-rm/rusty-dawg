@@ -19,7 +19,9 @@ time ./target/release/rusty-dawg \
     --save-path "" \
     --results-path "" \
     --n-eval 0 \
-    --tokenize
+    --nodes-ratio 1.25 \
+    --edges-ratio 2.20 \
+    --tokenizer "whitespace"
 
 # size=$(ls -lh /tmp/$1.dawg | awk '{print  $5}')
 # rm /tmp/$1.dawg
