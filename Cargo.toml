@@ -22,7 +22,7 @@ test-temp-file = "0.1.2"
 type-layout = "0.2.0"
 ux = "0.1.5"
 anyhow = "1.0"
-tokenizers = "0.13.3"
+tokenizers = { version = "0.13.3", default_features = false, features = ["progressbar", "http", "onig"] }
 unicode-segmentation = "1.10"
 openssl = { version = "0.10", features = ["vendored"] }
 num = "0.4.1"
