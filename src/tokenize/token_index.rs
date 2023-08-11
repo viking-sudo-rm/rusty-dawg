@@ -90,7 +90,7 @@ where
     fn tokenize(&mut self, text: &str) -> Vec<E> {
         let tokenized_text: Vec<E> = text
             .split_whitespace()
-            .map(|x| self.index(x).into())
+            .map(|x| self.index(x))
             .collect();
         tokenized_text
     }
