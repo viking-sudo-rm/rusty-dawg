@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
-use std::collections::LinkedList;
+
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
@@ -235,13 +235,9 @@ where
                 self.edges[updated_left_idx.index()].balance_factor
             };
 
-            if init_balance_factor == 0 {
-                if init_left_idx == EdgeIndex::end()
-                    || updated_balance_factor == 1
-                    || updated_balance_factor == -1
-                {
-                    self.edges[root_edge_idx.index()].balance_factor += 1;
-                }
+            if init_balance_factor == 0 && (init_left_idx == EdgeIndex::end()
+                    || updated_balance_factor == 1 || updated_balance_factor == -1) {
+                self.edges[root_edge_idx.index()].balance_factor += 1;
             }
 
             let current_balance_factor: i8 = self.edges[root_edge_idx.index()].balance_factor;
@@ -270,13 +266,9 @@ where
                 self.edges[updated_right_idx.index()].balance_factor
             };
 
-            if init_balance_factor == 0 {
-                if init_right_idx == EdgeIndex::end()
-                    || updated_balance_factor == 1
-                    || updated_balance_factor == -1
-                {
-                    self.edges[root_edge_idx.index()].balance_factor -= 1;
-                }
+            if init_balance_factor == 0 && (init_right_idx == EdgeIndex::end()
+                    || updated_balance_factor == 1 || updated_balance_factor == -1) {
+                self.edges[root_edge_idx.index()].balance_factor -= 1;
             }
 
             let current_balance_factor: i8 = self.edges[root_edge_idx.index()].balance_factor;
@@ -289,7 +281,7 @@ where
             }
         }
 
-        return root_edge_idx;
+        root_edge_idx
     }
 
     // AVL tree balance insert functions
@@ -308,7 +300,7 @@ where
         self.edges[p.index()].balance_factor +=
             1 + std::cmp::max(self.edges[node_ptr.index()].balance_factor, 0);
 
-        return p;
+        p
     }
 
     fn rotate_from_left(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
@@ -326,19 +318,19 @@ where
         self.edges[p.index()].balance_factor -=
             1 - std::cmp::min(self.edges[node_ptr.index()].balance_factor, 0);
 
-        return p;
+        p
     }
 
     fn double_rotate_from_right(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
         self.edges[node_ptr.index()].right =
             self.rotate_from_left(self.edges[node_ptr.index()].right);
-        return self.rotate_from_right(node_ptr);
+        self.rotate_from_right(node_ptr)
     }
 
     fn double_rotate_from_left(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
         self.edges[node_ptr.index()].left =
             self.rotate_from_right(self.edges[node_ptr.index()].left);
-        return self.rotate_from_left(node_ptr);
+        self.rotate_from_left(node_ptr)
     }
 
     pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
@@ -432,10 +424,7 @@ where
     type Item = NodeIndex<Ix>;
 
     fn next(&mut self) -> Option<NodeIndex<Ix>> {
-        match self.edges.next() {
-            None => None,
-            Some(edge) => Some(edge.target()),
-        }
+        self.edges.next().map(|edge| edge.target())
     }
 }
 

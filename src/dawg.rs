@@ -283,7 +283,7 @@ where
 
     pub fn balance_ratio(&self, n_states: usize) -> f64 {
         let mut max_ratio = 1.;
-        for state in 0..n_states {
+        for _state in 0..n_states {
             let ratio = self.dawg.balance_ratio(self.get_initial());
             if ratio > max_ratio {
                 max_ratio = ratio;
