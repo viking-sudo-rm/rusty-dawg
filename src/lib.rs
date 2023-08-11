@@ -1,5 +1,7 @@
+extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
+extern crate fslock;
 extern crate kdam;
 extern crate memory_stats;
 extern crate petgraph;
@@ -9,6 +11,7 @@ extern crate substring;
 extern crate tempfile;
 
 pub mod dawg;
+pub mod disk_vec;
 pub mod evaluator;
 pub mod graph;
 pub mod lms;
