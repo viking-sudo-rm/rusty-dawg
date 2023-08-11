@@ -3,3 +3,4 @@ target/
 data/
 data.zip
 **/__pycache__/**
+scratch*
