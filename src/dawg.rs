@@ -278,6 +278,10 @@ where
         self.dawg.edge_count()
     }
 
+    pub fn balance_ratio(&self) -> f64 {
+        self.dawg.balance_ratio(self.get_initial())
+    }
+
     pub fn get_graph(&self) -> &AvlGraph<W, E> {
         &self.dawg
     }

@@ -152,6 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Completed!");
     println!("  Node count: {}", dawg.node_count());
     println!("  Edge count: {}", dawg.edge_count());
+    println!("  Balance of q0: {}", dawg.balance_ratio());
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");

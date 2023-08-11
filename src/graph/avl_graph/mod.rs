@@ -11,6 +11,7 @@ use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
+use std::collections::LinkedList;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
@@ -129,6 +130,10 @@ where
             self.edge_tree_height_helper(self.edges[root.index()].left),
             self.edge_tree_height_helper(self.edges[root.index()].right),
         ) + 1
+    }
+
+    pub fn balance_ratio(&self, node: NodeIndex<Ix>) -> f64 {
+        (self.edge_tree_height(node) as f64) / (self.n_edges(node) as f64).log2().ceil()
     }
 
     // First result is either where weight was found or end; second is node above that (where to insert).
@@ -416,8 +421,7 @@ where
 pub struct Neighbors<'a, N, E, Ix>
 where Ix: IndexType,
 {
-    graph: &'a AvlGraph<N, E, Ix>,
-    queue: Vec<EdgeIndex<Ix>>,
+    edges: Edges<'a, N, E, Ix>,
 }
 
 impl<'a, N, E, Ix> Iterator for Neighbors<'a, N, E, Ix>
@@ -427,25 +431,9 @@ where
     type Item = NodeIndex<Ix>;
 
     fn next(&mut self) -> Option<NodeIndex<Ix>> {
-        match self.queue.pop() {
+        match self.edges.next() {
             None => None,
-            Some(idx) => {
-                if idx == EdgeIndex::end() {
-                    // Only hit for an empty tree.
-                    return None;
-                }
-
-                let left = self.graph.edges[idx.index()].left;
-                if left != EdgeIndex::end() {
-                    self.queue.push(left);
-                }
-                let right = self.graph.edges[idx.index()].right;
-                if right != EdgeIndex::end() {
-                    self.queue.push(right);
-                }
-                let target = self.graph.edges[idx.index()].target;
-                Some(target)
-            },
+            Some(edge) => Some(edge.target()),
         }
     }
 }
@@ -455,9 +443,8 @@ where
     Ix: IndexType,
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
-        let root = graph.nodes[node.index()].first_edge;
-        let queue = vec![root];
-        Self {graph, queue}
+        let edges = Edges::new(graph, node);
+        Self {edges}
     }
 }
 
@@ -465,7 +452,7 @@ pub struct Edges<'a, N, E, Ix>
 where Ix: IndexType,
 {
     graph: &'a AvlGraph<N, E, Ix>,
-    queue: Vec<EdgeIndex<Ix>>,
+    stack: Vec<EdgeIndex<Ix>>,
 }
 
 impl<'a, N, E, Ix> Iterator for Edges<'a, N, E, Ix>
@@ -474,8 +461,12 @@ where
 {
     type Item = &'a Edge<E, Ix>;
 
+    // Note that this was hurting performance a lot before!
+    // Be careful using a vector as a stack.
+    // https://stackoverflow.com/questions/40848918/are-there-queue-and-stack-collections-in-rust
     fn next(&mut self) -> Option<&'a Edge<E, Ix>> {
-        match self.queue.pop() {
+        // Is this pop_back()????
+        match self.stack.pop() {
             None => None,
             Some(idx) => {
                 if idx == EdgeIndex::end() {
@@ -485,11 +476,11 @@ where
 
                 let left = self.graph.edges[idx.index()].left;
                 if left != EdgeIndex::end() {
-                    self.queue.push(left);
+                    self.stack.push(left);
                 }
                 let right = self.graph.edges[idx.index()].right;
                 if right != EdgeIndex::end() {
-                    self.queue.push(right);
+                    self.stack.push(right);
                 }
                 Some(&self.graph.edges[idx.index()])
             },
@@ -503,8 +494,10 @@ where
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
         let root = graph.nodes[node.index()].first_edge;
-        let queue = vec![root];
-        Self {graph, queue}
+        let stack = vec![root];
+        // let mut stack = LinkedList::new();
+        // stack.push_back(root);
+        Self {graph, stack}
     }
 }
 
@@ -822,29 +815,19 @@ mod tests {
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
     }
 
-    fn height(graph: &AvlGraph<u8, u16>, e: EdgeIndex) -> usize {
-        if e == EdgeIndex::end() {
-            return 0;
+    #[test]
+    fn test_edges_iterator() {
+        let mut graph: AvlGraph<u8, u32> = AvlGraph::new();
+        let q0 = graph.add_node(0);
+        let q1 = graph.add_node(1);
+        for idx in 0..7 {
+            graph.add_balanced_edge(q0, q1, idx);
         }
-        height(graph, graph.edges[e.index()].left) + height(graph, graph.edges[e.index()].right) + 1
+        let edges: Vec<_> = graph.edges(q0).map(|x| (*x.weight(), x.target().index())).collect();
+        assert_eq!(edges, vec![(3, 1), (5, 1), (6, 1), (4, 1), (1, 1), (2, 1), (0, 1)]);
+
+        assert_eq!(graph.balance_ratio(q0), 1.0);
+        // FIXME: But stilll take the time tho
     }
 
-    // #[test]
-    // fn test_update_balance_factors() {
-    //     let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-    //     let q0 = graph.add_node(0);
-    //     for idx in 1..8 {
-    //         println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
-    //         let qi = graph.add_node(idx);
-    //         graph.add_edge(q0, qi, idx.into());
-    //     }
-
-    //     println!("=> height: {}", height(&graph, graph.nodes[0].first_edge));
-    //     println!(
-    //         "bf: {}",
-    //         graph.edges[graph.nodes[0].first_edge.index()].balance_factor
-    //     );
-    //     // assert_eq!(0, 1);
-    //     // FIXME
-    // }
 }

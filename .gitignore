@@ -2,4 +2,6 @@
 target/
 data/
 data.zip
+
 flame.svg
+cargo-flamegraph.stacks
