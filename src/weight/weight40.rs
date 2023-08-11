@@ -6,7 +6,7 @@ use graph::indexing::{DefaultIx, IndexType, NodeIndex};
 
 pub type DefaultWeight = WeightMinimal;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct WeightMinimal {
     length: DefaultIx,
     failure: DefaultIx,

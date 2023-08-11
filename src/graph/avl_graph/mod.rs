@@ -6,40 +6,46 @@
 
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
+use disk_vec::DiskVec;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
 
-#[derive(Deserialize, Serialize, Default)]
-pub struct AvlGraph<N, E, Ix = DefaultIx> {
-    #[serde(bound(
-        serialize = "N: Serialize, E: Serialize, Ix: Serialize",
-        deserialize = "N: Deserialize<'de>, E: Deserialize<'de>, Ix: Deserialize<'de>",
-    ))]
-    nodes: Vec<Node<N, Ix>>,
-    edges: Vec<Edge<E, Ix>>,
+//#[derive(Default)]
+pub struct AvlGraph<N, E, Ix = DefaultIx>
+    where N: Serialize + DeserializeOwned + Default,
+          Ix: Serialize + DeserializeOwned + Default,
+          E: Serialize + DeserializeOwned + Default {
+    // #[serde(bound(
+    //     serialize = "N: Serialize, E: Serialize, Ix: Serialize",
+    //     deserialize = "N: DeserializeOwned, E: DeserializeOwned, Ix: DeserializeOwned",
+    // ))]
+    nodes: DiskFVec<Node<N, Ix>>,
+    edges: DiskVec<Edge<E, Ix>>,
 }
 
 impl<N, E, Ix: IndexType> AvlGraph<N, E, Ix>
-where
-    E: Eq + Ord + Copy + Debug,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default + Eq + Ord + Copy + Debug,
+        Ix: Serialize + DeserializeOwned + Default + Debug,
 {
     pub fn new() -> Self {
-        let nodes = Vec::new();
-        let edges = Vec::new();
+        let nodes = DiskVec::new("data/nodes.bin").unwrap();
+        let edges = DiskVec::new("data/edges.bin").unwrap();
         AvlGraph { nodes, edges }
     }
 
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
-        let nodes = Vec::with_capacity(n_nodes);
-        let edges = Vec::with_capacity(n_edges);
+        let nodes = DiskVec::new("data/nodes.bin").unwrap();
+        let edges = DiskVec::new("data/edges.bin").unwrap();
         AvlGraph { nodes, edges }
     }
 
@@ -52,20 +58,27 @@ where
     }
 
     pub fn node_weight(&self, a: NodeIndex<Ix>) -> Option<&N> {
-        self.nodes.get(a.index()).map(|n| &n.weight)
+        self.nodes.get(a.index()).map(|n| &n.weight).ok()
     }
 
     pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
-        if let Some(ptr) = self.nodes.get_mut(a.index()) {
-            ptr.weight = value;
+        // if let Some(ptr) = self.nodes.get_mut(a.index()) {
+        //     ptr.weight = value;
+        // }
+        if let Some(node) = self.nodes.get(a.index()).ok() {
+            let new_node = Node {
+                weight: value,
+                first_edge: node.first_edge,
+            };
+            self.nodes.set(a.index(), new_node);
         }
     }
 
     pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
-    where
-        N: Clone,
-        E: Clone,
-        Ix: Clone,
+        where
+            N: Clone,
+            E: Clone,
+            Ix: Clone,
     {
         let clone = Node::new(self.nodes[a.index()].weight.clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
@@ -115,7 +128,7 @@ where
     }
 
     pub fn edge_weight(&self, edge: EdgeIndex<Ix>) -> Option<&E> {
-        self.edges.get(edge.index()).map(|e| &e.weight)
+        self.edges.get(edge.index()).map(|e| &e.weight).ok()
     }
 
     pub fn edge_tree_height(&self, node: NodeIndex<Ix>) -> usize {
@@ -237,8 +250,8 @@ where
 
             if init_balance_factor == 0
                 && (init_left_idx == EdgeIndex::end()
-                    || updated_balance_factor == 1
-                    || updated_balance_factor == -1)
+                || updated_balance_factor == 1
+                || updated_balance_factor == -1)
             {
                 self.edges[root_edge_idx.index()].balance_factor += 1;
             }
@@ -271,8 +284,8 @@ where
 
             if init_balance_factor == 0
                 && (init_right_idx == EdgeIndex::end()
-                    || updated_balance_factor == 1
-                    || updated_balance_factor == -1)
+                || updated_balance_factor == 1
+                || updated_balance_factor == -1)
             {
                 self.edges[root_edge_idx.index()].balance_factor -= 1;
             }
@@ -398,8 +411,10 @@ where
 }
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
-where
-    Ix: IndexType,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     type Output = N;
     fn index(&self, index: NodeIndex<Ix>) -> &N {
@@ -408,8 +423,10 @@ where
 }
 
 impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
-where
-    Ix: IndexType,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
         &mut self.nodes[index.index()].weight
@@ -417,15 +434,19 @@ where
 }
 
 pub struct Neighbors<'a, N, E, Ix>
-where
-    Ix: IndexType,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     edges: Edges<'a, N, E, Ix>,
 }
 
 impl<'a, N, E, Ix> Iterator for Neighbors<'a, N, E, Ix>
-where
-    Ix: IndexType,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     type Item = NodeIndex<Ix>;
 
@@ -435,8 +456,10 @@ where
 }
 
 impl<'a, N, E, Ix> Neighbors<'a, N, E, Ix>
-where
-    Ix: IndexType,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
         let edges = Edges::new(graph, node);
@@ -445,16 +468,20 @@ where
 }
 
 pub struct Edges<'a, N, E, Ix>
-where
-    Ix: IndexType,
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     graph: &'a AvlGraph<N, E, Ix>,
     stack: Vec<EdgeIndex<Ix>>,
 }
 
 impl<'a, N, E, Ix> Iterator for Edges<'a, N, E, Ix>
-where
-    Ix: IndexType,
+    where
+    N: Serialize + DeserializeOwned + Default,
+    E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     type Item = &'a Edge<E, Ix>;
 
@@ -486,8 +513,10 @@ where
 }
 
 impl<'a, N, E, Ix> Edges<'a, N, E, Ix>
-where
-    Ix: IndexType,
+    where
+    N: Serialize + DeserializeOwned + Default,
+    E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default + IndexType,
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix>, node: NodeIndex<Ix>) -> Self {
         let root = graph.nodes[node.index()].first_edge;
@@ -498,20 +527,20 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Node<N, Ix = DefaultIx> {
     #[serde(bound(
-        serialize = "N: Serialize, Ix: Serialize",
-        deserialize = "N: Deserialize<'de>, Ix: Deserialize<'de>",
+    serialize = "N: Serialize, Ix: Serialize",
+    deserialize = "N: Deserialize<'de>, Ix: Deserialize<'de>",
     ))]
     pub weight: N,
     pub first_edge: EdgeIndex<Ix>,
 }
 
 impl<N, Ix> Clone for Node<N, Ix>
-where
-    N: Clone,
-    Ix: Clone,
+    where
+        N: Clone,
+        Ix: Clone,
 {
     fn clone(&self) -> Self {
         Node {
@@ -530,11 +559,11 @@ impl<N, Ix: IndexType> Node<N, Ix> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Edge<E, Ix = DefaultIx> {
     #[serde(bound(
-        serialize = "E: Serialize, Ix: Serialize",
-        deserialize = "E: Deserialize<'de>, Ix: Deserialize<'de>",
+    serialize = "E: Serialize, Ix: Serialize",
+    deserialize = "E: Deserialize<'de>, Ix: Deserialize<'de>",
     ))]
     pub weight: E,
     target: NodeIndex<Ix>,
@@ -544,9 +573,9 @@ pub struct Edge<E, Ix = DefaultIx> {
 }
 
 impl<E, Ix> Clone for Edge<E, Ix>
-where
-    E: Clone,
-    Ix: Clone,
+    where
+        E: Clone,
+        Ix: Clone,
 {
     fn clone(&self) -> Self {
         Edge {

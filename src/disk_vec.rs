@@ -3,6 +3,7 @@ use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::marker;
+use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread;
@@ -11,7 +12,7 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, bail, Result};
 use bincode::Options;
 use fslock::LockFile;
-use serde::de::DeserializeOwned;
+use serde::de::{Deserialize, DeserializeOwned};
 use serde::Serialize;
 use tempfile::NamedTempFile;
 
@@ -253,6 +254,16 @@ where
             .with_fixint_encoding()
             .serialized_size(&tmp_item)?;
         Ok(size as usize)
+    }
+}
+
+impl<T> Index<usize> for DiskVec<T>
+where T: Serialize + DeserializeOwned + Default
+{
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.get(index).unwrap()
     }
 }
 
