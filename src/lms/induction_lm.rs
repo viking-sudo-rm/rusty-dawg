@@ -2,7 +2,7 @@ use dawg::Dawg;
 use graph::indexing::NodeIndex;
 use lms::LM;
 use serde::Deserialize;
-use serde::Serialize;
+
 use std::cmp::{Eq, Ord};
 use std::fmt::Debug;
 use std::marker::Copy;

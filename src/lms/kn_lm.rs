@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use dawg::Dawg;
 use lms::LM;
 use serde::Deserialize;
-use serde::Serialize;
+
 use std::fmt::Debug;
 use std::marker::Copy;
 use weight::Weight;

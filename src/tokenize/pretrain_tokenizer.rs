@@ -1,15 +1,15 @@
 use crate::tokenize::Tokenize;
-use anyhow::{anyhow, Result};
-use serde::Deserialize;
-use serde::Serialize;
-use std::collections::HashMap;
+use anyhow::{anyhow};
+
+
+
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
-use std::io::Write;
+
 use std::marker::Copy;
 use tokenizers::tokenizer::Tokenizer;
-use unicode_segmentation::UnicodeSegmentation;
+
 
 // pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
 //     s.split_word_bounds().filter(|w| {
@@ -41,7 +41,7 @@ impl<E> Tokenize<E> for PretrainedTokenizer
 where
     E: Eq + serde::Serialize + Copy + Debug + TryFrom<u32>,
 {
-    fn build(&mut self, text: &str) {
+    fn build(&mut self, _text: &str) {
         // do nothing (pretrained tokenizer is already built)
     }
 
@@ -72,7 +72,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::tokenize::{PretrainedTokenizer, Tokenize};
-    use std::convert::TryFrom;
+    
 
     #[test]
     fn test_gpt2_tokenizer() {

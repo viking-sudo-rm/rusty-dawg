@@ -1,11 +1,11 @@
 use crate::tokenize::Tokenize;
-use serde::Deserialize;
-use serde::Serialize;
+
+
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
-use std::io::Write;
+
 use std::marker::Copy;
 
 pub struct TokenIndex<E> {
@@ -83,7 +83,7 @@ where
     usize: TryFrom<E>,
 {
     fn build(&mut self, text: &str) {
-        let tokens: Vec<_> = text.split_whitespace().map(|x| self.add(x)).collect();
+        let _tokens: Vec<_> = text.split_whitespace().map(|x| self.add(x)).collect();
     }
 
     fn tokenize(&mut self, text: &str) -> Vec<E> {
