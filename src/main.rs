@@ -157,8 +157,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     println!("Completed!");
-    println!("  Node ratio: {:.2} (total={})", (dawg.node_count() as f64) / (train.len() as f64), dawg.node_count());
-    println!("  Edge ratio: {:.2} (total={})", (dawg.edge_count() as f64) / (train.len() as f64), dawg.edge_count());
+    println!(
+        "  Node ratio: {:.2} (total={})",
+        (dawg.node_count() as f64) / (train.len() as f64),
+        dawg.node_count()
+    );
+    println!(
+        "  Edge ratio: {:.2} (total={})",
+        (dawg.edge_count() as f64) / (train.len() as f64),
+        dawg.edge_count()
+    );
     println!("  Balance ratio: {}", dawg.balance_ratio(1));
 
     if !args.save_path.is_empty() {
