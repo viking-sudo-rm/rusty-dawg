@@ -29,7 +29,7 @@ where
 impl<E, W> Default for Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    W: Weight + Serialize + for<'a> Deserialize<'a>,
 {
     fn default() -> Self {
         Self::new()
@@ -383,8 +383,6 @@ mod tests {
         println!("Start build!");
         let chars: Vec<char> = corpus.chars().collect();
         dawg.build(&chars);
-        println!("Done");
-
         // FIXME
         // dawg.recompute_lengths();
         // assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);

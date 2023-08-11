@@ -28,3 +28,24 @@ Finally, install the generated wheel via pip in your Python installation:
 ```
 pip install target/wheels/*.whl
 ```
+
+## Usage example
+
+```python
+from transformers import GPT2Tokenizer
+from rusty_dawg import Dawg, PyDawg
+
+dawg_path = [path-to-dawg]
+dawg = Dawg.load(dawg_path)
+
+# Make sure the tokenizer matches the one used to construct the DAWG.
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+py_dawg = PyDawg(dawg_path, tokenizer)
+
+# Substring found in the Wikitext 2 train data.
+query = "As with previous Valkyira Chronicles games , Valkyria Chronicles III"
+
+# Return a list of all substrings in the DAWG that match the query.
+matching_substrings = py_dawg.get_matching_substrings(query)
+```
