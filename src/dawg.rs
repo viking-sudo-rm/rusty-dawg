@@ -71,7 +71,7 @@ where
         let mut opt_next_state: Option<NodeIndex> = None;
         loop {
             let q = opt_state.unwrap();
-            self.dawg.add_edge(q, new, token);
+            self.dawg.add_balanced_edge(q, new, token);
             opt_state = self.dawg[q].get_failure();
             match opt_state {
                 Some(state) => {
@@ -96,25 +96,31 @@ where
                     self.dawg[new].set_failure(Some(next_state));
                 } else {
                     // Split a state and fail to the clone of it.
-                    let clone = self.dawg.clone_node(next_state);
-                    // ==========================================
-                    // let clone = self
-                    //     .dawg
-                    //     .add_node(W::split(&self.dawg[state], &self.dawg[next_state]));
-                    // let edges: Vec<_> = self
-                    //     .dawg
-                    //     .edges(next_state)
-                    //     .map(|edge| (edge.target(), *edge.weight()))
-                    //     .collect();
-                    // for (target, weight) in edges {
-                    //     self.dawg.add_edge(clone, target, weight);
-                    // }
-                    // ==========================================
 
-                    // FIXME: For some reason, calling clone has infinite loop/hangs. Theoretically, it should be better??
-                    // let weight = Weight40::split(&self.dawg[state], &self.dawg[next_state]);
+                    // ==========================================
+                    // Original cloning code (pre-Hackathon)
+                    // ==========================================
+                    let clone = self
+                        .dawg
+                        .add_node(W::split(&self.dawg[state], &self.dawg[next_state]));
+                    let edges: Vec<_> = self
+                        .dawg
+                        .edges(next_state)
+                        .map(|edge| (edge.target(), *edge.weight()))
+                        .collect();
+                    for (target, weight) in edges {
+                        self.dawg.add_balanced_edge(clone, target, weight);
+                    }
+                    // ==========================================
+                    // Aug 10: First changed version to use clone
+                    // let clone = self.dawg.clone_node(next_state);
+                    // ==========================================
+                    // Cloning logic commented out from a while ago
+                    // ==========================================
+                    // let weight = W::split(&self.dawg[state], &self.dawg[next_state]);
                     // let clone = self.dawg.clone_node(state);
                     // self.dawg.set_node_weight(clone, weight);
+                    // ==========================================
                     self.dawg[new].set_failure(Some(clone));
                     self.dawg[next_state].set_failure(Some(clone));
 
@@ -124,7 +130,7 @@ where
                         if next_state_ == next_state {
                             self.dawg.reroute_edge(state, clone, token);
                         } else {
-                            self.dawg.add_edge(state, clone, token);
+                            self.dawg.add_balanced_edge(state, clone, token);
                         }
 
                         match self.dawg[state].get_failure() {
@@ -192,16 +198,15 @@ where
     }
 
     pub fn transition(&self, state: NodeIndex, token: E, use_failures: bool) -> Option<NodeIndex> {
-        for edge in self.dawg.edges(state) {
-            if token == *edge.weight() {
-                return Some(edge.target());
-            }
-        }
-        // let next_state = self.dawg.edge_target(state, token);
-        // if next_state.is_some() {
-        //     println!("{}, {:?} -> {}", state.index(), token, next_state.unwrap().index());
-        //     return next_state;
+        // for edge in self.dawg.edges(state) {
+        //     if token == *edge.weight() {
+        //         return Some(edge.target());
+        //     }
         // }
+        let next_state = self.dawg.edge_target(state, token);
+        if next_state.is_some() {
+            return next_state;
+        }
 
         if !use_failures {
             return None;
@@ -278,8 +283,15 @@ where
         self.dawg.edge_count()
     }
 
-    pub fn balance_ratio(&self) -> f64 {
-        self.dawg.balance_ratio(self.get_initial())
+    pub fn balance_ratio(&self, n_states: usize) -> f64 {
+        let mut max_ratio = 1.;
+        for state in 0..n_states {
+            let ratio = self.dawg.balance_ratio(self.get_initial());
+            if ratio > max_ratio {
+                max_ratio = ratio;
+            }
+        }
+        max_ratio
     }
 
     pub fn get_graph(&self) -> &AvlGraph<W, E> {
