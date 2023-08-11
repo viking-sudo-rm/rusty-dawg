@@ -32,6 +32,7 @@ COLORS = [
 
 # Helper functions.
 
+
 def find_token_indices(doc: spacy.tokens.doc.Doc, substring: str):
     """
     The goal here is to align the substrings we get from the GPT-2 tokenizer against the
@@ -119,10 +120,7 @@ def run_query(query, min_tokens):
     for entry in matches:
         entry["length"] = len(entry["tokens"])
     df = pd.DataFrame(
-        [
-            {k: entry[k] for k in ["length", "count", "text"]}
-            for entry in matches
-        ]
+        [{k: entry[k] for k in ["length", "count", "text"]} for entry in matches]
     )
 
     # Whitespace is removed from the `text` of the `matching substrings` when the
@@ -138,6 +136,24 @@ def run_query(query, min_tokens):
 
 # Build and run the app.
 
+wikitext_example = """Senjō no Valkyria 3 : Unrecorded Chronicles ( Japanese : 戦場の
+ヴァルキュリア3 , lit . Valkyria of the Battlefield 3 ) , commonly referred to as
+Valkyria Chronicles III outside Japan , is a tactical role @-@ playing video game
+developed by Sega and Media.Vision for the PlayStation Portable . Released in January
+2011 in Japan , it is the third game in the Valkyria series . Employing the same fusion
+of tactical and real @-@ time gameplay as its predecessors , the story runs parallel to
+the first game and follows the " Nameless " , a penal military unit serving the nation
+of Gallia during the Second Europan War who perform secret black operations and are
+pitted against the Imperial unit " Calamaty Raven " ."""
+
+mj_example = """Michael Jeffrey Jordan (born February 17, 1963), also known by his
+initials MJ,[9] is an American former professional basketball player and businessman.
+The official National Basketball Association (NBA) website states: "By acclamation,
+Michael Jordan is the greatest basketball player of all time."[10] He played fifteen
+seasons in the NBA, winning six NBA championships with the Chicago Bulls. He was
+integral in popularizing the sport of basketball and the NBA around the world in the
+1980s and 1990s,[11] becoming a global cultural icon.[12]"""
+
 demo = gr.Interface(
     fn=run_query,
     inputs=[
@@ -146,8 +162,8 @@ demo = gr.Interface(
     ],
     outputs=["html", gr.DataFrame(headers=["length", "count", "text"])],
     examples=[
-        ["As with previous Valkyira Chronicles games , Valkyria Chronicles III is a"],
-        ["Usain bolt set the world record in the 100-meter dash."],
+        [wikitext_example],
+        [mj_example],
     ],
 )
 
