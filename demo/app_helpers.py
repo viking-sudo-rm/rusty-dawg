@@ -4,6 +4,7 @@ from spacy.tokens import Span
 from rusty_dawg import Dawg, PyDawg
 from transformers import GPT2Tokenizer
 import pandas as pd
+from typing import List
 
 
 # Globals
@@ -30,12 +31,11 @@ COLORS = [
 
 def find_token_indices(doc: spacy.tokens.doc.Doc, substring: str):
     """
-    The goal here is to align the substrings we get from the GPT-2 tokenizer against the
-    tokenization we get from Spacy, so that we can visualize matching text spans.
+    Align the substrings we get from the GPT-2 tokenizer against the tokenization we get
+    from Spacy, so that we can visualize matching text spans.
     """
     # TODO(davidw): This was mostly written by GPT-4. It's usually pretty good but some
     # edge cases are incorrect; should re-write if time.
-    # TODO(davidw) also clean up the docs.
     occurrences = []
     substring_start = doc.text.find(substring)
     substring_length = len(substring)
@@ -63,7 +63,7 @@ def find_token_indices(doc: spacy.tokens.doc.Doc, substring: str):
     return occurrences
 
 
-def make_spacy_spans(doc, matches):
+def make_spacy_spans(doc: spacy.tokens.doc.Doc, matches: List):
     spans = []
 
     for match in matches:
@@ -80,7 +80,7 @@ def make_spacy_spans(doc, matches):
     return spans
 
 
-def make_html(standardized_query, matches):
+def make_html(standardized_query: str, matches: List):
     doc = NLP(standardized_query)
 
     spans = make_spacy_spans(doc, matches)
@@ -100,7 +100,7 @@ def make_html(standardized_query, matches):
     return html
 
 
-def run_query(query, min_tokens):
+def run_query(query: str, min_tokens: int):
     matching_substrings = PY_DAWG.get_matching_substrings(query)
 
     # Only keep the substrings that are long enough.
