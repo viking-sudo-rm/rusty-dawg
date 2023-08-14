@@ -5,15 +5,18 @@ from rusty_dawg import Dawg, PyDawg
 from transformers import GPT2Tokenizer
 import pandas as pd
 from typing import List
+import os
 
 
-# Globals
+# Get dawg path and tokenizer from environment variables. Can't pass them in as args
+# because gradio reload mode doesn't play nicely with argparse.
+dawg_path = os.getenv("DAWG_PATH")
+tokenizer = os.getenv("TOKENIZER", "gpt2")
 
-# dawg_path = "../dawg/wikitext-2-raw.dawg"
-dawg_path = "/net/nfs.cirrascale/allennlp/willm/wikitext-103-raw.dawg"
+# Set globals.
 DAWG = Dawg.load(dawg_path)
 NLP = spacy.load("en_core_web_sm")
-TOKENIZER = GPT2Tokenizer.from_pretrained("gpt2")
+TOKENIZER = GPT2Tokenizer.from_pretrained(tokenizer)
 PY_DAWG = PyDawg(DAWG, TOKENIZER)
 COLORS = [
     "#a1c9f4",

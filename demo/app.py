@@ -1,3 +1,8 @@
+"""
+Usage example:
+DAWG_PATH=[path-to-dawg-file] gradio app.py
+"""
+
 from app_helpers import run_query
 import app_info
 import gradio as gr
