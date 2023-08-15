@@ -41,7 +41,7 @@ dawg = Dawg.load(dawg_path)
 # Make sure the tokenizer matches the one used to construct the DAWG.
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-py_dawg = PyDawg(dawg_path, tokenizer)
+py_dawg = PyDawg(dawg, tokenizer)
 
 # Substring found in the Wikitext 2 train data.
 query = "As with previous Valkyira Chronicles games , Valkyria Chronicles III"
