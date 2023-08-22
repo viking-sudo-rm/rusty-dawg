@@ -1013,12 +1013,12 @@ dependencies = [
 
 [[package]]
 name = "kdam"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "333c30a42347fd0f02d948465848f50116854855c9fc7e77e98f3dd31fc73190"
+checksum = "eec124c5ef865373afd03f7900161495339c59cef395a6dc45d025bcd6499b0b"
 dependencies = [
  "terminal_size",
- "unicode-segmentation",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

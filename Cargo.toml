@@ -11,7 +11,7 @@ bit-struct = "0.3.2"
 bitvec = "1.0.1"
 clap = { version = "4.3.8", features = ["derive"] }
 fixedbitset = "0.4.2"
-kdam = "0.3.0"
+kdam = "0.4.1"
 petgraph = "0.6.3"
 serde = "1.0.163"
 serde_json = "1.0.96"
