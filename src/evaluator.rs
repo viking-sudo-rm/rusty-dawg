@@ -170,7 +170,6 @@ where
 mod tests {
     use dawg::Dawg;
     use evaluator::Evaluator;
-    use graph::vec_graph::dot::Dot;
     use tokenize::{TokenIndex, Tokenize};
 
     use crate::weight::weight40::DefaultWeight;

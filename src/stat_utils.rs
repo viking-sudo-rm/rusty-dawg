@@ -60,7 +60,6 @@ mod tests {
     use tokenize::{TokenIndex, Tokenize};
 
     use graph::indexing::NodeIndex;
-    use graph::vec_graph::dot::Dot;
 
     #[test]
     fn test_get_entropy() {

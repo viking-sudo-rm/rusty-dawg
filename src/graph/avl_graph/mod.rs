@@ -16,6 +16,11 @@ use std::ops::{Index, IndexMut};
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
+pub mod node;
+pub mod edge;
+
+use graph::avl_graph::node::Node;
+use graph::avl_graph::edge::Edge;
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx> {
@@ -77,7 +82,7 @@ where
         }
 
         let edge_to_clone = &self.edges[first_source_idx.index()];
-        let first_clone_edge = Edge::new(edge_to_clone.weight, edge_to_clone.target);
+        let first_clone_edge = Edge::new(edge_to_clone.weight, edge_to_clone.target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes[clone_idx.index()].first_edge = first_clone_idx;
@@ -95,7 +100,7 @@ where
 
         if left != EdgeIndex::end() {
             let left_weight = self.edges[left.index()].weight;
-            let left_target = self.edges[left.index()].target;
+            let left_target = self.edges[left.index()].target();
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
@@ -105,7 +110,7 @@ where
 
         if right != EdgeIndex::end() {
             let right_weight = self.edges[right.index()].weight;
-            let right_target = self.edges[right.index()].target;
+            let right_target = self.edges[right.index()].target();
             let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
@@ -495,91 +500,6 @@ where
         // let mut stack = LinkedList::new();
         // stack.push_back(root);
         Self { graph, stack }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Node<N, Ix = DefaultIx> {
-    #[serde(bound(
-        serialize = "N: Serialize, Ix: Serialize",
-        deserialize = "N: Deserialize<'de>, Ix: Deserialize<'de>",
-    ))]
-    pub weight: N,
-    pub first_edge: EdgeIndex<Ix>,
-}
-
-impl<N, Ix> Clone for Node<N, Ix>
-where
-    N: Clone,
-    Ix: Clone,
-{
-    fn clone(&self) -> Self {
-        Node {
-            weight: self.weight.clone(),
-            first_edge: self.first_edge.clone(),
-        }
-    }
-}
-
-impl<N, Ix: IndexType> Node<N, Ix> {
-    pub fn new(weight: N) -> Self {
-        Self {
-            weight,
-            first_edge: EdgeIndex::end(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Edge<E, Ix = DefaultIx> {
-    #[serde(bound(
-        serialize = "E: Serialize, Ix: Serialize",
-        deserialize = "E: Deserialize<'de>, Ix: Deserialize<'de>",
-    ))]
-    pub weight: E,
-    target: NodeIndex<Ix>,
-    pub left: EdgeIndex<Ix>,
-    pub right: EdgeIndex<Ix>,
-    pub balance_factor: i8,
-}
-
-impl<E, Ix> Clone for Edge<E, Ix>
-where
-    E: Clone,
-    Ix: Clone,
-{
-    fn clone(&self) -> Self {
-        Edge {
-            weight: self.weight.clone(),
-            target: self.target.clone(),
-            left: self.left.clone(),
-            right: self.right.clone(),
-            balance_factor: self.balance_factor,
-        }
-    }
-}
-
-impl<E, Ix: IndexType> Edge<E, Ix> {
-    pub fn new(weight: E, target: NodeIndex<Ix>) -> Self {
-        Edge {
-            weight,
-            target,
-            left: EdgeIndex::end(),
-            right: EdgeIndex::end(),
-            balance_factor: 0,
-        }
-    }
-
-    pub fn weight(&self) -> &E {
-        &self.weight
-    }
-
-    pub fn target(&self) -> NodeIndex<Ix> {
-        self.target
-    }
-
-    pub fn set_target(&mut self, target: NodeIndex<Ix>) {
-        self.target = target;
     }
 }
 

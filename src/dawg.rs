@@ -304,7 +304,6 @@ mod tests {
     use weight::Weight;
 
     use graph::indexing::NodeIndex;
-    use graph::vec_graph::dot::Dot;
 
     use bincode::{deserialize_from, serialize_into};
     use std::fs::File;
