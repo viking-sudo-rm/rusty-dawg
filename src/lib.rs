@@ -21,3 +21,4 @@ pub mod lms;
 pub mod stat_utils;
 pub mod tokenize;
 pub mod weight;
+pub mod veclike;

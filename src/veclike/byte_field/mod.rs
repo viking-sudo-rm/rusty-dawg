@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 
 use veclike::Veclike;
 
-pub mod for_vec;
+pub mod byte_vec;
 
 pub trait ByteField {
 

@@ -19,6 +19,9 @@ pub mod dot;
 pub mod node;
 pub mod edge;
 
+use veclike::Veclike;
+use veclike::byte_field::byte_vec::ByteVec;
+
 use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
 

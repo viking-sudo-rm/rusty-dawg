@@ -30,8 +30,6 @@ mod stat_utils;
 mod tokenize;
 mod weight;
 
-use veclike::Veclike;
-
 use serde::{Deserialize, Serialize};
 use std::cmp::Ord;
 use std::convert::TryFrom;
