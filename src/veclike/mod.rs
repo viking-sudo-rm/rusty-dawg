@@ -2,8 +2,6 @@ pub mod byte_field;
 
 use serde::{Serialize, Deserialize};
 
-use veclike::byte_field::ByteField;
-
 pub trait Veclike<T>
 where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
 

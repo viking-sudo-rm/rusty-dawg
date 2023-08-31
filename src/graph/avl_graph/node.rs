@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
-use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use graph::indexing::{DefaultIx, EdgeIndex, IndexType};
 
 #[derive(Deserialize, Serialize)]
 pub struct Node<N, Ix = DefaultIx> {
