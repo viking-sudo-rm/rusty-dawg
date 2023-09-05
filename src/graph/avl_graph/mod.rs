@@ -7,6 +7,7 @@
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
 use serde::{Deserialize, Serialize};
+use serde::ser::{SerializeStruct, Serializer};
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 
@@ -25,15 +26,36 @@ use memory_backing::byte_field::byte_vec::ByteVec;
 use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx> {
     #[serde(bound(
-        serialize = "N: Serialize, E: Serialize, Ix: Serialize",
+        // serialize = "N: Serialize, E: Serialize, Ix: Serialize",
         deserialize = "N: Deserialize<'de>, E: Deserialize<'de>, Ix: Deserialize<'de>",
     ))]
     nodes: Vec<Node<N, Ix>>,
     edges: Vec<Edge<E, Ix>>,
 }
+
+impl<N, E, Ix> Serialize for AvlGraph<N, E, Ix>
+where
+    E: Serialize,
+    N: Serialize,
+    Ix: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("AvlGraph", 2)?;
+        s.serialize_field("nodes", &self.nodes)?;
+        s.serialize_field("edges", &self.edges)?;
+        s.end()
+    }
+}
+
+// #[derive(Deserialize)]
+// impl<'a, N, E, Ix> Deserialize<'a> for AvlGraph<N, E, Ix> {
+// }
 
 impl<N, E, Ix: IndexType> AvlGraph<N, E, Ix>
 where
