@@ -2,7 +2,7 @@ pub mod byte_field;
 
 use serde::{Serialize, Deserialize};
 
-pub trait Veclike<T>
+pub trait MemoryBacking<T>
 where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
 
     fn len(&self) -> usize;
@@ -15,7 +15,7 @@ where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
 
 }
 
-impl<T> Veclike<T> for Vec<T>
+impl<T> MemoryBacking<T> for Vec<T>
 where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
 
     fn len(&self) -> usize {

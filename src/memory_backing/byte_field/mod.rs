@@ -2,7 +2,7 @@ use bincode::{serialize, deserialize};
 use std::mem::size_of;
 use serde::{Serialize, Deserialize};
 
-use veclike::Veclike;
+use memory_backing::MemoryBacking;
 
 pub mod byte_vec;
 
@@ -33,7 +33,7 @@ pub fn set_object<T: Sized + Serialize + for<'a> Deserialize<'a>>(bf: &mut dyn B
     }
 }
 
-impl<T, B: ByteField> Veclike<T> for B
+impl<T, B: ByteField> MemoryBacking<T> for B
 where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
 
     fn len(&self) -> usize {
@@ -41,7 +41,7 @@ where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
     }
 
     fn push(&mut self, item: T) {
-        let len = Veclike::<T>::len(self);
+        let len = MemoryBacking::<T>::len(self);
         let size = size_of::<T>();
         self.extend(size);
         self.set(len, item);
