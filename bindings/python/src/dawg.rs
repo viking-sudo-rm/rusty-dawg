@@ -2,6 +2,7 @@ use bincode::deserialize_from;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use std::fs;
+use io::Load;
 
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
@@ -24,9 +25,9 @@ impl Dawg {
 
     #[classmethod]
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
-        let file = fs::OpenOptions::new().read(true).open(&path)?;
+        // let file = fs::OpenOptions::new().read(true).open(&path)?;
         Ok(Self {
-            dawg: deserialize_from(&file).expect("Failed to deserialize"),
+            dawg: Dawg.load(&path).expect("Failed to deserialize"),
         })
     }
 
