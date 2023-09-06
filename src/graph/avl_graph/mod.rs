@@ -58,10 +58,6 @@ where
         node_idx
     }
 
-    pub fn node_weight(&self, a: NodeIndex<Ix>) -> Option<&N> {
-        self.nodes.get(a.index()).map(|n| &n.weight)
-    }
-
     pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
     where
         N: Clone,
@@ -709,7 +705,7 @@ mod tests {
         graph.add_edge(q0, q1, 2);
 
         let q2 = graph.clone_node(q0);
-        assert_eq!(*graph.node_weight(q2).unwrap(), 0_u8);
+        assert_eq!(graph[q2], 0_u8);
         assert_eq!(graph.edge_target(q2, 2), Some(q1));
     }
 

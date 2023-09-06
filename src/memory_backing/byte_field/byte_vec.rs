@@ -6,6 +6,14 @@ pub struct ByteVec {
 
 impl ByteField for ByteVec {
 
+    fn new() -> Self {
+        Self { bytes: Vec::new() }
+    }
+
+    fn with_capacity(size: usize) -> Self {
+        Self { bytes: Vec::with_capacity(size) }
+    }
+
     fn len(&self) -> usize {
         self.bytes.len()
     }

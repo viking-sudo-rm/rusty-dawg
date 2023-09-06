@@ -8,6 +8,10 @@ pub mod byte_vec;
 
 pub trait ByteField {
 
+    fn new() -> Self where Self: Sized;
+
+    fn with_capacity(size: usize) -> Self where Self: Sized;
+
     fn len(&self) -> usize;
     
     fn extend(&mut self, incr: usize);
@@ -35,6 +39,14 @@ pub fn set_object<T: Sized + Serialize + for<'a> Deserialize<'a>>(bf: &mut dyn B
 
 impl<T, B: ByteField> MemoryBacking<T> for B
 where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
+
+    fn new() -> Self {
+        ByteField::new()
+    }
+
+    fn with_capacity(size: usize) -> Self {
+        ByteField::with_capacity(size * size_of::<T>())
+    }
 
     fn len(&self) -> usize {
         ByteField::len(self) / size_of::<T>()

@@ -1,9 +1,14 @@
 pub mod byte_field;
+mod vec;
 
 use serde::{Serialize, Deserialize};
 
 pub trait MemoryBacking<T>
 where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
+
+    fn new() -> Self where Self: Sized;
+
+    fn with_capacity(size: usize) -> Self where Self: Sized;
 
     fn len(&self) -> usize;
 
@@ -12,26 +17,5 @@ where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
     fn get(&self, index: usize) -> T;
 
     fn set(&mut self, index: usize, item: T);
-
-}
-
-impl<T> MemoryBacking<T> for Vec<T>
-where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
-
-    fn len(&self) -> usize {
-        Vec::len(self)
-    }
-
-    fn push(&mut self, item: T) {
-        Vec::push(self, item);
-    }
-
-    fn get(&self, index: usize) -> T {
-        self[index]
-    }
-
-    fn set(&mut self, index: usize, item: T) {
-        self[index] = item;
-    }
 
 }
