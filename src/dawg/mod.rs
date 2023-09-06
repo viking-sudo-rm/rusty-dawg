@@ -5,6 +5,8 @@
 // https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
 //
 
+mod serde;
+
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::cmp::{Eq, Ord};
@@ -15,15 +17,14 @@ use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
 use weight::Weight;
 
-#[derive(Serialize, Deserialize)]
-pub struct Dawg<E, W>
-where
-    E: Eq + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+use graph::avl_graph::node::Node;
+use graph::avl_graph::edge::Edge;
+use graph::indexing::DefaultIx;
+
+pub struct Dawg<E, W, Ix = DefaultIx, VecE = Vec<Edge<E, Ix>>, VecW = Vec<Node<W, Ix>>>
 {
-    #[serde(bound(serialize = "E: Serialize", deserialize = "E: Deserialize<'de>",))]
-    dawg: AvlGraph<W, E>,
-    initial: NodeIndex,
+    dawg: AvlGraph<W, E, Ix, VecW, VecE>,
+    initial: NodeIndex<Ix>,
 }
 
 impl<E, W> Default for Dawg<E, W>

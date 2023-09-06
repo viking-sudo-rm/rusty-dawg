@@ -19,7 +19,6 @@ use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 pub mod dot;
 pub mod node;
 pub mod edge;
-mod avl_graph_visitor;
 mod serde;
 
 // use memory_backing::MemoryBacking;
