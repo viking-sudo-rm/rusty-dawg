@@ -29,6 +29,7 @@ mod lms;
 mod stat_utils;
 mod tokenize;
 mod weight;
+mod io;
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Ord;
@@ -40,7 +41,8 @@ use lms::induction_lm::InductionLM;
 use lms::kn_lm::KNLM;
 use lms::LM;
 
-use bincode::serialize_into;
+use io::Save;
+
 use clap::Parser;
 use std::fs;
 use std::mem::size_of;
@@ -232,7 +234,8 @@ where
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");
-        checkpoint(&dawg, &args.save_path)?;
+        dawg.save(&args.save_path)?;
+        // checkpoint(&dawg, &args.save_path)?;
         println!("Successfully saved DAWG to {}!", &args.save_path);
     }
     Ok(())
@@ -288,24 +291,25 @@ where
     }
 }
 
-fn checkpoint<E>(
-    dawg: &Dawg<E, DefaultWeight>,
-    save_path: &str,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-{
-    let save_file = fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .open(save_path)?;
-    serialize_into(&save_file, &dawg)?;
+// fn checkpoint<E>(
+//     dawg: &Dawg<E, DefaultWeight>,
+//     save_path: &str,
+// ) -> Result<(), Box<dyn std::error::Error>>
+// where
+//     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+// {
+//     dawg.save(save_path)?;
+//     // let save_file = fs::OpenOptions::new()
+//     //     .write(true)
+//     //     .create(true)
+//     //     .open(save_path)?;
+//     // serialize_into(&save_file, &dawg)?;
 
-    // HOWTO: Deserialize
-    // let mut load_file = fs::OpenOptions::new()
-    //     .read(true)
-    //     .open(save_path)?;
-    // let decoded: Dawg<usize> = deserialize_from(&load_file).expect("Failed to deserialize");
-    // println!("decoded DAWG");
-    Ok(())
-}
+//     // HOWTO: Deserialize
+//     // let mut load_file = fs::OpenOptions::new()
+//     //     .read(true)
+//     //     .open(save_path)?;
+//     // let decoded: Dawg<usize> = deserialize_from(&load_file).expect("Failed to deserialize");
+//     // println!("decoded DAWG");
+//     Ok(())
+// }
