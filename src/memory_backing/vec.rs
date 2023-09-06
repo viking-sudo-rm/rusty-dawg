@@ -1,8 +1,6 @@
 use memory_backing::MemoryBacking;
-use serde::{Serialize, Deserialize};
 
-impl<T> MemoryBacking<T> for Vec<T>
-where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
+impl<T> MemoryBacking<T> for Vec<T> {
 
     fn new() -> Self {
         Vec::new()
@@ -20,12 +18,34 @@ where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
         Vec::push(self, item);
     }
 
-    fn get(&self, index: usize) -> T {
-        self[index]
+    fn index(&self, index: usize) -> &T {
+        &self[index]
     }
 
-    fn set(&mut self, index: usize, item: T) {
-        self[index] = item;
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        &mut self[index]
+    }
+
+}
+
+#[cfg(test)]
+#[allow(unused_imports)]
+mod tests {
+    use memory_backing::MemoryBacking;
+
+    #[test]
+    fn test_index() {
+        let mb: Box<dyn MemoryBacking<u8>> = Box::new(vec![12, 21]);
+        assert_eq!(mb[0], 12);
+        assert_eq!(mb[1], 21);
+    }
+
+    #[test]
+    fn test_index_mut() {
+        let mut mb: Box<dyn MemoryBacking<u8>> = Box::new(vec![12, 21]);
+        assert_eq!(mb[0], 12);
+        mb[0] = 32;
+        assert_eq!(mb[0], 32);
     }
 
 }

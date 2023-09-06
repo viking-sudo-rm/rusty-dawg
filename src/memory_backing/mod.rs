@@ -1,10 +1,9 @@
-pub mod byte_field;
+// pub mod byte_field;
 mod vec;
 
-use serde::{Serialize, Deserialize};
+use std::ops::{Index, IndexMut};
 
-pub trait MemoryBacking<T>
-where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
+pub trait MemoryBacking<T> {
 
     fn new() -> Self where Self: Sized;
 
@@ -14,8 +13,22 @@ where T: Sized + Serialize + for<'a> Deserialize<'a> + Copy {
 
     fn push(&mut self, item: T);
 
-    fn get(&self, index: usize) -> T;
+    fn index(&self, index: usize) -> &T;
 
-    fn set(&mut self, index: usize, item: T);
+    fn index_mut(&mut self, index: usize) -> &mut T;
 
+}
+
+impl<T> Index<usize> for dyn MemoryBacking<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &T {
+        self.index(index)
+    }
+}
+
+impl<T> IndexMut<usize> for dyn MemoryBacking<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        self.index_mut(index)
+    }
 }
