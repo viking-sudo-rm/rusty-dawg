@@ -1,21 +1,21 @@
 use serde::Deserialize;
 use serde::de::{SeqAccess, Visitor};
 
-use graph::avl_graph::AvlGraph;
-use graph::avl_graph::node::Node;
-use graph::avl_graph::edge::Edge;
+use std::marker::PhantomData;
 
-pub struct AvlGraphVisitor<N, E, Ix> {
-    pub marker: std::marker::PhantomData<AvlGraph<N, E, Ix>>,
+use graph::avl_graph::AvlGraph;
+
+pub struct AvlGraphVisitor<N, E, Ix, VecN, VecE> {
+    pub marker: PhantomData<AvlGraph<N, E, Ix, VecN, VecE>>,
 }
 
-impl<'de, N, E, Ix> Visitor<'de> for AvlGraphVisitor<N, E, Ix>
+impl<'de, N, E, Ix, VecN, VecE> Visitor<'de> for AvlGraphVisitor<N, E, Ix, VecN, VecE>
 where
-    E: Deserialize<'de>,
-    N: Deserialize<'de>,
+    VecE: Deserialize<'de>,
+    VecN: Deserialize<'de>,
     Ix: Deserialize<'de>,
 {
-    type Value = AvlGraph<N, E, Ix>;
+    type Value = AvlGraph<N, E, Ix, VecN, VecE>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("struct AvlGraph")
@@ -25,14 +25,14 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let nodes: Vec<Node<N, Ix>> = seq.next_element()?.ok_or_else(|| {
+        let nodes: VecN = seq.next_element()?.ok_or_else(|| {
             serde::de::Error::invalid_length(0, &self)
         })?;
 
-        let edges: Vec<Edge<E, Ix>> = seq.next_element()?.ok_or_else(|| {
+        let edges: VecE = seq.next_element()?.ok_or_else(|| {
             serde::de::Error::invalid_length(1, &self)
         })?;
 
-        Ok(AvlGraph { nodes, edges })
+        Ok(AvlGraph { nodes, edges, marker: PhantomData })
     }
 }

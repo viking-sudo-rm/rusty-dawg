@@ -11,6 +11,7 @@ use serde::ser::{SerializeStruct, Serializer};
 use serde::de::Deserializer;
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
+use std::marker::PhantomData;
 
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
@@ -31,15 +32,16 @@ use graph::avl_graph::edge::Edge;
 use graph::avl_graph::avl_graph_visitor::AvlGraphVisitor;
 
 #[derive(Default)]
-pub struct AvlGraph<N, E, Ix = DefaultIx> {
-    nodes: Vec<Node<N, Ix>>,
-    edges: Vec<Edge<E, Ix>>,
+pub struct AvlGraph<N, E, Ix = DefaultIx, VecN = Vec<Node<N, Ix>>, VecE = Vec<Edge<E, Ix>>> {
+    nodes: VecN,
+    edges: VecE,
+    marker: PhantomData<(N, E, Ix)>,
 }
 
-impl<N, E, Ix> Serialize for AvlGraph<N, E, Ix>
+impl<N, E, Ix, VecN, VecE> Serialize for AvlGraph<N, E, Ix, VecN, VecE>
 where
-    E: Serialize,
-    N: Serialize,
+    VecE: Serialize,
+    VecN: Serialize,
     Ix: Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -53,15 +55,15 @@ where
     }
 }
 
-impl<'de, N, E, Ix> Deserialize<'de> for AvlGraph<N, E, Ix>
+impl<'de, N, E, Ix, VecN, VecE> Deserialize<'de> for AvlGraph<N, E, Ix, VecN, VecE>
 where
-    E: Deserialize<'de>,
-    N: Deserialize<'de>,
+    VecE: Deserialize<'de>,
+    VecN: Deserialize<'de>,
     Ix: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        d.deserialize_struct("AvlGraph", &["nodes", "edges"], AvlGraphVisitor::<N, E, Ix> {
-            marker: std::marker::PhantomData,
+        d.deserialize_struct("AvlGraph", &["nodes", "edges"], AvlGraphVisitor::<N, E, Ix, VecN, VecE> {
+            marker: PhantomData,
         })
     }
 }
@@ -73,13 +75,13 @@ where
     pub fn new() -> Self {
         let nodes = Vec::new();
         let edges = Vec::new();
-        AvlGraph { nodes, edges }
+        AvlGraph { nodes, edges, marker: PhantomData }
     }
 
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
         let nodes = Vec::with_capacity(n_nodes);
         let edges = Vec::with_capacity(n_edges);
-        AvlGraph { nodes, edges }
+        AvlGraph { nodes, edges, marker: PhantomData }
     }
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
