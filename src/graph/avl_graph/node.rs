@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
+use std::marker::Copy;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Copy)]
 pub struct Node<N, Ix = DefaultIx> {
     #[serde(bound(
         serialize = "N: Serialize, Ix: Serialize",

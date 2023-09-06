@@ -8,6 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde::ser::{SerializeStruct, Serializer};
+use serde::de::Deserializer;
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
 
@@ -19,19 +20,18 @@ use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 pub mod dot;
 pub mod node;
 pub mod edge;
+mod avl_graph_visitor;
 
-use memory_backing::MemoryBacking;
-use memory_backing::byte_field::byte_vec::ByteVec;
+// use memory_backing::MemoryBacking;
+// use memory_backing::byte_field::byte_vec::ByteVec;
 
 use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
 
-#[derive(Deserialize, Default)]
+use graph::avl_graph::avl_graph_visitor::AvlGraphVisitor;
+
+#[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx> {
-    #[serde(bound(
-        // serialize = "N: Serialize, E: Serialize, Ix: Serialize",
-        deserialize = "N: Deserialize<'de>, E: Deserialize<'de>, Ix: Deserialize<'de>",
-    ))]
     nodes: Vec<Node<N, Ix>>,
     edges: Vec<Edge<E, Ix>>,
 }
@@ -53,9 +53,18 @@ where
     }
 }
 
-// #[derive(Deserialize)]
-// impl<'a, N, E, Ix> Deserialize<'a> for AvlGraph<N, E, Ix> {
-// }
+impl<'de, N, E, Ix> Deserialize<'de> for AvlGraph<N, E, Ix>
+where
+    E: Deserialize<'de>,
+    N: Deserialize<'de>,
+    Ix: Deserialize<'de>,
+{
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        d.deserialize_struct("AvlGraph", &["nodes", "edges"], AvlGraphVisitor::<N, E, Ix> {
+            marker: std::marker::PhantomData,
+        })
+    }
+}
 
 impl<N, E, Ix: IndexType> AvlGraph<N, E, Ix>
 where
@@ -83,12 +92,6 @@ where
 
     pub fn node_weight(&self, a: NodeIndex<Ix>) -> Option<&N> {
         self.nodes.get(a.index()).map(|n| &n.weight)
-    }
-
-    pub fn set_node_weight(&mut self, a: NodeIndex<Ix>, value: N) {
-        if let Some(ptr) = self.nodes.get_mut(a.index()) {
-            ptr.weight = value;
-        }
     }
 
     pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
@@ -142,10 +145,6 @@ where
             self.edges[new.index()].right = new_right;
             self.clone_edges(right, new_right);
         }
-    }
-
-    pub fn edge_weight(&self, edge: EdgeIndex<Ix>) -> Option<&E> {
-        self.edges.get(edge.index()).map(|e| &e.weight)
     }
 
     pub fn edge_tree_height(&self, node: NodeIndex<Ix>) -> usize {
