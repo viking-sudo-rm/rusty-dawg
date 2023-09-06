@@ -14,6 +14,7 @@ pub trait Load {
 
 }
 
+// Disk-backed implementation can open the file at load_path.
 impl<E, W> Load for Dawg<E, W>
 where
     E: Eq + Copy + Debug + for<'de> Deserialize<'de>,

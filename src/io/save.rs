@@ -15,7 +15,7 @@ pub trait Save {
 
 }
 
-// TODO: Provide an alternative implementation for a disk-backed version that simply closes the file.
+// Disk-backed implementation can close the file that is open and not use save_path (or assert it matches).
 impl<E, W> Save for Dawg<E, W>
 where
     E: Eq + Copy + Debug + Serialize,

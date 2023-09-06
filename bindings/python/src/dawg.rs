@@ -2,10 +2,10 @@ use bincode::deserialize_from;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use std::fs;
-use io::Load;
 
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
+use rusty_dawg::io::Load;
 use rusty_dawg::weight::{Weight, WeightMinimal};
 
 #[pyclass]

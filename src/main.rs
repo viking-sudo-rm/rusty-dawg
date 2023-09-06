@@ -235,7 +235,6 @@ where
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");
         dawg.save(&args.save_path)?;
-        // checkpoint(&dawg, &args.save_path)?;
         println!("Successfully saved DAWG to {}!", &args.save_path);
     }
     Ok(())
