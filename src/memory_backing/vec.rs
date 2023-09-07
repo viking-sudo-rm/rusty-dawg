@@ -36,16 +36,16 @@ mod tests {
     #[test]
     fn test_index() {
         let mb: Box<dyn MemoryBacking<u8>> = Box::new(vec![12, 21]);
-        assert_eq!(mb[0], 12);
-        assert_eq!(mb[1], 21);
+        assert_eq!(*mb.index(0), 12);
+        assert_eq!(*mb.index(1), 21);
     }
 
     #[test]
     fn test_index_mut() {
         let mut mb: Box<dyn MemoryBacking<u8>> = Box::new(vec![12, 21]);
-        assert_eq!(mb[0], 12);
-        mb[0] = 32;
-        assert_eq!(mb[0], 32);
+        assert_eq!(*mb.index(0), 12);
+        *mb.index_mut(0) = 32;
+        assert_eq!(*mb.index(0), 32);
     }
 
 }
