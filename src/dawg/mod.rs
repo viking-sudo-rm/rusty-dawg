@@ -16,6 +16,7 @@ use std::fmt::Debug;
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
 use weight::Weight;
+use memory_backing::MemoryBacking;
 
 use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
@@ -27,30 +28,36 @@ pub struct Dawg<E, W, Ix = DefaultIx, VecE = Vec<Edge<E, Ix>>, VecW = Vec<Node<W
     initial: NodeIndex<Ix>,
 }
 
-impl<E, W> Default for Dawg<E, W>
+// Currently the implementation fixes DefaultIx. Would not be too hard to generalize.
+impl<E, W, VecE, VecW> Default for Dawg<E, W, DefaultIx, VecE, VecW>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    VecE: MemoryBacking<Edge<E, DefaultIx>>,
+    VecW: MemoryBacking<Node<W, DefaultIx>>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E, W> Dawg<E, W>
+impl<E, W, VecE, VecW> Dawg<E, W, DefaultIx, VecE, VecW>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    // Ix: IndexType,
+    VecE: MemoryBacking<Edge<E, DefaultIx>>,
+    VecW: MemoryBacking<Node<W, DefaultIx>>,
 {
-    pub fn new() -> Dawg<E, W> {
-        let mut dawg = AvlGraph::<W, E>::new();
+    pub fn new() -> Dawg<E, W, DefaultIx, VecE, VecW> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> = AvlGraph::new();
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
 
-    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W> {
-        let mut dawg = AvlGraph::<W, E>::with_capacity(n_nodes, n_edges);
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, VecE, VecW> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> = AvlGraph::with_capacity(n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
@@ -293,7 +300,7 @@ where
         max_ratio
     }
 
-    pub fn get_graph(&self) -> &AvlGraph<W, E> {
+    pub fn get_graph(&self) -> &AvlGraph<W, E, DefaultIx, VecW, VecE> {
         &self.dawg
     }
 }

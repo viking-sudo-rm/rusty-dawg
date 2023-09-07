@@ -405,12 +405,14 @@ where
     }
 }
 
-impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix>
+impl<N, E, Ix, VecN, VecE> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix, VecN, VecE>
 where
+    VecN: MemoryBacking<Node<N, Ix>>,
+    VecE: MemoryBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
-        &mut self.nodes[index.index()].weight
+        &mut self.nodes.index_mut(index.index()).weight
     }
 }
 
