@@ -1,11 +1,9 @@
-use bincode::deserialize_from;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use std::fs;
 
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
-use rusty_dawg::io::Load;
 use rusty_dawg::weight::{Weight, WeightMinimal};
 
 #[pyclass]
@@ -27,7 +25,7 @@ impl Dawg {
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
         // let file = fs::OpenOptions::new().read(true).open(&path)?;
         Ok(Self {
-            dawg: Dawg.load(&path).expect("Failed to deserialize"),
+            dawg: dawg::Dawg::load(&path).expect("Failed to deserialize"),
         })
     }
 
