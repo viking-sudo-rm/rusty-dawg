@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_good_turing_estimate_ab() {
-        let tokens = vec!["a", "b"];
+        let tokens = ["a", "b"];
         let mut index: TokenIndex<usize> = TokenIndex::new();
         let mut indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
         indices.push(index.eos());
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_good_turing_estimate_abb() {
-        let tokens = vec!["a", "b", "b"];
+        let tokens = ["a", "b", "b"];
         let mut index: TokenIndex<usize> = TokenIndex::new();
         let mut indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
         indices.push(index.eos());

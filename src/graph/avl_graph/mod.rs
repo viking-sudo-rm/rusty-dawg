@@ -11,21 +11,21 @@ use std::cmp::{Eq, Ord};
 
 use std::marker::PhantomData;
 
+use std::cmp::{max, min};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
-use std::cmp::{min, max};
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
-pub mod node;
 pub mod edge;
+pub mod node;
 mod serde;
 
 use memory_backing::MemoryBacking;
 
-use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
+use graph::avl_graph::node::Node;
 
 #[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx, VecN = Vec<Node<N, Ix>>, VecE = Vec<Edge<E, Ix>>> {
@@ -44,13 +44,21 @@ where
     pub fn new() -> Self {
         let nodes = VecN::new();
         let edges = VecE::new();
-        AvlGraph { nodes, edges, marker: PhantomData }
+        AvlGraph {
+            nodes,
+            edges,
+            marker: PhantomData,
+        }
     }
 
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
         let nodes = VecN::with_capacity(n_nodes);
         let edges = VecE::with_capacity(n_edges);
-        AvlGraph { nodes, edges, marker: PhantomData }
+        AvlGraph {
+            nodes,
+            edges,
+            marker: PhantomData,
+        }
     }
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
@@ -222,7 +230,8 @@ where
                 self.edges.index(init_left_idx.index()).balance_factor
             };
 
-            self.edges.index_mut(root_edge_idx.index()).left = self.avl_insert_edge(init_left_idx, weight, b);
+            self.edges.index_mut(root_edge_idx.index()).left =
+                self.avl_insert_edge(init_left_idx, weight, b);
 
             let updated_left_idx = self.edges.index(root_edge_idx.index()).left;
             let updated_balance_factor = if updated_left_idx == EdgeIndex::end() {
@@ -484,7 +493,7 @@ where
                 if right != EdgeIndex::end() {
                     self.stack.push(right);
                 }
-                Some(&self.graph.edges.index(idx.index()))
+                Some(self.graph.edges.index(idx.index()))
             }
         }
     }

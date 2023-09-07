@@ -21,15 +21,15 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
-mod memory_backing;
 mod dawg;
 mod evaluator;
 mod graph;
+mod io;
 mod lms;
+mod memory_backing;
 mod stat_utils;
 mod tokenize;
 mod weight;
-mod io;
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Ord;

@@ -15,15 +15,14 @@ use std::fmt::Debug;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
-use weight::Weight;
 use memory_backing::MemoryBacking;
+use weight::Weight;
 
-use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
+use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 
-pub struct Dawg<E, W, Ix = DefaultIx, VecE = Vec<Edge<E, Ix>>, VecW = Vec<Node<W, Ix>>>
-{
+pub struct Dawg<E, W, Ix = DefaultIx, VecE = Vec<Edge<E, Ix>>, VecW = Vec<Node<W, Ix>>> {
     dawg: AvlGraph<W, E, Ix, VecW, VecE>,
     initial: NodeIndex<Ix>,
 }
@@ -57,7 +56,8 @@ where
     }
 
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, VecE, VecW> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> = AvlGraph::with_capacity(n_nodes, n_edges);
+        let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> =
+            AvlGraph::with_capacity(n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }

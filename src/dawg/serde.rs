@@ -1,10 +1,10 @@
 use dawg::Dawg;
-use serde::{Serialize, Deserialize};
-use serde::ser::{SerializeStruct, Serializer};
 use serde::de::Deserializer;
+use serde::ser::{SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
 
-use graph::indexing::NodeIndex;
 use graph::avl_graph::AvlGraph;
+use graph::indexing::NodeIndex;
 use serde::de::{SeqAccess, Visitor};
 
 use std::marker::PhantomData;
@@ -33,9 +33,13 @@ where
     Ix: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        d.deserialize_struct("Dawg", &["dawg", "initial"], DawgVisitor::<E, W, Ix, VecE, VecW> {
-            marker: PhantomData,
-        })
+        d.deserialize_struct(
+            "Dawg",
+            &["dawg", "initial"],
+            DawgVisitor::<E, W, Ix, VecE, VecW> {
+                marker: PhantomData,
+            },
+        )
     }
 }
 
@@ -59,13 +63,13 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let dawg: AvlGraph<W, E, Ix, VecW, VecE> = seq.next_element()?.ok_or_else(|| {
-            serde::de::Error::invalid_length(0, &self)
-        })?;
+        let dawg: AvlGraph<W, E, Ix, VecW, VecE> = seq
+            .next_element()?
+            .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
 
-        let initial: NodeIndex<Ix> = seq.next_element()?.ok_or_else(|| {
-            serde::de::Error::invalid_length(1, &self)
-        })?;
+        let initial: NodeIndex<Ix> = seq
+            .next_element()?
+            .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
 
         Ok(Dawg { dawg, initial })
     }

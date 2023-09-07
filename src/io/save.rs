@@ -10,9 +10,7 @@ use std::fmt::Debug;
 use bincode::serialize_into;
 
 pub trait Save {
-
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>>;
-
 }
 
 // Disk-backed implementation can close the file that is open and not use save_path (or assert it matches).
@@ -29,5 +27,4 @@ where
         serialize_into(&save_file, &self)?;
         Ok(())
     }
-
 }

@@ -1,8 +1,8 @@
 use graph::avl_graph::AvlGraph;
-use serde::{Serialize, Deserialize};
-use serde::ser::{SerializeStruct, Serializer};
 use serde::de::Deserializer;
 use serde::de::{SeqAccess, Visitor};
+use serde::ser::{SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
 
 use std::marker::PhantomData;
 
@@ -30,9 +30,13 @@ where
     Ix: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        d.deserialize_struct("AvlGraph", &["nodes", "edges"], AvlGraphVisitor::<N, E, Ix, VecN, VecE> {
-            marker: PhantomData,
-        })
+        d.deserialize_struct(
+            "AvlGraph",
+            &["nodes", "edges"],
+            AvlGraphVisitor::<N, E, Ix, VecN, VecE> {
+                marker: PhantomData,
+            },
+        )
     }
 }
 
@@ -56,14 +60,18 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let nodes: VecN = seq.next_element()?.ok_or_else(|| {
-            serde::de::Error::invalid_length(0, &self)
-        })?;
+        let nodes: VecN = seq
+            .next_element()?
+            .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
 
-        let edges: VecE = seq.next_element()?.ok_or_else(|| {
-            serde::de::Error::invalid_length(1, &self)
-        })?;
+        let edges: VecE = seq
+            .next_element()?
+            .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
 
-        Ok(AvlGraph { nodes, edges, marker: PhantomData })
+        Ok(AvlGraph {
+            nodes,
+            edges,
+            marker: PhantomData,
+        })
     }
 }

@@ -1,7 +1,6 @@
 use memory_backing::MemoryBacking;
 
 impl<T> MemoryBacking<T> for Vec<T> {
-
     fn new() -> Self {
         Vec::new()
     }
@@ -25,7 +24,6 @@ impl<T> MemoryBacking<T> for Vec<T> {
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self[index]
     }
-
 }
 
 #[cfg(test)]
@@ -47,5 +45,4 @@ mod tests {
         *mb.index_mut(0) = 32;
         assert_eq!(*mb.index(0), 32);
     }
-
 }

@@ -182,8 +182,8 @@ mod tests {
         //   Step #0: [a, , ,] => 1 / 3
         //   Step #1: [a, ab, ] => 3 / 3
         //   Step #2: [a, ab, ] => 3 / 3
-        let train_tokens = vec!["a", "b", "b"];
-        let test_tokens = vec!["a", "b", "c"];
+        let train_tokens = ["a", "b", "b"];
+        let test_tokens = ["a", "b", "c"];
 
         let mut index: TokenIndex<u16> = TokenIndex::new();
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();
@@ -214,8 +214,8 @@ mod tests {
         // Max factor of train that is suffix of test, throughout train steps:
         //   Step #0: [a, a, a] => 3 / 3
         //   Step #1: [a, aa, aa] => 5 / 3
-        let train_tokens = vec!["a", "a"];
-        let test_tokens = vec!["a", "a", "a"];
+        let train_tokens = ["a", "a"];
+        let test_tokens = ["a", "a", "a"];
 
         let mut index: TokenIndex<u16> = TokenIndex::new();
         let train: Vec<_> = train_tokens.iter().map(|x| index.add(x)).collect();

@@ -2,10 +2,13 @@
 mod vec;
 
 pub trait MemoryBacking<T> {
+    fn new() -> Self
+    where
+        Self: Sized;
 
-    fn new() -> Self where Self: Sized;
-
-    fn with_capacity(size: usize) -> Self where Self: Sized;
+    fn with_capacity(size: usize) -> Self
+    where
+        Self: Sized;
 
     fn len(&self) -> usize;
 
@@ -14,5 +17,4 @@ pub trait MemoryBacking<T> {
     fn index(&self, index: usize) -> &T;
 
     fn index_mut(&mut self, index: usize) -> &mut T;
-
 }
