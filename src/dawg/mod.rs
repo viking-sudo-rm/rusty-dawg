@@ -5,6 +5,8 @@
 // https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
 //
 
+mod serde;
+
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::cmp::{Eq, Ord};
@@ -15,41 +17,47 @@ use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
 use weight::Weight;
 
-#[derive(Serialize, Deserialize)]
-pub struct Dawg<E, W>
+use graph::indexing::{DefaultIx, IndexType};
+use graph::memory_backing::edge_backing::EdgeBacking;
+use graph::memory_backing::ram_backing::RamBacking;
+use graph::memory_backing::MemoryBacking;
+
+pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
-    E: Eq + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    Mb: MemoryBacking<W, E, Ix>,
+    Ix: IndexType,
 {
-    #[serde(bound(serialize = "E: Serialize", deserialize = "E: Deserialize<'de>",))]
-    dawg: AvlGraph<W, E>,
-    initial: NodeIndex,
+    dawg: AvlGraph<W, E, Ix, Mb>,
+    initial: NodeIndex<Ix>,
 }
 
-impl<E, W> Default for Dawg<E, W>
+// Currently the implementation fixes DefaultIx. Would not be too hard to generalize.
+impl<E, W, Mb> Default for Dawg<E, W, DefaultIx, Mb>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    Mb: MemoryBacking<W, E, DefaultIx>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E, W> Dawg<E, W>
+impl<E, W, Mb> Dawg<E, W, DefaultIx, Mb>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    Mb: MemoryBacking<W, E, DefaultIx>,
 {
-    pub fn new() -> Dawg<E, W> {
-        let mut dawg = AvlGraph::<W, E>::new();
+    pub fn new() -> Dawg<E, W, DefaultIx, Mb> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new();
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
 
-    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W> {
-        let mut dawg = AvlGraph::<W, E>::with_capacity(n_nodes, n_edges);
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::with_capacity(n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
@@ -104,7 +112,7 @@ where
                     let edges: Vec<_> = self
                         .dawg
                         .edges(next_state)
-                        .map(|edge| (edge.target(), *edge.weight()))
+                        .map(|edge| (edge.get_target(), *edge.get_weight()))
                         .collect();
                     for (target, weight) in edges {
                         self.dawg.add_balanced_edge(clone, target, weight);
@@ -292,7 +300,7 @@ where
         max_ratio
     }
 
-    pub fn get_graph(&self) -> &AvlGraph<W, E> {
+    pub fn get_graph(&self) -> &AvlGraph<W, E, DefaultIx, Mb> {
         &self.dawg
     }
 }
@@ -304,7 +312,6 @@ mod tests {
     use weight::Weight;
 
     use graph::indexing::NodeIndex;
-    use graph::vec_graph::dot::Dot;
 
     use bincode::{deserialize_from, serialize_into};
     use std::fs::File;
