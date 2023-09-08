@@ -75,11 +75,11 @@ where
         E: Clone,
         Ix: Clone,
     {
-        let clone = Node::new(self.nodes.index(a.index()).weight.clone());
+        let clone = Node::new(self.nodes.index(a.index()).get_weight().clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(clone);
 
-        let first_source_idx = self.nodes.index(a.index()).first_edge;
+        let first_source_idx = self.nodes.index(a.index()).get_first_edge();
         if first_source_idx == EdgeIndex::end() {
             return clone_idx;
         }
@@ -88,7 +88,7 @@ where
         let first_clone_edge = Edge::new(edge_to_clone.weight, edge_to_clone.target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
-        self.nodes.index_mut(clone_idx.index()).first_edge = first_clone_idx;
+        self.nodes.index_mut(clone_idx.index()).set_first_edge(first_clone_idx);
         self.clone_edges(first_source_idx, first_clone_idx);
         clone_idx
     }
@@ -123,7 +123,7 @@ where
     }
 
     pub fn edge_tree_height(&self, node: NodeIndex<Ix>) -> usize {
-        self.edge_tree_height_helper(self.nodes.index(node.index()).first_edge)
+        self.edge_tree_height_helper(self.nodes.index(node.index()).get_first_edge())
     }
 
     fn edge_tree_height_helper(&self, root: EdgeIndex<Ix>) -> usize {
@@ -172,9 +172,9 @@ where
         let edge_idx = EdgeIndex::new(self.edges.len());
 
         // look for root, simple case where no root handled
-        let first_edge = self.nodes.index(a.index()).first_edge;
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
         if first_edge == EdgeIndex::end() {
-            self.nodes.index_mut(a.index()).first_edge = edge_idx;
+            self.nodes.index_mut(a.index()).set_first_edge(edge_idx);
             self.edges.push(edge);
             return Some(edge_idx);
         }
@@ -200,10 +200,11 @@ where
 
     pub fn add_balanced_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) {
         // look for root, simple case where no root handled
-        let first_edge = self.nodes.index(a.index()).first_edge;
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
 
         // recursive insert into AVL tree
-        self.nodes.index_mut(a.index()).first_edge = self.avl_insert_edge(first_edge, weight, b);
+        let new_first_edge = self.avl_insert_edge(first_edge, weight, b);
+        self.nodes.index_mut(a.index()).set_first_edge(new_first_edge);
     }
 
     fn avl_insert_edge(
@@ -345,7 +346,7 @@ where
     }
 
     pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
-        let first_edge = self.nodes.index(a.index()).first_edge;
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
         if first_edge == EdgeIndex::end() {
             return None;
         }
@@ -358,7 +359,7 @@ where
     }
 
     pub fn reroute_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
-        let first_edge = self.nodes.index(a.index()).first_edge;
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
         if first_edge == EdgeIndex::end() {
             return false;
         }
@@ -372,7 +373,7 @@ where
     }
 
     pub fn n_edges(&self, a: NodeIndex<Ix>) -> usize {
-        let mut stack = vec![self.nodes.index(a.index()).first_edge];
+        let mut stack = vec![self.nodes.index(a.index()).get_first_edge()];
         let mut count = 0;
         while let Some(top) = stack.pop() {
             if top == EdgeIndex::end() {
@@ -410,7 +411,7 @@ where
 {
     type Output = N;
     fn index(&self, index: NodeIndex<Ix>) -> &N {
-        &self.nodes.index(index.index()).weight
+        self.nodes.index(index.index()).get_weight()
     }
 }
 
@@ -421,7 +422,7 @@ where
     Ix: IndexType,
 {
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
-        &mut self.nodes.index_mut(index.index()).weight
+        self.nodes.index_mut(index.index()).get_weight_mut()
     }
 }
 
@@ -505,7 +506,7 @@ where
     Ix: IndexType,
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix, VecN, VecE>, node: NodeIndex<Ix>) -> Self {
-        let root = graph.nodes.index(node.index()).first_edge;
+        let root = graph.nodes.index(node.index()).get_first_edge();
         let stack = vec![root];
         // let mut stack = LinkedList::new();
         // stack.push_back(root);
@@ -701,7 +702,7 @@ mod tests {
         graph.add_balanced_edge(q1, q0, 0);
         graph.add_balanced_edge(q1, q0, 1);
 
-        let mut root = graph.nodes[q1.index()].first_edge;
+        let mut root = graph.nodes[q1.index()].get_first_edge();
         let mut left: EdgeIndex = graph.edges[root.index()].left;
         let mut right: EdgeIndex = graph.edges[root.index()].right;
         assert_eq!(graph.edges[root.index()].balance_factor, -1);
@@ -710,7 +711,7 @@ mod tests {
 
         graph.add_balanced_edge(q1, q0, 2);
 
-        root = graph.nodes[q1.index()].first_edge;
+        root = graph.nodes[q1.index()].get_first_edge();
         left = graph.edges[root.index()].left;
         right = graph.edges[root.index()].right;
         assert_eq!(graph.edges[root.index()].balance_factor, 0);

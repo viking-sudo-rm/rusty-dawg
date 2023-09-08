@@ -1,5 +1,6 @@
 // pub mod byte_field;
 mod vec;
+mod zero_copy;
 
 pub trait MemoryBacking<T> {
     fn new() -> Self

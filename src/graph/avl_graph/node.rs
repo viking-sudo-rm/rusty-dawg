@@ -10,8 +10,29 @@ pub struct Node<N, Ix = DefaultIx> {
         serialize = "N: Serialize, Ix: Serialize",
         deserialize = "N: Deserialize<'de>, Ix: Deserialize<'de>",
     ))]
-    pub weight: N,
-    pub first_edge: EdgeIndex<Ix>,
+    weight: N,
+    first_edge: EdgeIndex<Ix>,
+}
+
+impl<N, Ix> Node<N, Ix>
+where
+    Ix: Copy,
+{
+    pub fn get_weight(&self) -> &N {
+        &self.weight
+    }
+
+    pub fn get_weight_mut(&mut self) -> &mut N {
+        &mut self.weight
+    }
+
+    pub fn get_first_edge(&self) -> EdgeIndex<Ix> {
+        self.first_edge
+    }
+
+    pub fn set_first_edge(&mut self, first_edge: EdgeIndex<Ix>) {
+        self.first_edge = first_edge;
+    }
 }
 
 impl<N, Ix> Clone for Node<N, Ix>
