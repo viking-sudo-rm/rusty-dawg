@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use std::fs;
 
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
@@ -71,7 +70,7 @@ impl Dawg {
         let graph = self.dawg.get_graph();
         graph
             .edges(state_index)
-            .map(|edge| (edge.target().index(), *edge.weight()))
+            .map(|edge| (edge.get_target().index(), *edge.get_weight()))
             .collect()
     }
 
