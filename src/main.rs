@@ -26,7 +26,6 @@ mod evaluator;
 mod graph;
 mod io;
 mod lms;
-mod memory_backing;
 mod stat_utils;
 mod tokenize;
 mod weight;

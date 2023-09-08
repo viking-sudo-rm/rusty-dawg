@@ -1,8 +1,4 @@
-// pub mod byte_field;
-mod vec;
-mod zero_copy;
-
-pub trait MemoryBacking<T> {
+pub trait VecBacking<T> {
     fn new() -> Self
     where
         Self: Sized;

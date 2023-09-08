@@ -18,14 +18,14 @@ use std::ops::{Index, IndexMut};
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 pub mod dot;
-pub mod edge;
-pub mod node;
 mod serde;
 
-use memory_backing::MemoryBacking;
+use graph::memory_backing::vec_backing::VecBacking;
+use graph::memory_backing::node_backing::NodeBacking;
+use graph::memory_backing::edge_backing::EdgeBacking;
 
-use graph::avl_graph::edge::Edge;
-use graph::avl_graph::node::Node;
+use graph::memory_backing::ram_backing::edge::Edge;
+use graph::memory_backing::ram_backing::node::Node;
 
 #[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx, VecN = Vec<Node<N, Ix>>, VecE = Vec<Edge<E, Ix>>> {
@@ -37,8 +37,8 @@ pub struct AvlGraph<N, E, Ix = DefaultIx, VecN = Vec<Node<N, Ix>>, VecE = Vec<Ed
 impl<N, E, Ix, VecN, VecE> AvlGraph<N, E, Ix, VecN, VecE>
 where
     E: Eq + Ord + Copy + Debug,
-    VecN: MemoryBacking<Node<N, Ix>>,
-    VecE: MemoryBacking<Edge<E, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
+    VecE: VecBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     pub fn new() -> Self {
@@ -85,7 +85,7 @@ where
         }
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
-        let first_clone_edge = Edge::new(edge_to_clone.weight, edge_to_clone.target());
+        let first_clone_edge = Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes.index_mut(clone_idx.index()).set_first_edge(first_clone_idx);
@@ -102,8 +102,8 @@ where
         let right = self.edges.index(old.index()).right;
 
         if left != EdgeIndex::end() {
-            let left_weight = self.edges.index(left.index()).weight;
-            let left_target = self.edges.index(left.index()).target();
+            let left_weight = *self.edges.index(left.index()).get_weight();
+            let left_target = self.edges.index(left.index()).get_target();
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
@@ -112,8 +112,8 @@ where
         }
 
         if right != EdgeIndex::end() {
-            let right_weight = self.edges.index(right.index()).weight;
-            let right_target = self.edges.index(right.index()).target();
+            let right_weight = *self.edges.index(right.index()).get_weight();
+            let right_target = self.edges.index(right.index()).get_target();
             let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
@@ -185,7 +185,7 @@ where
             return None;
         }
         // weight of the parent
-        let add_weight = self.edges.index(last_e.index()).weight;
+        let add_weight = *self.edges.index(last_e.index()).get_weight();
         // weight less than parent, add left else right (the tree thing, no case where weights are equal)
         if weight < add_weight {
             self.edges.index_mut(last_e.index()).left = edge_idx;
@@ -221,7 +221,7 @@ where
         }
 
         // keep recursing into the tree according to balance tree insert rule
-        let root_edge_weight = self.edges.index(root_edge_idx.index()).weight;
+        let root_edge_weight = *self.edges.index(root_edge_idx.index()).get_weight();
 
         if weight < root_edge_weight {
             let init_left_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).left;
@@ -355,7 +355,7 @@ where
         if e == EdgeIndex::end() {
             return None;
         }
-        Some(self.edges.index(e.index()).target())
+        Some(self.edges.index(e.index()).get_target())
     }
 
     pub fn reroute_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
@@ -405,8 +405,8 @@ where
 
 impl<N, E, Ix, VecN, VecE> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix, VecN, VecE>
 where
-    VecN: MemoryBacking<Node<N, Ix>>,
-    VecE: MemoryBacking<Edge<E, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
+    VecE: VecBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     type Output = N;
@@ -417,8 +417,8 @@ where
 
 impl<N, E, Ix, VecN, VecE> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix, VecN, VecE>
 where
-    VecN: MemoryBacking<Node<N, Ix>>,
-    VecE: MemoryBacking<Edge<E, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
+    VecE: VecBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
@@ -435,20 +435,20 @@ where
 
 impl<'a, N, E, Ix, VecN, VecE> Iterator for Neighbors<'a, N, E, Ix, VecN, VecE>
 where
-    VecN: MemoryBacking<Node<N, Ix>>,
-    VecE: MemoryBacking<Edge<E, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
+    VecE: VecBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     type Item = NodeIndex<Ix>;
 
     fn next(&mut self) -> Option<NodeIndex<Ix>> {
-        self.edges.next().map(|edge| edge.target())
+        self.edges.next().map(|edge| edge.get_target())
     }
 }
 
 impl<'a, N, E, Ix, VecN, VecE> Neighbors<'a, N, E, Ix, VecN, VecE>
 where
-    VecN: MemoryBacking<Node<N, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
     Ix: IndexType,
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix, VecN, VecE>, node: NodeIndex<Ix>) -> Self {
@@ -467,8 +467,8 @@ where
 
 impl<'a, N, E, Ix, VecN, VecE> Iterator for Edges<'a, N, E, Ix, VecN, VecE>
 where
-    VecN: MemoryBacking<Node<N, Ix>>,
-    VecE: MemoryBacking<Edge<E, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
+    VecE: VecBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     type Item = &'a Edge<E, Ix>;
@@ -502,7 +502,7 @@ where
 
 impl<'a, N, E, Ix, VecN, VecE> Edges<'a, N, E, Ix, VecN, VecE>
 where
-    VecN: MemoryBacking<Node<N, Ix>>,
+    VecN: VecBacking<Node<N, Ix>>,
     Ix: IndexType,
 {
     pub fn new(graph: &'a AvlGraph<N, E, Ix, VecN, VecE>, node: NodeIndex<Ix>) -> Self {
@@ -520,7 +520,7 @@ where
 mod tests {
     use graph::avl_graph::AvlGraph;
     use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
-    // use graph::avl_graph::dot::Dot;
+    use graph::memory_backing::node_backing::NodeBacking;
 
     use serde::{Deserialize, Serialize};
 
@@ -530,11 +530,6 @@ mod tests {
         assert_eq!(graph.add_node(5).index(), 0);
         assert_eq!(graph.add_node(5).index(), 1);
     }
-
-    // fn weights<N, E, Ix>(graph: &AvlGraph<N, E, Ix>, q: NodeIndex<Ix>) -> Vec<E>
-    // where E: Ord + Eq + Copy, Ix: IndexType {
-    //     graph.edges(q).map(|x| *x.weight()).collect::<Vec<_>>()
-    // }
 
     #[test]
     fn test_add_edge() {
@@ -570,10 +565,6 @@ mod tests {
 
         assert_eq!(graph.add_edge(q0, q1, 'b'), Some(EdgeIndex::new(0)));
         assert_eq!(graph.add_edge(q0, q2, 'a'), Some(EdgeIndex::new(1)));
-
-        // println!("{:?}", Dot::new(&graph));
-        // let q0_weights: Vec<_> = graph.edges(q0).map(|x| *x.weight()).collect();
-        // assert_eq!(q0_weights, vec!['a', 'b']);
     }
 
     // #[test]
@@ -753,7 +744,7 @@ mod tests {
         }
         let edges: Vec<_> = graph
             .edges(q0)
-            .map(|x| (*x.weight(), x.target().index()))
+            .map(|x| (x.weight, x.target.index()))
             .collect();
         assert_eq!(
             edges,

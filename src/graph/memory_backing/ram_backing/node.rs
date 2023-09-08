@@ -3,6 +3,7 @@ use std::clone::Clone;
 use std::marker::Copy;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType};
+use graph::memory_backing::node_backing::NodeBacking;
 
 #[derive(Deserialize, Serialize, Copy)]
 pub struct Node<N, Ix = DefaultIx> {
@@ -14,23 +15,23 @@ pub struct Node<N, Ix = DefaultIx> {
     first_edge: EdgeIndex<Ix>,
 }
 
-impl<N, Ix> Node<N, Ix>
+impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
     Ix: Copy,
 {
-    pub fn get_weight(&self) -> &N {
+    fn get_weight(&self) -> &N {
         &self.weight
     }
 
-    pub fn get_weight_mut(&mut self) -> &mut N {
+    fn get_weight_mut(&mut self) -> &mut N {
         &mut self.weight
     }
 
-    pub fn get_first_edge(&self) -> EdgeIndex<Ix> {
+    fn get_first_edge(&self) -> EdgeIndex<Ix> {
         self.first_edge
     }
 
-    pub fn set_first_edge(&mut self, first_edge: EdgeIndex<Ix>) {
+    fn set_first_edge(&mut self, first_edge: EdgeIndex<Ix>) {
         self.first_edge = first_edge;
     }
 }

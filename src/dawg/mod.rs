@@ -15,11 +15,12 @@ use std::fmt::Debug;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
-use memory_backing::MemoryBacking;
+use graph::memory_backing::vec_backing::VecBacking;
 use weight::Weight;
 
-use graph::avl_graph::edge::Edge;
-use graph::avl_graph::node::Node;
+use graph::memory_backing::ram_backing::edge::Edge;
+use graph::memory_backing::ram_backing::node::Node;
+use graph::memory_backing::edge_backing::EdgeBacking;
 use graph::indexing::DefaultIx;
 
 pub struct Dawg<E, W, Ix = DefaultIx, VecE = Vec<Edge<E, Ix>>, VecW = Vec<Node<W, Ix>>> {
@@ -32,8 +33,8 @@ impl<E, W, VecE, VecW> Default for Dawg<E, W, DefaultIx, VecE, VecW>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
-    VecE: MemoryBacking<Edge<E, DefaultIx>>,
-    VecW: MemoryBacking<Node<W, DefaultIx>>,
+    VecE: VecBacking<Edge<E, DefaultIx>>,
+    VecW: VecBacking<Node<W, DefaultIx>>,
 {
     fn default() -> Self {
         Self::new()
@@ -45,8 +46,8 @@ where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
     // Ix: IndexType,
-    VecE: MemoryBacking<Edge<E, DefaultIx>>,
-    VecW: MemoryBacking<Node<W, DefaultIx>>,
+    VecE: VecBacking<Edge<E, DefaultIx>>,
+    VecW: VecBacking<Node<W, DefaultIx>>,
 {
     pub fn new() -> Dawg<E, W, DefaultIx, VecE, VecW> {
         let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> = AvlGraph::new();
@@ -112,7 +113,7 @@ where
                     let edges: Vec<_> = self
                         .dawg
                         .edges(next_state)
-                        .map(|edge| (edge.target(), *edge.weight()))
+                        .map(|edge| (edge.get_target(), *edge.get_weight()))
                         .collect();
                     for (target, weight) in edges {
                         self.dawg.add_balanced_edge(clone, target, weight);

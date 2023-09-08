@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use graph::memory_backing::EdgeBacking;
 
 #[derive(Serialize, Deserialize)]
 pub struct Edge<E, Ix = DefaultIx> {
@@ -10,7 +11,7 @@ pub struct Edge<E, Ix = DefaultIx> {
         deserialize = "E: Deserialize<'de>, Ix: Deserialize<'de>",
     ))]
     pub weight: E,
-    target: NodeIndex<Ix>,
+    pub target: NodeIndex<Ix>,
     pub left: EdgeIndex<Ix>,
     pub right: EdgeIndex<Ix>,
     pub balance_factor: i8,
@@ -42,16 +43,45 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
             balance_factor: 0,
         }
     }
+}
 
-    pub fn weight(&self) -> &E {
+impl<E, Ix> EdgeBacking<E, Ix> for Edge<E, Ix>
+where
+    Ix: Copy,
+{
+    fn get_weight(&self) -> &E {
         &self.weight
     }
 
-    pub fn target(&self) -> NodeIndex<Ix> {
+    fn get_target(&self) -> NodeIndex<Ix> {
         self.target
     }
 
-    pub fn set_target(&mut self, target: NodeIndex<Ix>) {
+    fn set_target(&mut self, target: NodeIndex<Ix>) {
         self.target = target;
+    }
+
+    fn get_left(&self) -> EdgeIndex<Ix> {
+        self.left
+    }
+
+    fn set_left(&mut self, left: EdgeIndex<Ix>) {
+        self.left = left;
+    }
+
+    fn get_right(&self) -> EdgeIndex<Ix> {
+        self.right
+    }
+
+    fn set_right(&mut self, right: EdgeIndex<Ix>) {
+        self.right = right;
+    }
+
+    fn get_balance_factor(&self) -> i8 {
+        self.balance_factor
+    }
+
+    fn set_balance_factor(&mut self, bf: i8) {
+        self.balance_factor = bf;
     }
 }

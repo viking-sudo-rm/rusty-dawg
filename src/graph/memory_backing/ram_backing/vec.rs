@@ -1,6 +1,6 @@
-use memory_backing::MemoryBacking;
+use graph::memory_backing::vec_backing::VecBacking;
 
-impl<T> MemoryBacking<T> for Vec<T> {
+impl<T> VecBacking<T> for Vec<T> {
     fn new() -> Self {
         Vec::new()
     }
@@ -29,18 +29,18 @@ impl<T> MemoryBacking<T> for Vec<T> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use memory_backing::MemoryBacking;
+    use graph::memory_backing::vec_backing::VecBacking;
 
     #[test]
     fn test_index() {
-        let mb: Box<dyn MemoryBacking<u8>> = Box::new(vec![12, 21]);
+        let mb: Box<dyn VecBacking<u8>> = Box::new(vec![12, 21]);
         assert_eq!(*mb.index(0), 12);
         assert_eq!(*mb.index(1), 21);
     }
 
     #[test]
     fn test_index_mut() {
-        let mut mb: Box<dyn MemoryBacking<u8>> = Box::new(vec![12, 21]);
+        let mut mb: Box<dyn VecBacking<u8>> = Box::new(vec![12, 21]);
         assert_eq!(*mb.index(0), 12);
         *mb.index_mut(0) = 32;
         assert_eq!(*mb.index(0), 32);
