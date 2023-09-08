@@ -17,8 +17,15 @@ pub struct Node<N, Ix = DefaultIx> {
 
 impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
-    Ix: Copy,
+    Ix: IndexType + Copy,
 {
+    fn new(weight: N) -> Self {
+        Self {
+            weight,
+            first_edge: EdgeIndex::end(),
+        }
+    }
+
     fn get_weight(&self) -> &N {
         &self.weight
     }
@@ -45,15 +52,6 @@ where
         Node {
             weight: self.weight.clone(),
             first_edge: self.first_edge.clone(),
-        }
-    }
-}
-
-impl<N, Ix: IndexType> Node<N, Ix> {
-    pub fn new(weight: N) -> Self {
-        Self {
-            weight,
-            first_edge: EdgeIndex::end(),
         }
     }
 }

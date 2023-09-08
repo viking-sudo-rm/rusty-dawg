@@ -15,49 +15,49 @@ use std::fmt::Debug;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
-use graph::memory_backing::vec_backing::VecBacking;
 use weight::Weight;
 
-use graph::memory_backing::ram_backing::edge::Edge;
-use graph::memory_backing::ram_backing::node::Node;
+use graph::memory_backing::MemoryBacking;
 use graph::memory_backing::edge_backing::EdgeBacking;
-use graph::indexing::DefaultIx;
+use graph::memory_backing::ram_backing::RamBacking;
+use graph::indexing::{DefaultIx, IndexType};
 
-pub struct Dawg<E, W, Ix = DefaultIx, VecE = Vec<Edge<E, Ix>>, VecW = Vec<Node<W, Ix>>> {
-    dawg: AvlGraph<W, E, Ix, VecW, VecE>,
+pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
+where
+    Mb: MemoryBacking<W, E, Ix>,
+    Ix: IndexType,
+{
+    dawg: AvlGraph<W, E, Ix, Mb>,
     initial: NodeIndex<Ix>,
 }
 
 // Currently the implementation fixes DefaultIx. Would not be too hard to generalize.
-impl<E, W, VecE, VecW> Default for Dawg<E, W, DefaultIx, VecE, VecW>
+impl<E, W, Mb> Default for Dawg<E, W, DefaultIx, Mb>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
-    VecE: VecBacking<Edge<E, DefaultIx>>,
-    VecW: VecBacking<Node<W, DefaultIx>>,
+    Mb: MemoryBacking<W, E, DefaultIx>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E, W, VecE, VecW> Dawg<E, W, DefaultIx, VecE, VecW>
+impl<E, W, Mb> Dawg<E, W, DefaultIx, Mb>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
-    // Ix: IndexType,
-    VecE: VecBacking<Edge<E, DefaultIx>>,
-    VecW: VecBacking<Node<W, DefaultIx>>,
+    Mb: MemoryBacking<W, E, DefaultIx>,
 {
-    pub fn new() -> Dawg<E, W, DefaultIx, VecE, VecW> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> = AvlGraph::new();
+    pub fn new() -> Dawg<E, W, DefaultIx, Mb> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new();
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
 
-    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, VecE, VecW> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, VecW, VecE> =
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
             AvlGraph::with_capacity(n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
@@ -301,7 +301,7 @@ where
         max_ratio
     }
 
-    pub fn get_graph(&self) -> &AvlGraph<W, E, DefaultIx, VecW, VecE> {
+    pub fn get_graph(&self) -> &AvlGraph<W, E, DefaultIx, Mb> {
         &self.dawg
     }
 }

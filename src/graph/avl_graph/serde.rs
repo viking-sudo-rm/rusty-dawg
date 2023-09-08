@@ -3,14 +3,17 @@ use serde::de::Deserializer;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
+use graph::memory_backing::MemoryBacking;
+use graph::indexing::IndexType;
 
 use std::marker::PhantomData;
 
-impl<N, E, Ix, VecN, VecE> Serialize for AvlGraph<N, E, Ix, VecN, VecE>
+impl<N, E, Ix, Mb> Serialize for AvlGraph<N, E, Ix, Mb>
 where
-    VecE: Serialize,
-    VecN: Serialize,
-    Ix: Serialize,
+    Mb: MemoryBacking<N, E, Ix>,
+    Mb::VecE: Serialize,
+    Mb::VecN: Serialize,
+    Ix: Serialize + IndexType,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -23,34 +26,36 @@ where
     }
 }
 
-impl<'de, N, E, Ix, VecN, VecE> Deserialize<'de> for AvlGraph<N, E, Ix, VecN, VecE>
+impl<'de, N, E, Ix, Mb> Deserialize<'de> for AvlGraph<N, E, Ix, Mb>
 where
-    VecE: Deserialize<'de>,
-    VecN: Deserialize<'de>,
-    Ix: Deserialize<'de>,
+    Mb: MemoryBacking<N, E, Ix>,
+    Mb::VecE: Deserialize<'de>,
+    Mb::VecN: Deserialize<'de>,
+    Ix: Deserialize<'de> + IndexType,
 {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         d.deserialize_struct(
             "AvlGraph",
             &["nodes", "edges"],
-            AvlGraphVisitor::<N, E, Ix, VecN, VecE> {
+            AvlGraphVisitor::<N, E, Ix, Mb> {
                 marker: PhantomData,
             },
         )
     }
 }
 
-pub struct AvlGraphVisitor<N, E, Ix, VecN, VecE> {
-    pub marker: PhantomData<(N, E, Ix, VecN, VecE)>,
+pub struct AvlGraphVisitor<N, E, Ix, Mb> {
+    pub marker: PhantomData<(N, E, Ix, Mb)>,
 }
 
-impl<'de, N, E, Ix, VecN, VecE> Visitor<'de> for AvlGraphVisitor<N, E, Ix, VecN, VecE>
+impl<'de, N, E, Ix, Mb> Visitor<'de> for AvlGraphVisitor<N, E, Ix, Mb>
 where
-    VecE: Deserialize<'de>,
-    VecN: Deserialize<'de>,
-    Ix: Deserialize<'de>,
+    Mb: MemoryBacking<N, E, Ix>,
+    Mb::VecE: Deserialize<'de>,
+    Mb::VecN: Deserialize<'de>,
+    Ix: Deserialize<'de> + IndexType,
 {
-    type Value = AvlGraph<N, E, Ix, VecN, VecE>;
+    type Value = AvlGraph<N, E, Ix, Mb>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("struct AvlGraph")
@@ -60,11 +65,11 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let nodes: VecN = seq
+        let nodes: Mb::VecN = seq
             .next_element()?
             .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
 
-        let edges: VecE = seq
+        let edges: Mb::VecE = seq
             .next_element()?
             .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
 

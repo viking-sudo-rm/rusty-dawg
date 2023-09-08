@@ -33,8 +33,11 @@ where
     }
 }
 
-impl<E, Ix: IndexType> Edge<E, Ix> {
-    pub fn new(weight: E, target: NodeIndex<Ix>) -> Self {
+impl<E, Ix> EdgeBacking<E, Ix> for Edge<E, Ix>
+where
+    Ix: IndexType + Copy,
+{
+    fn new(weight: E, target: NodeIndex<Ix>) -> Self {
         Edge {
             weight,
             target,
@@ -43,12 +46,7 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
             balance_factor: 0,
         }
     }
-}
 
-impl<E, Ix> EdgeBacking<E, Ix> for Edge<E, Ix>
-where
-    Ix: Copy,
-{
     fn get_weight(&self) -> &E {
         &self.weight
     }

@@ -20,30 +20,32 @@ use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 pub mod dot;
 mod serde;
 
+use graph::memory_backing::MemoryBacking;
 use graph::memory_backing::vec_backing::VecBacking;
 use graph::memory_backing::node_backing::NodeBacking;
 use graph::memory_backing::edge_backing::EdgeBacking;
-
-use graph::memory_backing::ram_backing::edge::Edge;
-use graph::memory_backing::ram_backing::node::Node;
+use graph::memory_backing::ram_backing::RamBacking;
 
 #[derive(Default)]
-pub struct AvlGraph<N, E, Ix = DefaultIx, VecN = Vec<Node<N, Ix>>, VecE = Vec<Edge<E, Ix>>> {
-    nodes: VecN,
-    edges: VecE,
+pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, DefaultIx>>
+where
+    Mb: MemoryBacking<N, E, Ix>,
+    Ix: IndexType,
+{
+    nodes: Mb::VecN,
+    edges: Mb::VecE,
     marker: PhantomData<(N, E, Ix)>,
 }
 
-impl<N, E, Ix, VecN, VecE> AvlGraph<N, E, Ix, VecN, VecE>
+impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
 where
+    Mb: MemoryBacking<N, E, Ix>,
     E: Eq + Ord + Copy + Debug,
-    VecN: VecBacking<Node<N, Ix>>,
-    VecE: VecBacking<Edge<E, Ix>>,
     Ix: IndexType,
 {
     pub fn new() -> Self {
-        let nodes = VecN::new();
-        let edges = VecE::new();
+        let nodes = Mb::VecN::new();
+        let edges = Mb::VecE::new();
         AvlGraph {
             nodes,
             edges,
@@ -52,8 +54,8 @@ where
     }
 
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
-        let nodes = VecN::with_capacity(n_nodes);
-        let edges = VecE::with_capacity(n_edges);
+        let nodes = Mb::VecN::with_capacity(n_nodes);
+        let edges = Mb::VecE::with_capacity(n_edges);
         AvlGraph {
             nodes,
             edges,
@@ -62,7 +64,7 @@ where
     }
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
-        let node = Node::new(weight);
+        let node = Mb::Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
         assert!(<Ix as IndexType>::max_value().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
@@ -75,7 +77,7 @@ where
         E: Clone,
         Ix: Clone,
     {
-        let clone = Node::new(self.nodes.index(a.index()).get_weight().clone());
+        let clone = Mb::Node::new(self.nodes.index(a.index()).get_weight().clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(clone);
 
@@ -85,7 +87,7 @@ where
         }
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
-        let first_clone_edge = Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
+        let first_clone_edge = Mb::Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes.index_mut(clone_idx.index()).set_first_edge(first_clone_idx);
@@ -98,26 +100,26 @@ where
         if old == EdgeIndex::end() {
             return;
         }
-        let left = self.edges.index(old.index()).left;
-        let right = self.edges.index(old.index()).right;
+        let left = self.edges.index(old.index()).get_left();
+        let right = self.edges.index(old.index()).get_right();
 
         if left != EdgeIndex::end() {
             let left_weight = *self.edges.index(left.index()).get_weight();
             let left_target = self.edges.index(left.index()).get_target();
-            let new_left_edge = Edge::new(left_weight, left_target);
+            let new_left_edge = Mb::Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
-            self.edges.index_mut(new.index()).left = new_left;
+            self.edges.index_mut(new.index()).set_left(new_left);
             self.clone_edges(left, new_left);
         }
 
         if right != EdgeIndex::end() {
             let right_weight = *self.edges.index(right.index()).get_weight();
             let right_target = self.edges.index(right.index()).get_target();
-            let new_right_edge = Edge::new(right_weight, right_target);
+            let new_right_edge = Mb::Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
-            self.edges.index_mut(new.index()).right = new_right;
+            self.edges.index_mut(new.index()).set_right(new_right);
             self.clone_edges(right, new_right);
         }
     }
@@ -131,8 +133,8 @@ where
             return 0;
         }
         std::cmp::max(
-            self.edge_tree_height_helper(self.edges.index(root.index()).left),
-            self.edge_tree_height_helper(self.edges.index(root.index()).right),
+            self.edge_tree_height_helper(self.edges.index(root.index()).get_left()),
+            self.edge_tree_height_helper(self.edges.index(root.index()).get_right()),
         ) + 1
     }
 
@@ -151,13 +153,13 @@ where
             return (edge, last_edge);
         }
 
-        let edge_weight = self.edges.index(edge.index()).weight;
+        let edge_weight = *self.edges.index(edge.index()).get_weight();
         if weight == edge_weight {
             (edge, last_edge)
         } else if weight < edge_weight {
-            return self.binary_search(self.edges.index(edge.index()).left, edge, weight);
+            return self.binary_search(self.edges.index(edge.index()).get_left(), edge, weight);
         } else {
-            return self.binary_search(self.edges.index(edge.index()).right, edge, weight);
+            return self.binary_search(self.edges.index(edge.index()).get_right(), edge, weight);
         }
     }
 
@@ -168,7 +170,7 @@ where
         b: NodeIndex<Ix>,
         weight: E,
     ) -> Option<EdgeIndex<Ix>> {
-        let edge = Edge::new(weight, b);
+        let edge = Mb::Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
         // look for root, simple case where no root handled
@@ -188,9 +190,9 @@ where
         let add_weight = *self.edges.index(last_e.index()).get_weight();
         // weight less than parent, add left else right (the tree thing, no case where weights are equal)
         if weight < add_weight {
-            self.edges.index_mut(last_e.index()).left = edge_idx;
+            self.edges.index_mut(last_e.index()).set_left(edge_idx);
         } else {
-            self.edges.index_mut(last_e.index()).right = edge_idx;
+            self.edges.index_mut(last_e.index()).set_right(edge_idx);
         }
         // push this into the list of edges
         self.edges.push(edge);
@@ -215,7 +217,7 @@ where
     ) -> EdgeIndex<Ix> {
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
-            let edge = Edge::new(weight, b);
+            let edge = Mb::Edge::new(weight, b);
             self.edges.push(edge);
             return EdgeIndex::new(self.edges.len() - 1);
         }
@@ -224,21 +226,21 @@ where
         let root_edge_weight = *self.edges.index(root_edge_idx.index()).get_weight();
 
         if weight < root_edge_weight {
-            let init_left_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).left;
+            let init_left_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).get_left();
             let init_balance_factor: i8 = if init_left_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges.index(init_left_idx.index()).balance_factor
+                self.edges.index(init_left_idx.index()).get_balance_factor()
             };
 
-            self.edges.index_mut(root_edge_idx.index()).left =
-                self.avl_insert_edge(init_left_idx, weight, b);
+            let new_left = self.avl_insert_edge(init_left_idx, weight, b);
+            self.edges.index_mut(root_edge_idx.index()).set_left(new_left);
 
-            let updated_left_idx = self.edges.index(root_edge_idx.index()).left;
+            let updated_left_idx = self.edges.index(root_edge_idx.index()).get_left();
             let updated_balance_factor = if updated_left_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges.index(updated_left_idx.index()).balance_factor
+                self.edges.index(updated_left_idx.index()).get_balance_factor()
             };
 
             if init_balance_factor == 0
@@ -246,10 +248,11 @@ where
                     || updated_balance_factor == 1
                     || updated_balance_factor == -1)
             {
-                self.edges.index_mut(root_edge_idx.index()).balance_factor += 1;
+                let bf = self.edges.index(root_edge_idx.index()).get_balance_factor();
+                self.edges.index_mut(root_edge_idx.index()).set_balance_factor(bf + 1);
             }
 
-            let current_balance_factor: i8 = self.edges.index(root_edge_idx.index()).balance_factor;
+            let current_balance_factor: i8 = self.edges.index(root_edge_idx.index()).get_balance_factor();
             if current_balance_factor == 2 {
                 if updated_balance_factor == 1 {
                     return self.rotate_from_left(root_edge_idx);
@@ -258,21 +261,21 @@ where
                 }
             }
         } else if root_edge_weight < weight {
-            let init_right_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).right;
+            let init_right_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).get_right();
             let init_balance_factor: i8 = if init_right_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges.index(init_right_idx.index()).balance_factor
+                self.edges.index(init_right_idx.index()).get_balance_factor()
             };
 
-            self.edges.index_mut(root_edge_idx.index()).right =
-                self.avl_insert_edge(init_right_idx, weight, b);
+            let new_right = self.avl_insert_edge(init_right_idx, weight, b);
+            self.edges.index_mut(root_edge_idx.index()).set_right(new_right);
 
-            let updated_right_idx = self.edges.index(root_edge_idx.index()).right;
+            let updated_right_idx = self.edges.index(root_edge_idx.index()).get_right();
             let updated_balance_factor = if updated_right_idx == EdgeIndex::end() {
                 0
             } else {
-                self.edges.index(updated_right_idx.index()).balance_factor
+                self.edges.index(updated_right_idx.index()).get_balance_factor()
             };
 
             if init_balance_factor == 0
@@ -280,10 +283,11 @@ where
                     || updated_balance_factor == 1
                     || updated_balance_factor == -1)
             {
-                self.edges.index_mut(root_edge_idx.index()).balance_factor -= 1;
+                let bf = self.edges.index(root_edge_idx.index()).get_balance_factor();
+                self.edges.index_mut(root_edge_idx.index()).set_balance_factor(bf - 1);
             }
 
-            let current_balance_factor: i8 = self.edges.index(root_edge_idx.index()).balance_factor;
+            let current_balance_factor: i8 = self.edges.index(root_edge_idx.index()).get_balance_factor();
             if current_balance_factor == -2 {
                 if updated_balance_factor == -1 {
                     return self.rotate_from_right(root_edge_idx);
@@ -298,50 +302,56 @@ where
 
     // AVL tree balance insert functions
     fn rotate_from_right(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
-        let p: EdgeIndex<Ix> = self.edges.index(node_ptr.index()).right;
-        self.edges.index_mut(node_ptr.index()).right = self.edges.index(p.index()).left;
-        self.edges.index_mut(p.index()).left = node_ptr;
+        let p: EdgeIndex<Ix> = self.edges.index(node_ptr.index()).get_right();
+        let p_left = self.edges.index(p.index()).get_left();
+        self.edges.index_mut(node_ptr.index()).set_right(p_left);
+        self.edges.index_mut(p.index()).set_left(node_ptr);
 
         // update balance-factors
         // update rules taken from: https://cs.stackexchange.com/questions/48861/balance-factor-changes-after-local-rotations-in-avl-tree
         // p is l' and p.left (node_ptr) is n'
         // b(n') = b(n) + 1 - min(b(l), 0)
         // b(l') = b(l) + 1 + max(b(n'), 0)
-        self.edges.index_mut(node_ptr.index()).balance_factor +=
-            1 - min(self.edges.index(p.index()).balance_factor, 0);
-        self.edges.index_mut(p.index()).balance_factor +=
-            1 + max(self.edges.index(node_ptr.index()).balance_factor, 0);
+        let node_bf = self.edges.index(node_ptr.index()).get_balance_factor();
+        let p_bf = self.edges.index(p.index()).get_balance_factor();
+        self.edges.index_mut(node_ptr.index()).set_balance_factor(node_bf + 1 - min(p_bf, 0));
+        let node_bf2 = self.edges.index(node_ptr.index()).get_balance_factor();
+        let p_bf2 = self.edges.index(p.index()).get_balance_factor();
+        self.edges.index_mut(p.index()).set_balance_factor(p_bf2 + 1 + max(node_bf2, 0));
 
         p
     }
 
     fn rotate_from_left(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
-        let p: EdgeIndex<Ix> = self.edges.index(node_ptr.index()).left;
-        self.edges.index_mut(node_ptr.index()).left = self.edges.index(p.index()).right;
-        self.edges.index_mut(p.index()).right = node_ptr;
+        let p: EdgeIndex<Ix> = self.edges.index(node_ptr.index()).get_left();
+        let p_right = self.edges.index(p.index()).get_right();
+        self.edges.index_mut(node_ptr.index()).set_left(p_right);
+        self.edges.index_mut(p.index()).set_right(node_ptr);
 
         // update balance-factors
         // update rules taken from: https://cs.stackexchange.com/questions/48861/balance-factor-changes-after-local-rotations-in-avl-tree
         // p is l' and p.right (node_ptr) is n'
         // b(n') = b(n) - 1 - max(b(l), 0)
         // b(l') = b(l) - 1 + min(b(n'), 0)
-        self.edges.index_mut(node_ptr.index()).balance_factor -=
-            1 + max(self.edges.index(p.index()).balance_factor, 0);
-        self.edges.index_mut(p.index()).balance_factor -=
-            1 - min(self.edges.index(node_ptr.index()).balance_factor, 0);
+        let node_bf = self.edges.index(node_ptr.index()).get_balance_factor();
+        let p_bf = self.edges.index(p.index()).get_balance_factor();
+        self.edges.index_mut(node_ptr.index()).set_balance_factor(node_bf - 1 - max(p_bf, 0));
+        let node_bf2 = self.edges.index(node_ptr.index()).get_balance_factor();
+        let p_bf2 = self.edges.index(p.index()).get_balance_factor();
+        self.edges.index_mut(p.index()).set_balance_factor(p_bf2 - 1 + min(node_bf2, 0));
 
         p
     }
 
     fn double_rotate_from_right(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
-        self.edges.index_mut(node_ptr.index()).right =
-            self.rotate_from_left(self.edges.index(node_ptr.index()).right);
+        let new_right = self.rotate_from_left(self.edges.index(node_ptr.index()).get_right());
+        self.edges.index_mut(node_ptr.index()).set_right(new_right);
         self.rotate_from_right(node_ptr)
     }
 
     fn double_rotate_from_left(&mut self, node_ptr: EdgeIndex<Ix>) -> EdgeIndex<Ix> {
-        self.edges.index_mut(node_ptr.index()).left =
-            self.rotate_from_right(self.edges.index(node_ptr.index()).left);
+        let new_left = self.rotate_from_right(self.edges.index(node_ptr.index()).get_left());
+        self.edges.index_mut(node_ptr.index()).set_left(new_left);
         self.rotate_from_left(node_ptr)
     }
 
@@ -380,8 +390,8 @@ where
                 continue;
             }
             count += 1;
-            stack.push(self.edges.index(top.index()).left);
-            stack.push(self.edges.index(top.index()).right);
+            stack.push(self.edges.index(top.index()).get_left());
+            stack.push(self.edges.index(top.index()).get_right());
         }
         count
     }
@@ -394,19 +404,18 @@ where
         self.edges.len()
     }
 
-    pub fn neighbors(&self, node: NodeIndex<Ix>) -> Neighbors<N, E, Ix, VecN, VecE> {
+    pub fn neighbors(&self, node: NodeIndex<Ix>) -> Neighbors<N, E, Ix, Mb> {
         Neighbors::new(self, node)
     }
 
-    pub fn edges(&self, edges: NodeIndex<Ix>) -> Edges<N, E, Ix, VecN, VecE> {
+    pub fn edges(&self, edges: NodeIndex<Ix>) -> Edges<N, E, Ix, Mb> {
         Edges::new(self, edges)
     }
 }
 
-impl<N, E, Ix, VecN, VecE> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix, VecN, VecE>
+impl<N, E, Ix, Mb> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix, Mb>
 where
-    VecN: VecBacking<Node<N, Ix>>,
-    VecE: VecBacking<Edge<E, Ix>>,
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
     type Output = N;
@@ -415,10 +424,9 @@ where
     }
 }
 
-impl<N, E, Ix, VecN, VecE> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix, VecN, VecE>
+impl<N, E, Ix, Mb> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix, Mb>
 where
-    VecN: VecBacking<Node<N, Ix>>,
-    VecE: VecBacking<Edge<E, Ix>>,
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
@@ -426,17 +434,17 @@ where
     }
 }
 
-pub struct Neighbors<'a, N, E, Ix, VecN, VecE>
+pub struct Neighbors<'a, N, E, Ix, Mb>
 where
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
-    edges: Edges<'a, N, E, Ix, VecN, VecE>,
+    edges: Edges<'a, N, E, Ix, Mb>,
 }
 
-impl<'a, N, E, Ix, VecN, VecE> Iterator for Neighbors<'a, N, E, Ix, VecN, VecE>
+impl<'a, N, E, Ix, Mb> Iterator for Neighbors<'a, N, E, Ix, Mb>
 where
-    VecN: VecBacking<Node<N, Ix>>,
-    VecE: VecBacking<Edge<E, Ix>>,
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
     type Item = NodeIndex<Ix>;
@@ -446,37 +454,37 @@ where
     }
 }
 
-impl<'a, N, E, Ix, VecN, VecE> Neighbors<'a, N, E, Ix, VecN, VecE>
+impl<'a, N, E, Ix, Mb> Neighbors<'a, N, E, Ix, Mb>
 where
-    VecN: VecBacking<Node<N, Ix>>,
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
-    pub fn new(graph: &'a AvlGraph<N, E, Ix, VecN, VecE>, node: NodeIndex<Ix>) -> Self {
+    pub fn new(graph: &'a AvlGraph<N, E, Ix, Mb>, node: NodeIndex<Ix>) -> Self {
         let edges = Edges::new(graph, node);
         Self { edges }
     }
 }
 
-pub struct Edges<'a, N, E, Ix, VecN, VecE>
+pub struct Edges<'a, N, E, Ix, Mb>
 where
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
-    graph: &'a AvlGraph<N, E, Ix, VecN, VecE>,
+    graph: &'a AvlGraph<N, E, Ix, Mb>,
     stack: Vec<EdgeIndex<Ix>>,
 }
 
-impl<'a, N, E, Ix, VecN, VecE> Iterator for Edges<'a, N, E, Ix, VecN, VecE>
+impl<'a, N, E, Ix, Mb> Iterator for Edges<'a, N, E, Ix, Mb>
 where
-    VecN: VecBacking<Node<N, Ix>>,
-    VecE: VecBacking<Edge<E, Ix>>,
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
-    type Item = &'a Edge<E, Ix>;
+    type Item = &'a Mb::Edge;
 
     // Note that this was hurting performance a lot before!
     // Be careful using a vector as a stack.
     // https://stackoverflow.com/questions/40848918/are-there-queue-and-stack-collections-in-rust
-    fn next(&mut self) -> Option<&'a Edge<E, Ix>> {
+    fn next(&mut self) -> Option<&'a Mb::Edge> {
         // Is this pop_back()????
         match self.stack.pop() {
             None => None,
@@ -486,11 +494,11 @@ where
                     return None;
                 }
 
-                let left = self.graph.edges.index(idx.index()).left;
+                let left = self.graph.edges.index(idx.index()).get_left();
                 if left != EdgeIndex::end() {
                     self.stack.push(left);
                 }
-                let right = self.graph.edges.index(idx.index()).right;
+                let right = self.graph.edges.index(idx.index()).get_right();
                 if right != EdgeIndex::end() {
                     self.stack.push(right);
                 }
@@ -500,12 +508,12 @@ where
     }
 }
 
-impl<'a, N, E, Ix, VecN, VecE> Edges<'a, N, E, Ix, VecN, VecE>
+impl<'a, N, E, Ix, Mb> Edges<'a, N, E, Ix, Mb>
 where
-    VecN: VecBacking<Node<N, Ix>>,
+    Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
-    pub fn new(graph: &'a AvlGraph<N, E, Ix, VecN, VecE>, node: NodeIndex<Ix>) -> Self {
+    pub fn new(graph: &'a AvlGraph<N, E, Ix, Mb>, node: NodeIndex<Ix>) -> Self {
         let root = graph.nodes.index(node.index()).get_first_edge();
         let stack = vec![root];
         // let mut stack = LinkedList::new();
