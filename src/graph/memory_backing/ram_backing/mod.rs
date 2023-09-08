@@ -1,10 +1,10 @@
-pub mod node;
 pub mod edge;
+pub mod node;
 mod vec;
 
-use std::marker::PhantomData;
-use graph::memory_backing::MemoryBacking;
 use graph::indexing::IndexType;
+use graph::memory_backing::MemoryBacking;
+use std::marker::PhantomData;
 
 pub struct RamBacking<N, E, Ix> {
     marker: PhantomData<(N, E, Ix)>,

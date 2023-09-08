@@ -17,10 +17,10 @@ use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
 use weight::Weight;
 
-use graph::memory_backing::MemoryBacking;
+use graph::indexing::{DefaultIx, IndexType};
 use graph::memory_backing::edge_backing::EdgeBacking;
 use graph::memory_backing::ram_backing::RamBacking;
-use graph::indexing::{DefaultIx, IndexType};
+use graph::memory_backing::MemoryBacking;
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -57,8 +57,7 @@ where
     }
 
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
-            AvlGraph::with_capacity(n_nodes, n_edges);
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::with_capacity(n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }

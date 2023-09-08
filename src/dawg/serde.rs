@@ -4,9 +4,9 @@ use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
 
 use graph::avl_graph::AvlGraph;
-use graph::indexing::{NodeIndex, IndexType};
-use serde::de::{SeqAccess, Visitor};
+use graph::indexing::{IndexType, NodeIndex};
 use graph::memory_backing::MemoryBacking;
+use serde::de::{SeqAccess, Visitor};
 
 use std::marker::PhantomData;
 

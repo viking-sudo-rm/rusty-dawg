@@ -1,10 +1,10 @@
 use graph::avl_graph::AvlGraph;
+use graph::indexing::IndexType;
+use graph::memory_backing::MemoryBacking;
 use serde::de::Deserializer;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
-use graph::memory_backing::MemoryBacking;
-use graph::indexing::IndexType;
 
 use std::marker::PhantomData;
 

@@ -1,4 +1,4 @@
-use graph::indexing::{NodeIndex, EdgeIndex};
+use graph::indexing::{EdgeIndex, NodeIndex};
 
 pub trait EdgeBacking<E, Ix> {
     fn new(weight: E, target: NodeIndex<Ix>) -> Self;
