@@ -1,8 +1,6 @@
 use graph::indexing::{EdgeIndex, NodeIndex};
 
 pub trait EdgeBacking<E, Ix> {
-    fn new(weight: E, target: NodeIndex<Ix>) -> Self;
-
     fn get_weight(&self) -> &E;
 
     fn get_target(&self) -> NodeIndex<Ix>;

@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 
 impl<E, W, Ix, Mb> Serialize for Dawg<E, W, Ix, Mb>
 where
-    Mb: MemoryBacking<W, E, Ix>,
+    Mb: MemoryBacking<W, E, Ix> + Default,
     Mb::VecE: Serialize,
     Mb::VecN: Serialize,
     Ix: Serialize + IndexType,
@@ -30,7 +30,7 @@ where
 
 impl<'de, E, W, Ix, Mb> Deserialize<'de> for Dawg<E, W, Ix, Mb>
 where
-    Mb: MemoryBacking<W, E, Ix>,
+    Mb: MemoryBacking<W, E, Ix> + Default,
     Mb::VecE: Deserialize<'de>,
     Mb::VecN: Deserialize<'de>,
     Ix: Deserialize<'de> + IndexType,
@@ -52,7 +52,7 @@ pub struct DawgVisitor<E, W, Ix, Mb> {
 
 impl<'de, E, W, Ix, Mb> Visitor<'de> for DawgVisitor<E, W, Ix, Mb>
 where
-    Mb: MemoryBacking<W, E, Ix>,
+    Mb: MemoryBacking<W, E, Ix> + Default,
     Mb::VecE: Deserialize<'de>,
     Mb::VecN: Deserialize<'de>,
     Ix: Deserialize<'de> + IndexType,

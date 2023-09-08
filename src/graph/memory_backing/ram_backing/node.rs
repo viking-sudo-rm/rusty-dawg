@@ -11,21 +11,14 @@ pub struct Node<N, Ix = DefaultIx> {
         serialize = "N: Serialize, Ix: Serialize",
         deserialize = "N: Deserialize<'de>, Ix: Deserialize<'de>",
     ))]
-    weight: N,
-    first_edge: EdgeIndex<Ix>,
+    pub weight: N,
+    pub first_edge: EdgeIndex<Ix>,
 }
 
 impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
     Ix: IndexType + Copy,
 {
-    fn new(weight: N) -> Self {
-        Self {
-            weight,
-            first_edge: EdgeIndex::end(),
-        }
-    }
-
     fn get_weight(&self) -> &N {
         &self.weight
     }

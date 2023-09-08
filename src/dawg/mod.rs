@@ -32,14 +32,30 @@ where
 }
 
 // Currently the implementation fixes DefaultIx. Would not be too hard to generalize.
-impl<E, W, Mb> Default for Dawg<E, W, DefaultIx, Mb>
+// impl<E, W, Mb> Default for Dawg<E, W, DefaultIx, Mb>
+// where
+//     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
+//     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+//     Mb: MemoryBacking<W, E, DefaultIx>,
+// {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
+
+impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
-    Mb: MemoryBacking<W, E, DefaultIx>,
 {
-    fn default() -> Self {
-        Self::new()
+    pub fn new() -> Dawg<E, W> {
+        let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
+        Self::new_mb(mb)
+    }
+
+    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W> {
+        let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
+        Self::with_capacity_mb(mb, n_nodes, n_edges)
     }
 }
 
@@ -49,15 +65,15 @@ where
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
     Mb: MemoryBacking<W, E, DefaultIx>,
 {
-    pub fn new() -> Dawg<E, W, DefaultIx, Mb> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new();
+    fn new_mb(mb: Mb) -> Dawg<E, W, DefaultIx, Mb> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new_mb(mb);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
     }
 
-    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::with_capacity(n_nodes, n_edges);
+    fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg[initial].increment_count();
         Dawg { dawg, initial }
