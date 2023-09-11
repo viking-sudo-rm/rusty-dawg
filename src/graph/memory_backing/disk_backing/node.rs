@@ -7,8 +7,8 @@ use graph::indexing::{DefaultIx, EdgeIndex, IndexType};
 use graph::memory_backing::node_backing::NodeBacking;
 
 pub struct Node<N, Ix = DefaultIx> {
-    pub bytes: File,  // FIXME: not sure what the right type is here.
-    pub idx: usize,
+    pub bytes: DiskVec,  // FIXME: not sure what the right type is here.
+    pub idx: usize,  // Initialize to -1 to mark not pushed?
 }
 
 const WEIGHT_START: usize = 0;

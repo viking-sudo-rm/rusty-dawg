@@ -13,8 +13,8 @@ const BF_START: usize = size_of::<E>() + size_of::<NodeIndex<Ix>>() + 2 * size_o
 const END: usize = size_of::<E>() + size_of::<NodeIndex<Ix>>() + 2 * size_of::<EdgeIndex<Ix>>() + size_of::<i8>();
 
 pub struct Edge<E, Ix = DefaultIx> {
-    pub bytes: File,  // FIXME: not sure what the right type is here.
-    pub idx: usize,
+    pub bytes: DiskVec,  // FIXME: not sure what the right type is here.
+    pub idx: usize,  // Initialize to -1 to mark not pushed?
 }
 
 impl<E, Ix> EdgeBacking<E, Ix> for Edge<E, Ix>

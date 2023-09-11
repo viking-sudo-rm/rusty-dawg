@@ -9,10 +9,6 @@ use self::node_backing::NodeBacking;
 use self::vec_backing::VecBacking;
 use graph::indexing::NodeIndex;
 
-// pub enum Backings {
-//     RamBacking(Box<ram_backing::RamBacking>),
-// }
-
 pub trait MemoryBacking<N, E, Ix> {
     type Node: NodeBacking<N, Ix>;
     type Edge: EdgeBacking<E, Ix>;
