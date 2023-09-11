@@ -19,6 +19,13 @@ impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
     Ix: IndexType + Copy,
 {
+    fn new(weight: N) -> Self {
+        Self {
+            weight,
+            first_edge: EdgeIndex::end(),
+        }
+    }
+
     fn get_weight(&self) -> &N {
         &self.weight
     }

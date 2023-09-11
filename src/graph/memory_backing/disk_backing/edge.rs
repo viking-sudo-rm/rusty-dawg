@@ -13,8 +13,12 @@ const BF_START: usize = size_of::<E>() + size_of::<NodeIndex<Ix>>() + 2 * size_o
 const END: usize = size_of::<E>() + size_of::<NodeIndex<Ix>>() + 2 * size_of::<EdgeIndex<Ix>>() + size_of::<i8>();
 
 pub struct Edge<E, Ix = DefaultIx> {
-    pub bytes: DiskVec,  // FIXME: not sure what the right type is here.
-    pub idx: usize,  // Initialize to -1 to mark not pushed?
+    pub bytes: Option<DiskVec>,  // Initialize to None, set to Some when pushed.
+    pub idx: Option<usize>,  // Initialize to -1, set to index when pushed.
+
+    // Only used to store data when an Edge is created before it's pushed.
+    transient_weight: Option<E>,
+    transient_target: Option<NodeIndex<Ix>>,
 }
 
 impl<E, Ix> EdgeBacking<E, Ix> for Edge<E, Ix>
@@ -22,6 +26,15 @@ where
     Ix: IndexType + Copy,
     E: Sized,
 {
+    pub fn new(weight: E, target: NodeIndex<Ix>) -> Self {
+        Self {
+            bytes: None,
+            idx: None,
+            transient_weight: Some(weight),
+            transient_target: Some(target),
+        }
+    }
+
     fn get_weight(&self) -> &E {
         let bytes = self.bytes.read(WEIGHT_START, TARGET_START);
         let weight = deserialize(&bytes).unwrap()

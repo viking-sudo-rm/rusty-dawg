@@ -86,7 +86,7 @@ where
 {
 
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
-        let node = self.mb.new_node(weight);
+        let node = Mb::Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
         assert!(<Ix as IndexType>::max_value().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
@@ -99,7 +99,7 @@ where
         E: Clone,
         Ix: Clone,
     {
-        let clone = self.mb.new_node(self.nodes.index(a.index()).get_weight().clone());
+        let clone = Mb::Node::new(self.nodes.index(a.index()).get_weight().clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(clone);
 
@@ -110,7 +110,7 @@ where
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
         let first_clone_edge =
-            self.mb.new_edge(*edge_to_clone.get_weight(), edge_to_clone.get_target());
+            Mb::Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes
@@ -131,7 +131,7 @@ where
         if left != EdgeIndex::end() {
             let left_weight = *self.edges.index(left.index()).get_weight();
             let left_target = self.edges.index(left.index()).get_target();
-            let new_left_edge = self.mb.new_edge(left_weight, left_target);
+            let new_left_edge = Mb::Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
             self.edges.index_mut(new.index()).set_left(new_left);
@@ -141,7 +141,7 @@ where
         if right != EdgeIndex::end() {
             let right_weight = *self.edges.index(right.index()).get_weight();
             let right_target = self.edges.index(right.index()).get_target();
-            let new_right_edge = self.mb.new_edge(right_weight, right_target);
+            let new_right_edge = Mb::Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
             self.edges.index_mut(new.index()).set_right(new_right);
@@ -195,7 +195,7 @@ where
         b: NodeIndex<Ix>,
         weight: E,
     ) -> Option<EdgeIndex<Ix>> {
-        let edge = self.mb.new_edge(weight, b);
+        let edge = Mb::Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
         // look for root, simple case where no root handled
@@ -244,7 +244,7 @@ where
     ) -> EdgeIndex<Ix> {
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
-            let edge = self.mb.new_edge(weight, b);
+            let edge = Mb::Edge::new(weight, b);
             self.edges.push(edge);
             return EdgeIndex::new(self.edges.len() - 1);
         }

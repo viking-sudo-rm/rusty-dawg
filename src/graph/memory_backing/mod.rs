@@ -7,7 +7,6 @@ pub mod vec_backing;
 use self::edge_backing::EdgeBacking;
 use self::node_backing::NodeBacking;
 use self::vec_backing::VecBacking;
-use graph::indexing::NodeIndex;
 
 pub trait MemoryBacking<N, E, Ix> {
     type Node: NodeBacking<N, Ix>;
@@ -15,10 +14,6 @@ pub trait MemoryBacking<N, E, Ix> {
 
     type VecN: VecBacking<Self::Node>;
     type VecE: VecBacking<Self::Edge>;
-
-    fn new_node(&self, weight: N) -> Self::Node;
-
-    fn new_edge(&self, weight: E, target: NodeIndex<Ix>) -> Self::Edge;
 
     fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN;
 

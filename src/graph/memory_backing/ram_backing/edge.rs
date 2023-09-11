@@ -37,6 +37,16 @@ impl<E, Ix> EdgeBacking<E, Ix> for Edge<E, Ix>
 where
     Ix: IndexType + Copy,
 {
+    fn new(weight: E, target: NodeIndex<Ix>) -> Self {
+        Self {
+            weight,
+            target,
+            left: EdgeIndex::end(),
+            right: EdgeIndex::end(),
+            balance_factor: 0,
+        }
+    }
+
     fn get_weight(&self) -> &E {
         &self.weight
     }

@@ -10,8 +10,7 @@ use std::marker::PhantomData;
 
 pub struct DiskBacking<N, E, Ix> {
     marker: PhantomData<(N, E, Ix)>,
-    nodes_vec: Self::VecN,
-    edges_vec: Self::VecE,
+    file_path: String,
 }
 
 impl<N, E, Ix> MemoryBacking<N, E, Ix> for DiskBacking<N, E, Ix>
@@ -21,32 +20,17 @@ where
     type Node = self::node::Node<N, Ix>;
     type Edge = self::edge::Edge<E, Ix>;
 
-    type VecN = DiskVec<Self::Node>;  // FIXME: Need DiskVec here.
-    type VecE = DiskVec<Self::Edge>;  // FIXME: Need DiskVec here.
+    // FIXME: Should these be byte arrays?
+    type VecN = DiskVec<Self::Node>;
+    type VecE = DiskVec<Self::Edge>;
 
-    // The disk-backed implementations of new_node and new_edge will presumably pass a reference to an open file.
-
-    fn new_node(&self, weight: N) -> Self::Node {
-        // TODO: should this method just push rather than return?
-    }
-
-    fn new_edge(&self, weight: E, target: NodeIndex<Ix>) -> Self::Edge {
-        // TODO: should this method just push rather than return an object?
-    }
-
-    // The disk-backed implementations of new_node_vec and new_edge_vec will presumably pass a file/path.
+    // The disk-backed implementations of new_node_vec and new_edge_vec should pass file_path when they construct a new Vector.
 
     fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN {
-        match capacity {
-            Some(n) => Self::VecN::with_capacity(n),
-            None => Self::VecN::new(),
-        }
+        // TODO
     }
 
     fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE {
-        match capacity {
-            Some(n) => Self::VecE::with_capacity(n),
-            None => Self::VecE::new(),
-        }
+        // TODO
     }
 }

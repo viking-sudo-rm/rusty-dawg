@@ -2,7 +2,7 @@ pub mod edge;
 pub mod node;
 mod vec;
 
-use graph::indexing::{IndexType, EdgeIndex, NodeIndex};
+use graph::indexing::IndexType;
 use graph::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
 
@@ -19,25 +19,6 @@ where
 
     type VecN = Vec<Self::Node>;
     type VecE = Vec<Self::Edge>;
-
-    // The disk-backed implementations of new_node and new_edge will presumably pass a reference to an open file.
-
-    fn new_node(&self, weight: N) -> Self::Node {
-        Self::Node {
-            weight,
-            first_edge: EdgeIndex::end(),
-        }
-    }
-
-    fn new_edge(&self, weight: E, target: NodeIndex<Ix>) -> Self::Edge {
-        Self::Edge {
-            weight,
-            target,
-            left: EdgeIndex::end(),
-            right: EdgeIndex::end(),
-            balance_factor: 0,
-        }
-    }
 
     // The disk-backed implementations of new_node_vec and new_edge_vec will presumably pass a file/path.
 

@@ -6,19 +6,34 @@ use std::marker::Copy;
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType};
 use graph::memory_backing::node_backing::NodeBacking;
 
-pub struct Node<N, Ix = DefaultIx> {
-    pub bytes: DiskVec,  // FIXME: not sure what the right type is here.
-    pub idx: usize,  // Initialize to -1 to mark not pushed?
-}
-
 const WEIGHT_START: usize = 0;
 const EDGE_START: usize = size_of::<N>();
 const END: usize = size_of::<N>() + size_of::<EdgeIndex<Ix>>();
+
+pub struct Node<N, Ix = DefaultIx> {
+    // TODO: bytes can either be:
+    //    1. a reference to a span within a larger DiskVec (and we delete idx)
+    //    2. a pointer to a DiskVec, where idx marks its index.
+
+    pub bytes: Option<DiskVec>,  // Initialize to None, set to Some when pushed.
+    pub idx: Option<usize>,  // Initialize to -1, set to index when pushed.
+
+    // Only used to store data when a Node is created before it's pushed.
+    transient_weight: Option<N>,
+}
 
 impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
     Ix: IndexType + Copy,
 {
+    pub fn new(weight: N) -> Self {
+        Self {
+            bytes: None,
+            idx: None,
+            transient_weight: Some(weight),
+        }
+    }
+
     fn get_weight(&self) -> &N {
         // FIXME: need to adapt this (idea: read bytes from WEIGHT_START to TARGET_START)
         let bytes = self.bytes.read(WEIGHT_START, TARGET_START);
