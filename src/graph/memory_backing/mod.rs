@@ -1,4 +1,5 @@
 // pub mod byte_field;
+pub mod disk_backing;
 pub mod edge_backing;
 pub mod node_backing;
 pub mod ram_backing;
