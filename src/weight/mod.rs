@@ -43,3 +43,5 @@ pub use self::basic_weight::BasicWeight;
 
 pub mod weight40;
 pub use self::weight40::{Weight40, WeightMinimal};
+
+pub mod weight_mutator;

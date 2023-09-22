@@ -4,6 +4,7 @@ use std::marker::Copy;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType};
 use graph::memory_backing::node_backing::NodeBacking;
+use weight::Weight;
 
 #[derive(Deserialize, Serialize, Copy)]
 pub struct Node<N, Ix = DefaultIx> {
@@ -18,7 +19,10 @@ pub struct Node<N, Ix = DefaultIx> {
 impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
     Ix: IndexType + Copy,
+    N: Weight,
 {
+    type WeightMut<'a> = &'a mut N where N: 'a;
+
     fn new(weight: N) -> Self {
         Self {
             weight,
@@ -30,7 +34,7 @@ where
         &self.weight
     }
 
-    fn get_weight_mut(&mut self) -> &mut N {
+    fn get_weight_mut(&mut self) -> Self::WeightMut<'_> {
         &mut self.weight
     }
 

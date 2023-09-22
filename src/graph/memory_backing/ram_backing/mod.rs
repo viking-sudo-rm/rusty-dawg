@@ -5,6 +5,7 @@ mod vec;
 use graph::indexing::IndexType;
 use graph::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
+use weight::Weight;
 
 pub struct RamBacking<N, E, Ix> {
     marker: PhantomData<(N, E, Ix)>,
@@ -13,6 +14,7 @@ pub struct RamBacking<N, E, Ix> {
 impl<N, E, Ix> MemoryBacking<N, E, Ix> for RamBacking<N, E, Ix>
 where
     Ix: IndexType + Copy,
+    N: Weight,
 {
     type Node = self::node::Node<N, Ix>;
     type Edge = self::edge::Edge<E, Ix>;

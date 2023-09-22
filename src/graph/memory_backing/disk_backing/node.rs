@@ -26,6 +26,8 @@ impl<N, Ix> NodeBacking<N, Ix> for Node<N, Ix>
 where
     Ix: IndexType + Copy,
 {
+    type WeightMut<'a> = !!!TODO!!! where N: 'a;
+
     pub fn new(weight: N) -> Self {
         Self {
             bytes: None,
