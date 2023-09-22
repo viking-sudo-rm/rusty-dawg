@@ -12,6 +12,7 @@ extern crate bincode;
 extern crate bitvec;
 extern crate clap;
 extern crate kdam;
+extern crate memmap2;
 extern crate petgraph;
 extern crate rusty_dawg;
 extern crate serde;

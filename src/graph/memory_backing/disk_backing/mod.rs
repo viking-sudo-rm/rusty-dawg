@@ -1,10 +1,10 @@
 pub mod edge;
 pub mod node;
-// mod vec;       // FIXME: doesn't exist.
+pub mod vec;
 
 // FIXME: Should modify the RamBacking implementation below appropriately.
 
-use graph::indexing::{IndexType, EdgeIndex, NodeIndex};
+use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
 use graph::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
 
