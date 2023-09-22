@@ -44,6 +44,8 @@ where
     Ix: IndexType + Copy,
 {
     fn default() -> Self {
-        RamBacking {marker: PhantomData}
+        RamBacking {
+            marker: PhantomData,
+        }
     }
 }

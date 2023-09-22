@@ -15,8 +15,8 @@ use std::fmt::Debug;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
-use weight::Weight;
 use weight::weight_mutator::WeightMutator;
+use weight::Weight;
 
 use graph::indexing::{DefaultIx, IndexType};
 use graph::memory_backing::edge_backing::EdgeBacking;
@@ -74,7 +74,8 @@ where
     }
 
     fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
-        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
+        let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
+            AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg.get_weight_mut(initial).increment_count();
         Dawg { dawg, initial }
@@ -109,7 +110,10 @@ where
 
         match opt_state {
             // There is no valid failure state for the new state.
-            None => self.dawg.get_weight_mut(new).set_failure(Some(self.initial)),
+            None => self
+                .dawg
+                .get_weight_mut(new)
+                .set_failure(Some(self.initial)),
 
             // Found a failure state to fail to.
             Some(mut state) => {
@@ -145,7 +149,9 @@ where
                     // self.dawg.set_node_weight(clone, weight);
                     // ==========================================
                     self.dawg.get_weight_mut(new).set_failure(Some(clone));
-                    self.dawg.get_weight_mut(next_state).set_failure(Some(clone));
+                    self.dawg
+                        .get_weight_mut(next_state)
+                        .set_failure(Some(clone));
 
                     // Reroute edges along failure chain.
                     let mut next_state_ = next_state;

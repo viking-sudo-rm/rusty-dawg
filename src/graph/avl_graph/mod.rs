@@ -86,7 +86,6 @@ where
     E: Eq + Ord + Copy + Debug,
     Ix: IndexType,
 {
-
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
         let node = Mb::Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
@@ -466,7 +465,10 @@ where
     }
 
     // We can't use mutable indexing because we need to return a custom type.
-    pub fn get_weight_mut(&mut self, node: NodeIndex<Ix>) -> <<Mb as MemoryBacking<N, E, Ix>>::Node as NodeBacking<N, Ix>>::WeightMut<'_> {
+    pub fn get_weight_mut(
+        &mut self,
+        node: NodeIndex<Ix>,
+    ) -> <<Mb as MemoryBacking<N, E, Ix>>::Node as NodeBacking<N, Ix>>::WeightMut<'_> {
         // Could restrict the type here to be Mb::...
         self.nodes.index_mut(node.index()).get_weight_mut()
     }
@@ -589,8 +591,8 @@ mod tests {
     use graph::avl_graph::AvlGraph;
     use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
     use graph::memory_backing::node_backing::NodeBacking;
-    use weight::{Weight, Weight40};
     use std::convert::TryInto;
+    use weight::{Weight, Weight40};
 
     use serde::{Deserialize, Serialize};
 

@@ -2,7 +2,9 @@ use graph::indexing::EdgeIndex;
 use weight::weight_mutator::WeightMutator;
 
 pub trait NodeBacking<N, Ix> {
-    type WeightMut<'a>: WeightMutator<N> where Self: 'a;
+    type WeightMut<'a>: WeightMutator<N>
+    where
+        Self: 'a;
 
     fn new(weight: N) -> Self;
 
