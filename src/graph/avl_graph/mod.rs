@@ -464,12 +464,11 @@ where
         Edges::new(self, edges)
     }
 
-    // We can't use mutable indexing because we need to return a custom type.
+    // We can't use mutable indexing because we return custom WeightMut, not &mut N.
     pub fn get_weight_mut(
         &mut self,
         node: NodeIndex<Ix>,
     ) -> <<Mb as MemoryBacking<N, E, Ix>>::Node as NodeBacking<N, Ix>>::WeightMut<'_> {
-        // Could restrict the type here to be Mb::...
         self.nodes.index_mut(node.index()).get_weight_mut()
     }
 }
