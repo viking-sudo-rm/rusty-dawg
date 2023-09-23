@@ -1,4 +1,4 @@
-pub trait VecBacking<T> {
+pub trait VecBacking<T, MutT> {
     fn new() -> Self
     where
         Self: Sized;
@@ -13,7 +13,7 @@ pub trait VecBacking<T> {
 
     fn index(&self, index: usize) -> &T;
 
-    fn index_mut(&mut self, index: usize) -> &mut T;
+    fn index_mut(&mut self, index: usize) -> MutT;
 
     fn is_empty(&self) -> bool {
         self.len() == 0

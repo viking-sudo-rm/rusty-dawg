@@ -15,14 +15,19 @@ use std::cmp::{max, min};
 use std::fmt::Debug;
 use std::ops::Index;
 
+use graph::avl_graph::edge::MutEdge;
+use graph::avl_graph::node::MutNode;
+
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use weight::Weight;
 
-pub mod dot;
 mod serde;
+pub mod edge;
+pub mod node;
 
-use graph::memory_backing::edge_backing::EdgeBacking;
-use graph::memory_backing::node_backing::NodeBacking;
+use graph::avl_graph::edge::Edge;
+use graph::avl_graph::node::Node;
+
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::vec_backing::VecBacking;
 use graph::memory_backing::MemoryBacking;
@@ -84,10 +89,11 @@ impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
     E: Eq + Ord + Copy + Debug,
+    N: Weight,
     Ix: IndexType,
 {
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
-        let node = Mb::Node::new(weight);
+        let node = Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
         assert!(<Ix as IndexType>::max_value().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
@@ -100,7 +106,7 @@ where
         E: Clone,
         Ix: Clone,
     {
-        let clone = Mb::Node::new(self.nodes.index(a.index()).get_weight().clone());
+        let clone = Node::new(self.nodes.index(a.index()).get_weight().clone());
         let clone_idx = NodeIndex::new(self.nodes.len());
         self.nodes.push(clone);
 
@@ -111,7 +117,7 @@ where
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
         let first_clone_edge =
-            Mb::Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
+            Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes
@@ -132,7 +138,7 @@ where
         if left != EdgeIndex::end() {
             let left_weight = *self.edges.index(left.index()).get_weight();
             let left_target = self.edges.index(left.index()).get_target();
-            let new_left_edge = Mb::Edge::new(left_weight, left_target);
+            let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
             self.edges.index_mut(new.index()).set_left(new_left);
@@ -142,7 +148,7 @@ where
         if right != EdgeIndex::end() {
             let right_weight = *self.edges.index(right.index()).get_weight();
             let right_target = self.edges.index(right.index()).get_target();
-            let new_right_edge = Mb::Edge::new(right_weight, right_target);
+            let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
             self.edges.index_mut(new.index()).set_right(new_right);
@@ -196,7 +202,7 @@ where
         b: NodeIndex<Ix>,
         weight: E,
     ) -> Option<EdgeIndex<Ix>> {
-        let edge = Mb::Edge::new(weight, b);
+        let edge = Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
         // look for root, simple case where no root handled
@@ -245,7 +251,7 @@ where
     ) -> EdgeIndex<Ix> {
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
-            let edge = Mb::Edge::new(weight, b);
+            let edge = Edge::new(weight, b);
             self.edges.push(edge);
             return EdgeIndex::new(self.edges.len() - 1);
         }
@@ -464,12 +470,12 @@ where
         Edges::new(self, edges)
     }
 
-    // We can't use mutable indexing because we return custom WeightMut, not &mut N.
-    pub fn get_weight_mut(
+    // We can't use mutable indexing because we return custom MutNode, not &mut Node.
+    pub fn get_node_mut(
         &mut self,
         node: NodeIndex<Ix>,
-    ) -> <<Mb as MemoryBacking<N, E, Ix>>::Node as NodeBacking<N, Ix>>::WeightMut<'_> {
-        self.nodes.index_mut(node.index()).get_weight_mut()
+    ) -> Mb::MutNode {
+        self.nodes.index_mut(node.index())
     }
 }
 
@@ -540,12 +546,12 @@ where
     Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
 {
-    type Item = &'a Mb::Edge;
+    type Item = &'a Edge<E, Ix>;
 
     // Note that this was hurting performance a lot before!
     // Be careful using a vector as a stack.
     // https://stackoverflow.com/questions/40848918/are-there-queue-and-stack-collections-in-rust
-    fn next(&mut self) -> Option<&'a Mb::Edge> {
+    fn next(&mut self) -> Option<&'a Edge<E, Ix>> {
         // Is this pop_back()????
         match self.stack.pop() {
             None => None,
@@ -589,9 +595,9 @@ where
 mod tests {
     use graph::avl_graph::AvlGraph;
     use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
-    use graph::memory_backing::node_backing::NodeBacking;
     use std::convert::TryInto;
     use weight::{Weight, Weight40};
+    use graph::avl_graph::node::MutNode;
 
     use serde::{Deserialize, Serialize};
 
@@ -831,7 +837,7 @@ mod tests {
         let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
         let q0 = graph.add_node(weight.clone());
         let idx0 = NodeIndex::new(0);
-        graph.get_weight_mut(idx0).set_length(1);
+        graph.get_node_mut(idx0).set_length(1);
         assert_eq!(graph[idx0].get_length(), 1);
     }
 }

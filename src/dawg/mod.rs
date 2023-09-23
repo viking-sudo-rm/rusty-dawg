@@ -15,13 +15,13 @@ use std::fmt::Debug;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
-use weight::weight_mutator::WeightMutator;
 use weight::Weight;
 
 use graph::indexing::{DefaultIx, IndexType};
-use graph::memory_backing::edge_backing::EdgeBacking;
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
+
+use graph::avl_graph::node::MutNode;
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -69,7 +69,7 @@ where
     fn new_mb(mb: Mb) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new_mb(mb);
         let initial = dawg.add_node(W::initial());
-        dawg.get_weight_mut(initial).increment_count();
+        dawg.get_node_mut(initial).increment_count();
         Dawg { dawg, initial }
     }
 
@@ -77,7 +77,7 @@ where
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
             AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
-        dawg.get_weight_mut(initial).increment_count();
+        dawg.get_node_mut(initial).increment_count();
         Dawg { dawg, initial }
     }
 
@@ -112,7 +112,7 @@ where
             // There is no valid failure state for the new state.
             None => self
                 .dawg
-                .get_weight_mut(new)
+                .get_node_mut(new)
                 .set_failure(Some(self.initial)),
 
             // Found a failure state to fail to.
@@ -120,7 +120,7 @@ where
                 let next_state = opt_next_state.unwrap();
                 if self.dawg[state].get_length() + 1 == self.dawg[next_state].get_length() {
                     // Fail to an existing state.
-                    self.dawg.get_weight_mut(new).set_failure(Some(next_state));
+                    self.dawg.get_node_mut(new).set_failure(Some(next_state));
                 } else {
                     // Split a state and fail to the clone of it.
 
@@ -148,9 +148,9 @@ where
                     // let clone = self.dawg.clone_node(state);
                     // self.dawg.set_node_weight(clone, weight);
                     // ==========================================
-                    self.dawg.get_weight_mut(new).set_failure(Some(clone));
+                    self.dawg.get_node_mut(new).set_failure(Some(clone));
                     self.dawg
-                        .get_weight_mut(next_state)
+                        .get_node_mut(next_state)
                         .set_failure(Some(clone));
 
                     // Reroute edges along failure chain.
@@ -183,7 +183,7 @@ where
         let mut opt_ptr = Some(new);
         while opt_ptr.is_some() {
             let ptr = opt_ptr.unwrap();
-            self.dawg.get_weight_mut(ptr).increment_count();
+            self.dawg.get_node_mut(ptr).increment_count();
             opt_ptr = self.dawg[ptr].get_failure();
         }
 
@@ -200,7 +200,7 @@ where
             if self.dawg[state].get_length() != 0 {
                 continue;
             }
-            self.dawg.get_weight_mut(state).set_length(length);
+            self.dawg.get_node_mut(state).set_length(length);
             for next_state in self.dawg.neighbors(state) {
                 queue.push_back((next_state, length + 1));
             }
@@ -208,7 +208,7 @@ where
     }
 
     fn _zero_lengths(&mut self, state: NodeIndex) {
-        self.dawg.get_weight_mut(state).set_length(0);
+        self.dawg.get_node_mut(state).set_length(0);
         // FIXME: Use Walker object here.
         let next_states: Vec<_> = self.dawg.neighbors(state).collect();
         for next_state in next_states {

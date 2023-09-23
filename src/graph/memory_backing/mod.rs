@@ -1,20 +1,18 @@
-// pub mod byte_field;
-pub mod disk_backing;
-pub mod edge_backing;
-pub mod node_backing;
+// pub mod disk_backing;
 pub mod ram_backing;
 pub mod vec_backing;
 
-use self::edge_backing::EdgeBacking;
-use self::node_backing::NodeBacking;
+use graph::avl_graph::node::{Node, MutNode};
+use graph::avl_graph::edge::{Edge, MutEdge};
+
 use self::vec_backing::VecBacking;
 
 pub trait MemoryBacking<N, E, Ix> {
-    type Node: NodeBacking<N, Ix>;
-    type Edge: EdgeBacking<E, Ix>;
+    type MutNode: MutNode<Ix>;
+    type MutEdge: MutEdge<Ix>;
 
-    type VecN: VecBacking<Self::Node>;
-    type VecE: VecBacking<Self::Edge>;
+    type VecN: VecBacking<Node<N, Ix>, Self::MutNode>;
+    type VecE: VecBacking<Edge<E, Ix>, Self::MutEdge>;
 
     fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN;
 

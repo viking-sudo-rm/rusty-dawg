@@ -1,6 +1,6 @@
 use graph::memory_backing::vec_backing::VecBacking;
 
-impl<T> VecBacking<T> for Vec<T> {
+impl<T> VecBacking<T, *mut T> for Vec<T> {
     fn new() -> Self {
         Vec::new()
     }
@@ -21,7 +21,7 @@ impl<T> VecBacking<T> for Vec<T> {
         &self[index]
     }
 
-    fn index_mut(&mut self, index: usize) -> &mut T {
+    fn index_mut(&mut self, index: usize) -> *mut T {
         &mut self[index]
     }
 }
@@ -33,16 +33,18 @@ mod tests {
 
     #[test]
     fn test_index() {
-        let mb: Box<dyn VecBacking<u8>> = Box::new(vec![12, 21]);
+        let mb: Box<dyn VecBacking<u8, *mut u8>> = Box::new(vec![12, 21]);
         assert_eq!(*mb.index(0), 12);
         assert_eq!(*mb.index(1), 21);
     }
 
     #[test]
     fn test_index_mut() {
-        let mut mb: Box<dyn VecBacking<u8>> = Box::new(vec![12, 21]);
+        let mut mb: Box<dyn VecBacking<u8, *mut u8>> = Box::new(vec![12, 21]);
         assert_eq!(*mb.index(0), 12);
-        *mb.index_mut(0) = 32;
+        unsafe {
+            *mb.index_mut(0) = 32;
+        }
         assert_eq!(*mb.index(0), 32);
     }
 }

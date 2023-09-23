@@ -1,11 +1,12 @@
-pub mod edge;
-pub mod node;
 mod vec;
 
 use graph::indexing::IndexType;
 use graph::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
 use weight::Weight;
+
+use graph::avl_graph::node::Node;
+use graph::avl_graph::edge::Edge;
 
 pub struct RamBacking<N, E, Ix> {
     marker: PhantomData<(N, E, Ix)>,
@@ -16,11 +17,11 @@ where
     Ix: IndexType + Copy,
     N: Weight,
 {
-    type Node = self::node::Node<N, Ix>;
-    type Edge = self::edge::Edge<E, Ix>;
+    type MutNode = *mut Node<N, Ix>;
+    type MutEdge = *mut Edge<E, Ix>;
 
-    type VecN = Vec<Self::Node>;
-    type VecE = Vec<Self::Edge>;
+    type VecN = Vec<Node<N, Ix>>;
+    type VecE = Vec<Edge<E, Ix>>;
 
     // The disk-backed implementations of new_node_vec and new_edge_vec will presumably pass a file/path.
 
