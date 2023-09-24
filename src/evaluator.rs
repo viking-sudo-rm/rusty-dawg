@@ -8,10 +8,11 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-use weight::Weight;
 
 use crate::weight::weight40::DefaultWeight;
 use lms::LM;
+
+use graph::avl_graph::node::NodeRef;
 
 // TODO:
 #[derive(Serialize)]
@@ -135,7 +136,7 @@ where
                 self.get_mut("length+_count".to_string())[it] += 1.;
             }
             if state.index() != 0 {
-                cum_count += dawg.get_weight(state).get_count();
+                cum_count += dawg.get_node(state).get_count();
                 // cum_count += counts[state.index()];
             }
             cum_entropy += get_entropy::<E, DefaultWeight>(dawg, state);

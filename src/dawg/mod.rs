@@ -21,7 +21,9 @@ use graph::indexing::{DefaultIx, IndexType};
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
 
-use graph::avl_graph::node::MutNode;
+use graph::avl_graph::node::{NodeRef, NodeMutRef};
+use graph::avl_graph::edge::EdgeRef;
+
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -65,6 +67,7 @@ where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
     Mb: MemoryBacking<W, E, DefaultIx>,
+    Mb::EdgeRef: Copy,
 {
     fn new_mb(mb: Mb) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new_mb(mb);
@@ -89,14 +92,14 @@ where
     }
 
     pub fn extend(&mut self, token: E, last: NodeIndex) -> NodeIndex {
-        let new = self.dawg.add_node(W::extend(&self.dawg[last]));
+        let new = self.dawg.add_node(W::extend(&self.get_node(last).get_weight()));
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
         let mut opt_next_state: Option<NodeIndex> = None;
         loop {
             let q = opt_state.unwrap();
             self.dawg.add_balanced_edge(q, new, token);
-            opt_state = self.dawg[q].get_failure();
+            opt_state = self.get_node(q).get_failure();
             match opt_state {
                 Some(state) => {
                     opt_next_state = self.transition(state, token, false);
@@ -118,7 +121,7 @@ where
             // Found a failure state to fail to.
             Some(mut state) => {
                 let next_state = opt_next_state.unwrap();
-                if self.dawg[state].get_length() + 1 == self.dawg[next_state].get_length() {
+                if self.get_node(state).get_length() + 1 == self.get_node(next_state).get_length() {
                     // Fail to an existing state.
                     self.dawg.get_node_mut(new).set_failure(Some(next_state));
                 } else {
@@ -129,11 +132,11 @@ where
                     // ==========================================
                     let clone = self
                         .dawg
-                        .add_node(W::split(&self.dawg[state], &self.dawg[next_state]));
+                        .add_node(W::split(&self.get_node(state).get_weight(), &self.get_node(next_state).get_weight()));
                     let edges: Vec<_> = self
                         .dawg
                         .edges(next_state)
-                        .map(|edge| (edge.get_target(), *edge.get_weight()))
+                        .map(|edge| (edge.get_target(), edge.get_weight()))
                         .collect();
                     for (target, weight) in edges {
                         self.dawg.add_balanced_edge(clone, target, weight);
@@ -162,7 +165,7 @@ where
                             self.dawg.add_balanced_edge(state, clone, token);
                         }
 
-                        match self.dawg[state].get_failure() {
+                        match self.get_node(state).get_failure() {
                             None => break,
                             Some(q) => {
                                 state = q;
@@ -184,7 +187,7 @@ where
         while opt_ptr.is_some() {
             let ptr = opt_ptr.unwrap();
             self.dawg.get_node_mut(ptr).increment_count();
-            opt_ptr = self.dawg[ptr].get_failure();
+            opt_ptr = self.get_node(ptr).get_failure();
         }
 
         new
@@ -197,7 +200,7 @@ where
         queue.push_back((self.initial, 0));
 
         while let Some((state, length)) = queue.pop_front() {
-            if self.dawg[state].get_length() != 0 {
+            if self.get_node(state).get_length() != 0 {
                 continue;
             }
             self.dawg.get_node_mut(state).set_length(length);
@@ -219,7 +222,7 @@ where
     // Compute the min factor length of this state dynamically.
     pub fn get_length(&self, mut state: NodeIndex) -> u64 {
         let mut count = 0;
-        while let Some(fstate) = self.dawg[state].get_failure() {
+        while let Some(fstate) = self.get_node(state).get_failure() {
             state = fstate;
             count += 1;
         }
@@ -240,7 +243,7 @@ where
         if !use_failures {
             return None;
         }
-        let fail_state = self.dawg[state].get_failure();
+        let fail_state = self.get_node(state).get_failure();
         match fail_state {
             Some(q) => {
                 // Not in the initial state.
@@ -268,11 +271,11 @@ where
             return (next_state, length + 1);
         }
 
-        let fail_state = self.dawg[state].get_failure();
+        let fail_state = self.get_node(state).get_failure();
         match fail_state {
             Some(q) => {
                 // If we fail, the length we're matching is the length of the largest suffix of the fail state.
-                let new_length = self.dawg[q].get_length();
+                let new_length = self.get_node(q).get_length();
                 self.transition_and_count(q, token, new_length)
             }
             // Only possible in the initial state.
@@ -296,8 +299,8 @@ where
 
     // TODO: Can build full substring vector for query.
 
-    pub fn get_weight(&self, state: NodeIndex) -> &W {
-        &self.dawg[state]
+    pub fn get_node(&self, state: NodeIndex) -> Mb::NodeRef {
+        self.dawg.get_node(state)
     }
 
     pub fn get_initial(&self) -> NodeIndex {
@@ -335,6 +338,7 @@ mod tests {
     use weight::Weight;
 
     use graph::indexing::NodeIndex;
+    use graph::avl_graph::node::NodeRef;
 
     use bincode::{deserialize_from, serialize_into};
     use std::fs::File;
@@ -357,15 +361,15 @@ mod tests {
         assert_eq!(dawg.dawg.edge_target(q1, 'a'), Some(q2));
         assert_eq!(dawg.dawg.edge_target(q2, 'b'), Some(q3));
 
-        assert_eq!(dawg.dawg[q0].get_failure(), None);
-        assert_eq!(dawg.dawg[q1].get_failure(), Some(q0));
-        assert_eq!(dawg.dawg[q2].get_failure(), Some(q0));
-        assert_eq!(dawg.dawg[q3].get_failure(), Some(q1));
+        assert_eq!(dawg.dawg.get_node(q0).get_failure(), None);
+        assert_eq!(dawg.dawg.get_node(q1).get_failure(), Some(q0));
+        assert_eq!(dawg.dawg.get_node(q2).get_failure(), Some(q0));
+        assert_eq!(dawg.dawg.get_node(q3).get_failure(), Some(q1));
 
-        assert_eq!(dawg.dawg[q0].get_count(), 4);
-        assert_eq!(dawg.dawg[q1].get_count(), 2);
-        assert_eq!(dawg.dawg[q2].get_count(), 1);
-        assert_eq!(dawg.dawg[q3].get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(q0).get_count(), 4);
+        assert_eq!(dawg.dawg.get_node(q1).get_count(), 2);
+        assert_eq!(dawg.dawg.get_node(q2).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(q3).get_count(), 1);
     }
 
     #[test]
@@ -381,21 +385,21 @@ mod tests {
 
         // println!("{:?}", Dot::new(dawg.get_graph()));
 
-        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 6);
-        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 2);
-        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 2);
-        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(0)).get_count(), 6);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(1)).get_count(), 2);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(2)).get_count(), 2);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(3)).get_count(), 1);
     }
 
     #[test]
     fn test_build_abb() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&['a', 'b', 'b']);
-        assert_eq!(dawg.dawg[NodeIndex::new(0)].get_count(), 4);
-        assert_eq!(dawg.dawg[NodeIndex::new(1)].get_count(), 1);
-        assert_eq!(dawg.dawg[NodeIndex::new(2)].get_count(), 1);
-        assert_eq!(dawg.dawg[NodeIndex::new(3)].get_count(), 1);
-        assert_eq!(dawg.dawg[NodeIndex::new(4)].get_count(), 2);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(0)).get_count(), 4);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(1)).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(2)).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(3)).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(4)).get_count(), 2);
     }
 
     #[test]
@@ -432,10 +436,10 @@ mod tests {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&['a', 'b']);
         let state = NodeIndex::new(2);
-        assert_eq!(dawg.dawg[state].get_length(), 2);
+        assert_eq!(dawg.dawg.get_node(state).get_length(), 2);
         assert_eq!(dawg.get_length(state), 1);
         dawg.recompute_lengths();
-        assert_eq!(dawg.dawg[state].get_length(), 1);
+        assert_eq!(dawg.dawg.get_node(state).get_length(), 1);
     }
 
     #[test]

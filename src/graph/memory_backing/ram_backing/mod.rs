@@ -16,9 +16,12 @@ impl<N, E, Ix> MemoryBacking<N, E, Ix> for RamBacking<N, E, Ix>
 where
     Ix: IndexType + Copy,
     N: Weight,
+    E: Copy,
 {
-    type MutNode = *mut Node<N, Ix>;
-    type MutEdge = *mut Edge<E, Ix>;
+    type NodeRef = *const Node<N, Ix>;
+    type EdgeRef = *const Edge<E, Ix>;
+    type NodeMutRef = *mut Node<N, Ix>;
+    type EdgeMutRef = *mut Edge<E, Ix>;
 
     type VecN = Vec<Node<N, Ix>>;
     type VecE = Vec<Edge<E, Ix>>;

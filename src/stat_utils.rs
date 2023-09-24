@@ -7,6 +7,8 @@ use dawg::Dawg;
 use graph::indexing::NodeIndex;
 use weight::Weight;
 
+use graph::avl_graph::node::NodeRef;
+
 pub fn get_entropy<E, W>(dawg: &Dawg<E, W>, state: NodeIndex) -> f64
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
@@ -15,12 +17,12 @@ where
     // let denom = counts[state.index()];
     // println!("{:?}", Dot::new(dawg.get_graph()));
 
-    let denom = dawg.get_weight(state).get_count();
+    let denom = dawg.get_node(state).get_count();
     let mut sum_num = 0;
     let mut sum_prob = 0.;
     for next_state in dawg.get_graph().neighbors(state) {
         // let num = counts[next_state.index()];
-        let num = dawg.get_weight(next_state).get_count();
+        let num = dawg.get_node(next_state).get_count();
         if num > 0 {
             let prob = (num as f64) / (denom as f64);
             sum_prob -= prob * prob.log2();
@@ -45,7 +47,7 @@ where
     let mut n_once = 0;
     let graph = dawg.get_graph();
     for unigram in graph.neighbors(dawg.get_initial()) {
-        if graph[unigram].get_count() == 1 {
+        if graph.get_node(unigram).get_count() == 1 {
             n_once += 1;
         }
     }

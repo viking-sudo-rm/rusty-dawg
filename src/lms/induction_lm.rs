@@ -7,7 +7,8 @@ use std::cmp::{Eq, Ord};
 use std::fmt::Debug;
 use std::marker::Copy;
 use weight::weight40::DefaultWeight;
-use weight::Weight;
+
+use graph::avl_graph::node::NodeRef;
 
 pub struct InductionLM<E>
 where
@@ -91,12 +92,12 @@ where
         // }
 
         let count = match self.dawg.transition(state, label, false) {
-            Some(next_state) => self.dawg.get_weight(next_state).get_count(),
+            Some(next_state) => self.dawg.get_node(next_state).get_count(),
             None => 0,
         };
-        let sum_count = self.dawg.get_weight(state).get_count();
+        let sum_count = self.dawg.get_node(state).get_count();
 
-        let back_prob = match self.dawg.get_weight(state).get_failure() {
+        let back_prob = match self.dawg.get_node(state).get_failure() {
             Some(fstate) => self.get_probability_interp(dawg, fstate, label, good_turing),
             None => self.train_lm.get_probability(dawg, label, good_turing),
         };

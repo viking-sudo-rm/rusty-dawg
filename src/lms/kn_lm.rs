@@ -6,11 +6,12 @@ use serde::Deserialize;
 
 use std::fmt::Debug;
 use std::marker::Copy;
-use weight::Weight;
 
 // use petgraph::graph::NodeIndex;
 use graph::indexing::NodeIndex;
 use weight::weight40::DefaultWeight;
+
+use graph::avl_graph::node::NodeRef;
 
 pub struct KNLM {
     pub name: String,
@@ -37,8 +38,8 @@ where
     fn get_probability(&self, dawg: &Dawg<E, DefaultWeight>, label: E, good_turing: f64) -> f64 {
         let mut state = self.state;
         let _initial = dawg.get_initial();
-        while dawg.get_weight(state).get_count() < self.min_count {
-            match dawg.get_weight(state).get_failure() {
+        while dawg.get_node(state).get_count() < self.min_count {
+            match dawg.get_node(state).get_failure() {
                 Some(fstate) => state = fstate,
                 None => break,
             }
@@ -73,9 +74,9 @@ impl KNLM {
         E: Eq + serde::Serialize + Ord + for<'a> Deserialize<'a> + Copy + Debug,
     {
         // FIXME: Handle <eos> here!!
-        let denom = dawg.get_weight(state).get_count();
+        let denom = dawg.get_node(state).get_count();
         let num = match dawg.transition(state, label, false) {
-            Some(next_state) => dawg.get_weight(next_state).get_count(),
+            Some(next_state) => dawg.get_node(next_state).get_count(),
             None => 0,
         };
         (num as f64) / (denom as f64)
@@ -107,7 +108,7 @@ impl KNLM {
             let graph = dawg.get_graph();
             // TODO: Can make this more efficient by computing once and passing.
             while n < dawg.get_length(state) + 1 {
-                match graph[state].get_failure() {
+                match graph.get_node(state).get_failure() {
                     Some(next_state) => {
                         state = next_state;
                     }
@@ -117,12 +118,12 @@ impl KNLM {
         }
 
         let count = match dawg.transition(state, label, false) {
-            Some(next_state) => dawg.get_weight(next_state).get_count(),
+            Some(next_state) => dawg.get_node(next_state).get_count(),
             None => 0,
         };
         let back_count = dawg.get_graph().n_edges(state);
-        let sum_count = dawg.get_weight(state).get_count();
-        match dawg.get_weight(state).get_failure() {
+        let sum_count = dawg.get_node(state).get_count();
+        match dawg.get_node(state).get_failure() {
             Some(fstate) => {
                 let delta = self.kn_delta;
                 let back_prob = self.get_probability_kn(dawg, fstate, label, good_turing);
