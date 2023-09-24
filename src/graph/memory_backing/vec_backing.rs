@@ -1,12 +1,4 @@
 pub trait VecBacking<T, TRef, TMutRef> {
-    fn new() -> Self
-    where
-        Self: Sized;
-
-    fn with_capacity(size: usize) -> Self
-    where
-        Self: Sized;
-
     fn len(&self) -> usize;
 
     fn push(&mut self, item: T);

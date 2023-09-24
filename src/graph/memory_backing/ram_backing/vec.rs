@@ -2,14 +2,6 @@ use graph::memory_backing::vec_backing::VecBacking;
 
 // FIXME: Did this with unsafe pointers for convenience but would be good to use &/&mut!
 impl<T> VecBacking<T, *const T, *mut T> for Vec<T> {
-    fn new() -> Self {
-        Vec::new()
-    }
-
-    fn with_capacity(size: usize) -> Self {
-        Vec::with_capacity(size)
-    }
-
     fn len(&self) -> usize {
         Vec::len(self)
     }

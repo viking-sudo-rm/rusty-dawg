@@ -30,15 +30,15 @@ where
 
     fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN {
         match capacity {
-            Some(n) => Self::VecN::with_capacity(n),
-            None => Self::VecN::new(),
+            Some(n) => Vec::with_capacity(n),
+            None => Vec::new(),
         }
     }
 
     fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE {
         match capacity {
-            Some(n) => Self::VecE::with_capacity(n),
-            None => Self::VecE::new(),
+            Some(n) => Vec::with_capacity(n),
+            None => Vec::new(),
         }
     }
 }

@@ -2,7 +2,7 @@
 // pub mod node;
 // pub mod vec;  // Implement VecBacking for DiskVec and DiskVecItem
 pub mod disk_vec;
-mod disk_mut_refs;
+mod disk_mut_refs;  // Raw implementation of DiskVec data structure.
 
 //TODO: Implement all this
 
