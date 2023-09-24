@@ -78,7 +78,7 @@ where
         let len = vec.len();
         let mut disk_vec = Self::new(path, len)?;
         for item in vec {
-            disk_vec.push(item)?;
+            disk_vec.push(&item)?;
         }
         disk_vec.make_read_only()
     }
@@ -115,7 +115,7 @@ where
         Ok(())
     }
 
-    fn _set(&mut self, index: usize, &value: T) -> Result<()> {
+    fn _set(&mut self, index: usize, value: &T) -> Result<()> {
         if let Mmap::MmapMut(ref mut mmap) = self.mmap {
             let serialized = bincode::DefaultOptions::new()
                 .with_fixint_encoding()
