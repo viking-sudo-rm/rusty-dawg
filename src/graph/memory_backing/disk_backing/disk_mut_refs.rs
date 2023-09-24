@@ -81,3 +81,25 @@ where
         let _ = self.disk_vec.set(self.index, &edge);
     }
 }
+
+pub trait DiskVecItem: Sized {
+    type MutRef<'a> where Self: 'a;
+
+    fn new_mut_ref<'a>(disk_vec: &'a mut DiskVec<Self>, index: usize) -> Self::MutRef<'a>;
+}
+
+impl<N, Ix> DiskVecItem for Node<N, Ix> {
+    type MutRef<'a> = DiskNodeMutRef<'a, N, Ix> where N: 'a, Ix: 'a;
+
+    fn new_mut_ref<'a>(disk_vec: &'a mut DiskVec<Node<N, Ix>>, index: usize) -> Self::MutRef<'a> {
+        DiskNodeMutRef {disk_vec, index}
+    }
+}
+
+impl<E, Ix> DiskVecItem for Edge<E, Ix> {
+    type MutRef<'a> = DiskEdgeMutRef<'a, E, Ix> where E: 'a, Ix: 'a;
+
+    fn new_mut_ref<'a>(disk_vec: &'a mut DiskVec<Edge<E, Ix>>, index: usize) -> Self::MutRef<'a> {
+        DiskEdgeMutRef { disk_vec, index }
+    }
+}
