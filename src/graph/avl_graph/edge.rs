@@ -46,26 +46,6 @@ where
             balance_factor: 0,
         }
     }
-
-    pub fn get_weight(&self) -> E {
-        self.weight
-    }
-
-    pub fn get_target(&self) -> NodeIndex<Ix> {
-        self.target
-    }
-
-    pub fn get_left(&self) -> EdgeIndex<Ix> {
-        self.left
-    }
-
-    pub fn get_right(&self) -> EdgeIndex<Ix> {
-        self.right
-    }
-
-    pub fn get_balance_factor(&self) -> i8 {
-        self.balance_factor
-    }
 }
 
 pub trait EdgeRef<E, Ix> {
@@ -76,29 +56,58 @@ pub trait EdgeRef<E, Ix> {
     fn get_balance_factor(self) -> i8;
 }
 
+// We can use an Edge object as a "reference" to data on disk.
+impl<E, Ix> EdgeRef<E, Ix> for Edge<E, Ix>
+where
+    Ix: IndexType + Copy,
+    E: Copy,
+{
+
+    fn get_weight(self) -> E {
+        self.weight
+    }
+
+    fn get_target(self) -> NodeIndex<Ix> {
+        self.target
+    }
+
+    fn get_left(self) -> EdgeIndex<Ix> {
+        self.left
+    }
+
+    fn get_right(self) -> EdgeIndex<Ix> {
+        self.right
+    }
+
+    fn get_balance_factor(self) -> i8 {
+        self.balance_factor
+    }
+}
+
+// We can use a pointer to an Edge object as a reference to data in RAM.
 impl<E, Ix> EdgeRef<E, Ix> for *const Edge<E, Ix>
 where
     Ix: IndexType + Copy,
     E: Copy,
 {
     fn get_weight(self) -> E {
-        unsafe { Edge::get_weight(&*self) }
+        unsafe { (*self).weight }
     }
 
     fn get_target(self) -> NodeIndex<Ix> {
-        unsafe { Edge::get_target(&*self) }
+        unsafe { (*self).target }
     }
 
     fn get_left(self) -> EdgeIndex<Ix> {
-        unsafe { Edge::get_left(&*self) }
+        unsafe { (*self).left }
     }
 
     fn get_right(self) -> EdgeIndex<Ix> {
-        unsafe { Edge::get_right(&*self) }
+        unsafe { (*self).right }
     }
 
     fn get_balance_factor(self) -> i8 {
-        unsafe { Edge::get_balance_factor(&*self) }
+        unsafe { (*self).balance_factor }
     }
 }
 

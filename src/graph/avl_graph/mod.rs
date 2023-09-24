@@ -744,7 +744,7 @@ mod tests {
         graph.add_balanced_edge(q1, q0, 0);
         graph.add_balanced_edge(q1, q0, 1);
 
-        let mut root = graph.nodes[q1.index()].get_first_edge();
+        let mut root = graph.get_node(q1).get_first_edge();
         let mut left: EdgeIndex = graph.edges[root.index()].left;
         let mut right: EdgeIndex = graph.edges[root.index()].right;
         assert_eq!(graph.edges[root.index()].balance_factor, -1);
@@ -753,7 +753,7 @@ mod tests {
 
         graph.add_balanced_edge(q1, q0, 2);
 
-        root = graph.nodes[q1.index()].get_first_edge();
+        root = graph.get_node(q1).get_first_edge();
         left = graph.edges[root.index()].left;
         right = graph.edges[root.index()].right;
         assert_eq!(graph.edges[root.index()].balance_factor, 0);

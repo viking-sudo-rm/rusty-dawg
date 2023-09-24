@@ -25,10 +25,6 @@ where
             first_edge: EdgeIndex::end(),
         }
     }
-
-    pub fn get_first_edge(&self) -> EdgeIndex<Ix> {
-        self.first_edge
-    }
 }
 
 impl<N, Ix> Clone for Node<N, Ix>
@@ -52,6 +48,37 @@ pub trait NodeRef<N, Ix> {
     fn get_failure(self) -> Option<NodeIndex<Ix>>;
     fn get_count(self) -> u64;
     fn get_first_edge(self) -> EdgeIndex<Ix>;
+}
+
+// We can use a Node object as a "reference" to data on disk.
+impl<N, Ix> NodeRef<N, Ix> for Node<N, Ix>
+where
+    Ix: IndexType,
+    N: Weight,
+{
+    fn get_weight(self) -> N where N: Clone {
+        self.weight.clone()
+    }
+
+    fn get_length(self) -> u64 {
+        self.weight.get_length()
+    }
+
+    fn get_failure(self) -> Option<NodeIndex<Ix>> {
+        // Slightly hacky approach to handle a NodeIndex with non-default Ix.
+        match self.weight.get_failure() {
+            Some(phi) => Some(NodeIndex::new(phi.index())),
+            None => None,
+        }
+    }
+
+    fn get_count(self) -> u64 {
+        self.weight.get_count()
+    }
+
+    fn get_first_edge(self) -> EdgeIndex<Ix> {
+        self.first_edge
+    }
 }
 
 impl<N, Ix> NodeRef<N, Ix> for *const Node<N, Ix>
