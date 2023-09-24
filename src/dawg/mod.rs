@@ -21,9 +21,8 @@ use graph::indexing::{DefaultIx, IndexType};
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
 
-use graph::avl_graph::node::{NodeRef, NodeMutRef};
 use graph::avl_graph::edge::EdgeRef;
-
+use graph::avl_graph::node::{NodeMutRef, NodeRef};
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -92,7 +91,9 @@ where
     }
 
     pub fn extend(&mut self, token: E, last: NodeIndex) -> NodeIndex {
-        let new = self.dawg.add_node(W::extend(&self.get_node(last).get_weight()));
+        let new = self
+            .dawg
+            .add_node(W::extend(&self.get_node(last).get_weight()));
         // Follow failure path from last until transition is defined.
         let mut opt_state = Some(last);
         let mut opt_next_state: Option<NodeIndex> = None;
@@ -113,10 +114,7 @@ where
 
         match opt_state {
             // There is no valid failure state for the new state.
-            None => self
-                .dawg
-                .get_node_mut(new)
-                .set_failure(Some(self.initial)),
+            None => self.dawg.get_node_mut(new).set_failure(Some(self.initial)),
 
             // Found a failure state to fail to.
             Some(mut state) => {
@@ -130,9 +128,10 @@ where
                     // ==========================================
                     // Original cloning code (pre-Hackathon)
                     // ==========================================
-                    let clone = self
-                        .dawg
-                        .add_node(W::split(&self.get_node(state).get_weight(), &self.get_node(next_state).get_weight()));
+                    let clone = self.dawg.add_node(W::split(
+                        &self.get_node(state).get_weight(),
+                        &self.get_node(next_state).get_weight(),
+                    ));
                     let edges: Vec<_> = self
                         .dawg
                         .edges(next_state)
@@ -152,9 +151,7 @@ where
                     // self.dawg.set_node_weight(clone, weight);
                     // ==========================================
                     self.dawg.get_node_mut(new).set_failure(Some(clone));
-                    self.dawg
-                        .get_node_mut(next_state)
-                        .set_failure(Some(clone));
+                    self.dawg.get_node_mut(next_state).set_failure(Some(clone));
 
                     // Reroute edges along failure chain.
                     let mut next_state_ = next_state;
@@ -337,8 +334,8 @@ mod tests {
     use dawg::Dawg;
     use weight::Weight;
 
-    use graph::indexing::NodeIndex;
     use graph::avl_graph::node::NodeRef;
+    use graph::indexing::NodeIndex;
 
     use bincode::{deserialize_from, serialize_into};
     use std::fs::File;

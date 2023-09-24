@@ -2,8 +2,8 @@
 pub mod ram_backing;
 pub mod vec_backing;
 
-use graph::avl_graph::node::{Node, NodeRef, NodeMutRef};
-use graph::avl_graph::edge::{Edge, EdgeRef, EdgeMutRef};
+use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
+use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
 
 use self::vec_backing::VecBacking;
 

@@ -17,12 +17,12 @@ use std::fmt::Debug;
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use weight::Weight;
 
-mod serde;
 pub mod edge;
 pub mod node;
+mod serde;
 
-use graph::avl_graph::edge::{Edge, EdgeRef, EdgeMutRef};
-use graph::avl_graph::node::{Node, NodeRef, NodeMutRef};
+use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
+use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
 
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::vec_backing::VecBacking;
@@ -113,8 +113,7 @@ where
         }
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
-        let first_clone_edge =
-            Edge::new(edge_to_clone.get_weight(), edge_to_clone.get_target());
+        let first_clone_edge = Edge::new(edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes
@@ -474,10 +473,7 @@ where
     }
 
     // We can't use mutable indexing because we return custom MutNode, not &mut Node.
-    pub fn get_node_mut(
-        &mut self,
-        node: NodeIndex<Ix>,
-    ) -> Mb::NodeMutRef {
+    pub fn get_node_mut(&mut self, node: NodeIndex<Ix>) -> Mb::NodeMutRef {
         self.nodes.index_mut(node.index())
     }
 }
@@ -574,12 +570,12 @@ where
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
+    use graph::avl_graph::edge::EdgeRef;
+    use graph::avl_graph::node::{NodeMutRef, NodeRef};
     use graph::avl_graph::AvlGraph;
     use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
     use std::convert::TryInto;
     use weight::{Weight, Weight40};
-    use graph::avl_graph::node::{NodeRef, NodeMutRef};
-    use graph::avl_graph::edge::EdgeRef;
 
     use serde::{Deserialize, Serialize};
 

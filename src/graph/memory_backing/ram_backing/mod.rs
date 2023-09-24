@@ -5,8 +5,8 @@ use graph::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
 use weight::Weight;
 
-use graph::avl_graph::node::Node;
 use graph::avl_graph::edge::Edge;
+use graph::avl_graph::node::Node;
 
 pub struct RamBacking<N, E, Ix> {
     marker: PhantomData<(N, E, Ix)>,

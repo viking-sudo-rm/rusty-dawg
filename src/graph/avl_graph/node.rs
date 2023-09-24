@@ -45,7 +45,9 @@ where
 }
 
 pub trait NodeRef<N, Ix> {
-    fn get_weight(self) -> N where N: Clone;
+    fn get_weight(self) -> N
+    where
+        N: Clone;
     fn get_length(self) -> u64;
     fn get_failure(self) -> Option<NodeIndex<Ix>>;
     fn get_count(self) -> u64;
@@ -57,7 +59,10 @@ where
     Ix: IndexType,
     N: Weight,
 {
-    fn get_weight(self) -> N where N: Clone {
+    fn get_weight(self) -> N
+    where
+        N: Clone,
+    {
         unsafe { (*self).weight.clone() }
     }
 
