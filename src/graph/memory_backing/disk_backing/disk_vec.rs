@@ -1,5 +1,3 @@
-use graph::memory_backing::vec_backing::VecBacking;
-
 use std::fs::File;
 use std::marker;
 use std::path::Path;

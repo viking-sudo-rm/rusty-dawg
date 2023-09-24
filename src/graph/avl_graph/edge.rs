@@ -146,3 +146,24 @@ where
         }
     }
 }
+
+impl<E, Ix> EdgeMutRef<Ix> for &mut Edge<E, Ix>
+where
+    Ix: IndexType + Copy,
+{
+    fn set_target(self, target: NodeIndex<Ix>) {
+        self.target = target;
+    }
+
+    fn set_left(self, left: EdgeIndex<Ix>) {
+        self.left = left;
+    }
+
+    fn set_right(self, right: EdgeIndex<Ix>) {
+        self.right = right;
+    }
+
+    fn set_balance_factor(self, bf: i8) {
+        self.balance_factor = bf;
+    }
+}

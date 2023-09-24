@@ -2,7 +2,7 @@ use graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use graph::avl_graph::node::{Node, NodeMutRef};
 use graph::avl_graph::edge::{Edge, EdgeMutRef};
 use graph::memory_backing::disk_backing::{NodeIndex, EdgeIndex, IndexType};
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 use weight::Weight;
 

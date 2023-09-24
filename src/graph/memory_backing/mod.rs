@@ -1,4 +1,4 @@
-pub mod disk_backing;
+// pub mod disk_backing;
 pub mod ram_backing;
 pub mod vec_backing;
 
@@ -13,8 +13,8 @@ pub trait MemoryBacking<N, E, Ix> {
     type NodeMutRef: NodeMutRef<Ix>;
     type EdgeMutRef: EdgeMutRef<Ix>;
 
-    type VecN: VecBacking<Node<N, Ix>, Self::NodeRef, Self::NodeMutRef>;
-    type VecE: VecBacking<Edge<E, Ix>, Self::EdgeRef, Self::EdgeMutRef>;
+    type VecN: VecBacking<Node<N, Ix>, TRef = Self::NodeRef, TMutRef = Self::NodeMutRef>;
+    type VecE: VecBacking<Edge<E, Ix>, TRef = Self::EdgeRef, TMutRef = Self::EdgeMutRef>;
 
     fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN;
 

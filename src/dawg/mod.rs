@@ -47,8 +47,8 @@ where
 
 impl<E, W> Dawg<E, W>
 where
-    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    E: Eq + Ord + Serialize + for<'de> Deserialize<'de> + Copy + Debug,
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
 {
     pub fn new() -> Dawg<E, W> {
         let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
@@ -61,10 +61,10 @@ where
     }
 }
 
-impl<E, W, Mb> Dawg<E, W, DefaultIx, Mb>
+impl<'a, E, W, Mb> Dawg<E, W, DefaultIx, Mb>
 where
-    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    E: Eq + Ord + Serialize + for<'de> Deserialize<'de> + Copy + Debug,
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
     Mb: MemoryBacking<W, E, DefaultIx>,
     Mb::EdgeRef: Copy,
 {

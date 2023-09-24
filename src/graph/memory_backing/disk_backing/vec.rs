@@ -1,16 +1,15 @@
 // Implement the VecBacking interface for DiskVec.
 
 use graph::memory_backing::vec_backing::VecBacking;
-use graph::avl_graph::node::Node;
-use graph::avl_graph::edge::Edge;
 use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use graph::memory_backing::disk_backing::disk_mut_refs::{DiskNodeMutRef, DiskEdgeMutRef, DiskVecItem};
+use graph::memory_backing::disk_backing::disk_mut_refs::DiskVecItem;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-impl<T> VecBacking<T, T, T::MutRef<'_>> for DiskVec<T>
+impl<'a, T> VecBacking<T, T, T::MutRef> for DiskVec<T>
 where
-    T: DiskVecItem + Default + Serialize + DeserializeOwned,
+    T: DiskVecItem<'a> + Default + Serialize + DeserializeOwned,
+    DiskVec<T>: 'a,
 {
     fn len(&self) -> usize {
         DiskVec::len(self)
@@ -24,7 +23,9 @@ where
         self.get(index).unwrap()
     }
 
-    fn index_mut(&mut self, index: usize) -> T::MutRef<'l> {
+    // FIXME: We want to say that the return type has the same life time as disk_vec.
+    // Probably new_mut_ref should take a lifetime as an argument?
+    fn index_mut(&mut self, index: usize) -> T::MutRef<'a> {
         T::new_mut_ref(self, index)
     }
 }
@@ -48,10 +49,10 @@ mod tests {
         }
     }
 
-    impl DiskVecItem for u8 {
-        type MutRef<'a> = DummyMutRef<'a>;
+    impl<'a> DiskVecItem<'a> for u8 {
+        type MutRef = DummyMutRef<'a>;
 
-        fn new_mut_ref<'a>(disk_vec: &'a mut DiskVec<u8>, index: usize) -> Self::MutRef<'a> {
+        fn new_mut_ref(disk_vec: &'a mut DiskVec<u8>, index: usize) -> Self::MutRef {
             DummyMutRef {disk_vec, index}
         }
     }
@@ -59,7 +60,7 @@ mod tests {
     #[test]
     fn test_diskvec_as_veclike() {
         let tmp_dir = tempdir().unwrap();
-        let mut disk_vec = DiskVec::<u8>::new(tmp_dir.path().join("vec.bin"), 4).unwrap();
+        let disk_vec = DiskVec::<u8>::new(tmp_dir.path().join("vec.bin"), 4).unwrap();
         let mut mb: Box<dyn VecBacking<u8, u8, DummyMutRef>> = Box::new(disk_vec);
 
         mb.push(20);
