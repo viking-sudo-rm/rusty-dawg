@@ -1,4 +1,4 @@
-// pub mod disk_backing;
+pub mod disk_backing;
 pub mod ram_backing;
 pub mod vec_backing;
 

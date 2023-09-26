@@ -2,31 +2,51 @@
 
 use graph::memory_backing::vec_backing::VecBacking;
 use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use graph::memory_backing::disk_backing::disk_mut_refs::DiskVecItem;
+use graph::memory_backing::disk_backing::disk_mut_refs::{DiskVecItem,MutRef};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use std::rc::Rc;
+use std::cell::RefCell;
+use anyhow::Result;
+use std::path::Path;
 
-impl<'a, T> VecBacking<T, T, T::MutRef> for DiskVec<T>
-where
-    T: DiskVecItem<'a> + Default + Serialize + DeserializeOwned,
-    DiskVec<T>: 'a,
+struct Vec<T>
+where T: Sized
 {
+    disk_vec: Rc<RefCell<DiskVec<T>>>,
+}
+
+impl<T> Vec<T>
+where
+    T: DiskVecItem + Default + Serialize + DeserializeOwned,
+{
+    pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize) -> Result<Self> {
+        let disk_vec = DiskVec::new(path, capacity)?;
+        Ok(Self {disk_vec: Rc::new(RefCell::new(disk_vec))})
+    }
+}
+
+impl<T> VecBacking<T> for Vec<T>
+where
+    T: DiskVecItem + Default + Serialize + DeserializeOwned,
+{
+    type TRef = T;
+    type TMutRef = T::MutRef;
+
     fn len(&self) -> usize {
-        DiskVec::len(self)
+        self.disk_vec.borrow().len()
     }
 
     fn push(&mut self, item: T) {
-        DiskVec::push(self, &item);
+        let _ = self.disk_vec.borrow_mut().push(&item);
     }
 
     fn index(&self, index: usize) -> T {
-        self.get(index).unwrap()
+        self.disk_vec.borrow().get(index).unwrap()
     }
 
-    // FIXME: We want to say that the return type has the same life time as disk_vec.
-    // Probably new_mut_ref should take a lifetime as an argument?
-    fn index_mut(&mut self, index: usize) -> T::MutRef<'a> {
-        T::new_mut_ref(self, index)
+    fn index_mut(&mut self, index: usize) -> T::MutRef {
+        T::MutRef::new(self.disk_vec.clone(), index)
     }
 }
 
@@ -37,34 +57,40 @@ mod tests {
     use serde::Deserialize;
     use tempfile::tempdir;
     use graph::memory_backing::vec_backing::VecBacking;
+    use graph::memory_backing::disk_backing::disk_mut_refs::MutRef;
+    use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub struct DummyMutRef<'a> {
-        disk_vec: &'a mut DiskVec<u8>,
+    pub struct DummyMutRef {
+        disk_vec: Rc<RefCell<DiskVec<u8>>>,
         index: usize,
     }
 
-    impl<'a> DummyMutRef<'a> {
-        pub fn meaning_of_life(self) {
-            let _ = self.disk_vec.set(self.index, &42);
+    impl MutRef<u8> for DummyMutRef {
+        fn new(disk_vec: Rc<RefCell<DiskVec<u8>>>, index: usize) -> Self {
+            Self{disk_vec, index}
         }
     }
 
-    impl<'a> DiskVecItem<'a> for u8 {
-        type MutRef = DummyMutRef<'a>;
-
-        fn new_mut_ref(disk_vec: &'a mut DiskVec<u8>, index: usize) -> Self::MutRef {
-            DummyMutRef {disk_vec, index}
+    impl DummyMutRef {
+        pub fn meaning_of_life(self) {
+            let mut disk_vec = self.disk_vec.borrow_mut();
+            let _ = disk_vec.set(self.index, &42);
         }
+    }
+
+    impl DiskVecItem for u8 {
+        type MutRef = DummyMutRef;
     }
 
     #[test]
     fn test_diskvec_as_veclike() {
         let tmp_dir = tempdir().unwrap();
-        let disk_vec = DiskVec::<u8>::new(tmp_dir.path().join("vec.bin"), 4).unwrap();
-        let mut mb: Box<dyn VecBacking<u8, u8, DummyMutRef>> = Box::new(disk_vec);
+        let disk_vec = Vec::<u8>::new(tmp_dir.path().join("vec.bin"), 4).unwrap();
+        let mut mb: Box<dyn VecBacking<u8, TRef = u8, TMutRef = DummyMutRef>> = Box::new(disk_vec);
 
         mb.push(20);
-        assert_eq!(mb.index(0), 12);
+        assert_eq!(mb.index(0), 20);
         mb.index_mut(0).meaning_of_life();
         assert_eq!(mb.index(0), 42);
     }
