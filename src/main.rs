@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Messy, but it works.
     if args.utype == "u16" {
         type E = u16;
-        match args.disk_path {
+        match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
                 let mb = Mb::new(&path);
@@ -120,7 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     } else if args.utype == "u32" {
         type E = u32;
-        match args.disk_path {
+        match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
                 let mb = Mb::new(&path);
@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     } else if args.utype == "usize" {
         type E = usize;
-        match args.disk_path {
+        match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
                 let mb = Mb::new(&path);
@@ -166,6 +166,7 @@ where
         + TryFrom<u32>,
     usize: TryFrom<E>,
     Mb: MemoryBacking<N, E, DefaultIx>,
+    Dawg<E, N, DefaultIx, Mb>: io::Save,
 {
     println!("sizeof(edge): {}B", size_of::<E>());
     println!("sizeof(node): {}B", size_of::<N>());
