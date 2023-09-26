@@ -5,7 +5,7 @@ use std::marker::Copy;
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use weight::Weight;
 
-#[derive(Deserialize, Serialize, Copy)]
+#[derive(Deserialize, Serialize, Copy, Default)]
 pub struct Node<N, Ix = DefaultIx> {
     #[serde(bound(
         serialize = "N: Serialize, Ix: Serialize",

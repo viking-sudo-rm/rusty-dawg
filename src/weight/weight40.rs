@@ -15,7 +15,7 @@ pub struct Weight40 {
     count: u32,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct WeightMinimal {
     length: DefaultIx,
     failure: DefaultIx,

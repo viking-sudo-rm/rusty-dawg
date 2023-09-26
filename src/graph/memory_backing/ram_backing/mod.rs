@@ -8,6 +8,7 @@ use weight::Weight;
 use graph::avl_graph::edge::Edge;
 use graph::avl_graph::node::Node;
 
+#[derive(Clone)]
 pub struct RamBacking<N, E, Ix> {
     marker: PhantomData<(N, E, Ix)>,
 }
@@ -15,7 +16,7 @@ pub struct RamBacking<N, E, Ix> {
 impl<N, E, Ix> MemoryBacking<N, E, Ix> for RamBacking<N, E, Ix>
 where
     Ix: IndexType + Copy,
-    N: Weight,
+    N: Weight + Clone,
     E: Copy,
 {
     type NodeRef = *const Node<N, Ix>;

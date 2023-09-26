@@ -33,18 +33,6 @@ where
     initial: NodeIndex<Ix>,
 }
 
-// Currently the implementation fixes DefaultIx. Would not be too hard to generalize.
-// impl<E, W, Mb> Default for Dawg<E, W, DefaultIx, Mb>
-// where
-//     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-//     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
-//     Mb: MemoryBacking<W, E, DefaultIx>,
-// {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
-
 impl<E, W> Dawg<E, W>
 where
     E: Eq + Ord + Serialize + for<'de> Deserialize<'de> + Copy + Debug,
@@ -68,14 +56,14 @@ where
     Mb: MemoryBacking<W, E, DefaultIx>,
     Mb::EdgeRef: Copy,
 {
-    fn new_mb(mb: Mb) -> Dawg<E, W, DefaultIx, Mb> {
+    pub fn new_mb(mb: Mb) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new_mb(mb);
         let initial = dawg.add_node(W::initial());
         dawg.get_node_mut(initial).increment_count();
         Dawg { dawg, initial }
     }
 
-    fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
+    pub fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
             AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
@@ -325,6 +313,10 @@ where
 
     pub fn get_graph(&self) -> &AvlGraph<W, E, DefaultIx, Mb> {
         &self.dawg
+    }
+
+    pub fn get_mb(&self) -> &Mb {
+        self.get_graph().get_mb()
     }
 }
 

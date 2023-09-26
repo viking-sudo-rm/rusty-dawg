@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use anyhow::Result;
 use std::path::Path;
 
-struct Vec<T>
+pub struct Vec<T>
 where T: Sized
 {
     disk_vec: Rc<RefCell<DiskVec<T>>>,

@@ -44,7 +44,7 @@ impl<N, E, Ix> AvlGraph<N, E, Ix>
 where
     E: Eq + Ord + Copy + Debug,
     Ix: IndexType,
-    N: Weight,
+    N: Weight + Clone,
 {
     pub fn new() -> Self {
         let mb: RamBacking<N, E, Ix> = RamBacking::default();
@@ -475,6 +475,10 @@ where
     // We can't use mutable indexing because we return custom MutNode, not &mut Node.
     pub fn get_node_mut(&mut self, node: NodeIndex<Ix>) -> Mb::NodeMutRef {
         self.nodes.index_mut(node.index())
+    }
+
+    pub fn get_mb(&self) -> &Mb {
+        &self.mb
     }
 }
 

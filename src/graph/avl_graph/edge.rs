@@ -3,7 +3,7 @@ use std::clone::Clone;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default, Copy)]
 pub struct Edge<E, Ix = DefaultIx> {
     #[serde(bound(
         serialize = "E: Serialize, Ix: Serialize",

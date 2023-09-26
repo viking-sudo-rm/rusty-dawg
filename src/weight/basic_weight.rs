@@ -7,7 +7,7 @@ use graph::indexing::NodeIndex;
 
 use crate::weight::Weight;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct BasicWeight {
     length: u32,
     failure: u32,
