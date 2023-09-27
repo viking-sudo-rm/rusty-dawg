@@ -174,9 +174,15 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::weight::WeightMinimal;
+
     use super::*;
     use serde::Deserialize;
     use tempfile::tempdir;
+
+    use graph::avl_graph::node::{Node, NodeRef};
+    use weight::{DefaultWeight, Weight};
+    use graph::indexing::{NodeIndex, DefaultIx};
 
     #[derive(Serialize, Deserialize, Default, Debug)]
     struct Foo {
@@ -203,6 +209,19 @@ mod tests {
         disk_vec.set(1, &Foo { x: 2, y: 1 }).unwrap();
         assert_eq!(disk_vec.len(), 2);
         assert_eq!(disk_vec.get(1).unwrap().x, 2);
+    }
+
+    #[test]
+    fn test_node_disk_vec_push_set_get() {
+        type T = Node<DefaultWeight, DefaultIx>;
+        let tmp_dir = tempdir().unwrap();
+
+        let mut disk_vec: DiskVec<T> = DiskVec::new(tmp_dir.path().join("nodes.vec"), 8).unwrap();
+        assert_eq!(disk_vec.len(), 0);
+
+        let node: T = Node::new(DefaultWeight::new(32, Some(NodeIndex::new(2)), 2));
+        let _ = disk_vec.push(&node);
+        assert_eq!(disk_vec.get(0).unwrap().get_length(), 32);
     }
 
     #[test]

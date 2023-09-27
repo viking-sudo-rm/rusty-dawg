@@ -156,3 +156,41 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::weight::WeightMinimal;
+
+    use super::*;
+    use bincode;
+    use bincode::{serialize, deserialize, Options};
+    use weight::DefaultWeight;
+
+        #[test]
+    fn test_serialize_deserialize_node() {
+        type NodeType = Node<WeightMinimal, DefaultIx>;
+        let node: NodeType = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
+        let bytes = serialize(&node).unwrap();
+        let new_node: NodeType = deserialize(&bytes).unwrap();
+        assert_eq!(node.get_length(), new_node.get_length());
+        assert_eq!(node.get_failure(), new_node.get_failure());
+        assert_eq!(node.get_count(), new_node.get_count());
+    }
+
+    #[test]
+    fn test_serialize_deserialize_node_with_fixint() {
+        type T = Node<WeightMinimal, DefaultIx>;
+        let node: T = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
+        let bytes = bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .serialize(&node)
+            .unwrap();
+        let new_node = bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .deserialize::<T>(&bytes)
+            .unwrap();
+        assert_eq!(node.get_length(), new_node.get_length());
+        assert_eq!(node.get_failure(), new_node.get_failure());
+        assert_eq!(node.get_count(), new_node.get_count());
+    }
+}

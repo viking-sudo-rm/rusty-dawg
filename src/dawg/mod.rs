@@ -335,13 +335,16 @@ mod tests {
     use weight::Weight;
 
     use graph::avl_graph::node::NodeRef;
-    use graph::indexing::NodeIndex;
+    use graph::indexing::{NodeIndex, DefaultIx};
 
     use bincode::{deserialize_from, serialize_into};
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom, Write};
     use tempfile::NamedTempFile;
     use weight::weight40::DefaultWeight;
+    use tempfile::tempdir;
+
+    use crate::graph::memory_backing::DiskBacking;
 
     #[test]
     fn test_build_bab() {
@@ -380,8 +383,6 @@ mod tests {
         assert_eq!(dawg.get_max_factor_length("z".chars().collect()), 0);
         assert_eq!(dawg.get_max_factor_length("zzbcazz".chars().collect()), 3);
 
-        // println!("{:?}", Dot::new(dawg.get_graph()));
-
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(0)).get_count(), 6);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(1)).get_count(), 2);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(2)).get_count(), 2);
@@ -414,18 +415,6 @@ mod tests {
         println!("Start build!");
         let chars: Vec<char> = corpus.chars().collect();
         dawg.build(&chars);
-        // FIXME
-        // dawg.recompute_lengths();
-        // assert_eq!(dawg.get_max_factor_length("How".chars().collect()), 3);
-        // assert_eq!(dawg.get_max_factor_length("However,".chars().collect()), 8);
-        // assert_eq!(
-        //     dawg.get_max_factor_length("static~However, the farce".chars().collect()),
-        //     15
-        // );
-        // assert_eq!(
-        //     dawg.get_max_factor_length("However, the zzz".chars().collect()),
-        //     13
-        // );
     }
 
     #[test]
@@ -460,5 +449,14 @@ mod tests {
         let decoded: Dawg<char, DefaultWeight> =
             deserialize_from(&file).expect("Failed to deserialize");
         assert_eq!(decoded.node_count(), 5);
+    }
+
+    #[test]
+    fn test_build_abb_on_disk() {
+        let tmp_dir = tempdir().unwrap();
+        type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
+        let mb: Mb  = DiskBacking::new(tmp_dir.path());
+        let mut dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
+        dawg.build(&['a', 'b', 'b']);
     }
 }
