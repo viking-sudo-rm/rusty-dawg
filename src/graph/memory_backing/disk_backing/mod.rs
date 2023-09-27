@@ -9,6 +9,7 @@ use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
 use graph::memory_backing::MemoryBacking;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::fs::create_dir_all;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use weight::Weight;
@@ -24,6 +25,7 @@ pub struct DiskBacking<N, E, Ix> {
 
 impl<N, E, Ix> DiskBacking<N, E, Ix> {
     pub fn new<P: AsRef<Path> + Clone + std::fmt::Debug>(dir_path: P) -> Self {
+        create_dir_all(dir_path.clone()).unwrap();
         Self {
             dir_path: Box::from(dir_path.as_ref()),
             marker: PhantomData,
