@@ -76,7 +76,6 @@ where
         Ok(AvlGraph {
             nodes,
             edges,
-            mb: Mb::default(),
             marker: PhantomData,
         })
     }

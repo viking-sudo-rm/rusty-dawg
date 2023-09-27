@@ -40,7 +40,6 @@ where
 {
     nodes: Mb::VecN,
     edges: Mb::VecE,
-    mb: Mb,
     marker: PhantomData<(N, E, Ix)>,
 }
 
@@ -63,11 +62,11 @@ where
     Ix: IndexType + Serialize + DeserializeOwned,
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
-        let mb = DiskBacking::new(path);
+        let mb: DiskBacking<N, E, Ix> = DiskBacking::new(path);
         // FIXME: This can be refactored to call a method in Mb.
         let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path())?;
         let edges = disk_backing::vec::Vec::load(mb.get_edges_path())?;
-        Ok(Self{nodes, edges, mb, marker: PhantomData})
+        Ok(Self{nodes, edges, marker: PhantomData})
     }
 }
 
@@ -83,7 +82,6 @@ where
         AvlGraph {
             nodes,
             edges,
-            mb,
             marker: PhantomData,
         }
     }
@@ -94,7 +92,6 @@ where
         AvlGraph {
             nodes,
             edges,
-            mb,
             marker: PhantomData,
         }
     }
