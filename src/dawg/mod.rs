@@ -414,7 +414,7 @@ mod tests {
         let chars: Vec<char> = corpus.chars().collect();
 
         let test = "stat trend";
-        let test_chars: Vec<char> = corpus.chars().collect();
+        let test_chars: Vec<char> = test.chars().collect();
 
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&chars);

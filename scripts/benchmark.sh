@@ -21,6 +21,6 @@ time ./target/release/rusty-dawg \
     --n-eval 0 \
     --nodes-ratio 1.25 \
     --edges-ratio 2.20 \
+    --disk-path "/Users/willm/Desktop/dawg" \
     --tokenizer "whitespace"
 
-    # --disk-path "/Users/willm/Desktop/dawg"

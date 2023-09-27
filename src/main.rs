@@ -34,6 +34,8 @@ use std::cmp::Ord;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
+use std::io::{BufReader, Read};
+use std::cmp::min;
 
 use io::Save;
 
@@ -41,7 +43,7 @@ use clap::Parser;
 use std::fs;
 use std::mem::size_of;
 
-use kdam::tqdm;
+use kdam::{BarExt, tqdm};
 
 use dawg::Dawg;
 use evaluator::Evaluator;
@@ -69,12 +71,6 @@ struct Args {
     save_path: String,
     #[arg(long)]
     results_path: String,
-    #[arg(long)]
-    gen_path: Option<String>,
-    #[arg(long)]
-    gen_results_path: Option<String>,
-    // #[arg(long, default_value_t = false)]
-    // tokenize: bool,
 
     // This value can take on the following values:
     // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
@@ -98,6 +94,12 @@ struct Args {
     nodes_ratio: f64,
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
+    #[arg(long, default_value_t = 0.33)]
+    tokens_per_byte: f64,
+
+    // Amount of input to read at a time while consuming file. Defaults to 10 GB.
+    #[arg(long, default_value_t = 10000000000)]
+    buf_size: usize,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -184,69 +186,63 @@ where
         Box::new(PretrainedTokenizer::new(&args.tokenizer))
     };
 
-    let train_raw: String =
-        fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
-    index.build(&train_raw);
-    let train: Vec<E> = index.tokenize(&train_raw);
-    let eval_threshold = if args.n_eval != 0 {
-        train.len() / args.n_eval
-    } else {
-        0
-    };
-    println!("#(train): {}", train.len());
+    let train_file = fs::File::open(args.train_path.as_str())?;
+    let n_bytes = train_file.metadata().unwrap().len();
+    let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
+    let eval_threshold = if args.n_eval == 0 { 0} else { est_n_tokens / args.n_eval };
+    let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
+    index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
     let mut test: Vec<E> = index.tokenize(&test_raw);
     // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
         test = test[0..args.truncate_test].to_vec();
     }
+    let mut evaluator = Evaluator::new(&test, args.max_length);
     println!("#(test): {}/{}", test.len(), old_test_len);
 
-    let gen_raw: String = match &args.gen_path {
-        Some(path) => {
-            fs::read_to_string(path).unwrap_or_else(|_| panic!("Error loading gen path: {}", path))
-        }
-        None => "".to_string(),
-    };
-    let gen: Vec<E> = index.tokenize(&gen_raw);
-    println!("#(gen): {}", gen.len());
-    println!("#(vocab): {}", index.get_count());
-
-    let mut evaluator = Evaluator::new(&test, args.max_length);
-    let mut gen_evaluator = Evaluator::new(&gen, args.max_length);
-
-    let n_nodes = (args.nodes_ratio * (train.len() as f64)).ceil() as usize;
-    let n_edges = (args.edges_ratio * (train.len() as f64)).ceil() as usize;
+    let n_nodes = (args.nodes_ratio * (est_n_tokens as f64)).ceil() as usize;
+    let n_edges = (args.edges_ratio * (est_n_tokens as f64)).ceil() as usize;
     let mut dawg: Dawg<E, N, DefaultIx, Mb> = Dawg::with_capacity_mb(mb, n_nodes, n_edges);
 
+    let mut idx = 0;
     let mut last = dawg.get_initial();
-    for (idx, token) in tqdm!(train.iter()).enumerate() {
-        last = dawg.extend(*token, last);
-        if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
-            evaluator.evaluate(&dawg, idx);
-            if !args.results_path.is_empty() {
-                evaluator.to_json(&args.results_path)?;
-            }
-            match &args.gen_results_path {
-                Some(gen_path) => {
-                    gen_evaluator.evaluate(&dawg, idx);
-                    gen_evaluator.to_json(gen_path)?;
+    let mut pbar = tqdm!(total = est_n_tokens);
+    let mut train_reader = BufReader::with_capacity(buf_size, train_file);
+    let mut buffer = vec![0; buf_size];
+    loop {
+        let n_bytes_read = train_reader.read(&mut buffer).unwrap();
+        if n_bytes_read == 0 {
+            break;
+        }
+        let text = std::str::from_utf8(&buffer);
+        let tokens = index.tokenize(&text.unwrap());
+        for token in &tokens {
+            last = dawg.extend(*token, last);
+            if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
+                evaluator.evaluate(&dawg, idx);
+                if !args.results_path.is_empty() {
+                    evaluator.to_json(&args.results_path)?;
                 }
-                None => {}
             }
+            idx += 1;
+            pbar.update(1);
         }
     }
+
+    eprintln!();
     println!("Completed!");
+    println!("  token/byte: {:.2} (tokens={})", (idx as f64) / (n_bytes as f64), idx);
     println!(
-        "  Node ratio: {:.2} (total={})",
-        (dawg.node_count() as f64) / (train.len() as f64),
+        "  node/token: {:.2} (nodes={})",
+        (dawg.node_count() as f64) / (idx as f64),
         dawg.node_count()
     );
     println!(
-        "  Edge ratio: {:.2} (total={})",
-        (dawg.edge_count() as f64) / (train.len() as f64),
+        "  edge/token: {:.2} (edges={})",
+        (dawg.edge_count() as f64) / (idx as f64),
         dawg.edge_count()
     );
     println!("  Balance ratio: {}", dawg.balance_ratio(1));
