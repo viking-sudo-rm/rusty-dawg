@@ -23,6 +23,4 @@ time ./target/release/rusty-dawg \
     --edges-ratio 2.20 \
     --tokenizer "whitespace"
 
-# size=$(ls -lh /tmp/$1.dawg | awk '{print  $5}')
-# rm /tmp/$1.dawg
-# echo "\n=====\nsize: $size"
+    # --disk-path "/Users/willm/Desktop/dawg"

@@ -103,6 +103,11 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
+    match args.disk_path.clone() {
+        Some(path) => println!("DAWG on disk: {}", path),
+        None => println!("DAWG in RAM"),
+    };
+
     // Messy, but it works.
     if args.utype == "u16" {
         type E = u16;

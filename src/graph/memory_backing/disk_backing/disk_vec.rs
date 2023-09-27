@@ -175,8 +175,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::weight::WeightMinimal;
-
     use super::*;
     use serde::Deserialize;
     use tempfile::tempdir;
@@ -223,6 +221,10 @@ mod tests {
         let node: T = Node::new(DefaultWeight::new(32, Some(NodeIndex::new(2)), 2));
         let _ = disk_vec.push(&node);
         assert_eq!(disk_vec.get(0).unwrap().get_length(), 32);
+
+        let new_node: T = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
+        let _ = disk_vec.set(0, &new_node);
+        assert_eq!(disk_vec.get(0).unwrap().get_length(), 42);
     }
 
     #[test]

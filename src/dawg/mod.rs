@@ -401,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_brown() {
+    fn test_build_brown_ram_disk() {
         let corpus = "Communication
         may be facilitated by means of the high visibility within the larger
         community. Intense interaction is easier where segregated living and
@@ -411,10 +411,27 @@ mod tests {
         is still predominantly rural, there are indications of a consistent
         and a statistically significant trend away from the older and
         relatively isolated rural communities **h urbanization appears to be";
-        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        println!("Start build!");
         let chars: Vec<char> = corpus.chars().collect();
+
+        let test = "stat trend";
+        let test_chars: Vec<char> = corpus.chars().collect();
+
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&chars);
+
+        let tmp_dir = tempdir().unwrap();
+        type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
+        let mb: Mb  = DiskBacking::new(tmp_dir.path());
+        let mut disk_dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
+        disk_dawg.build(&chars);
+
+        let mut dawg_state = dawg.get_initial();
+        let mut disk_state = disk_dawg.get_initial();
+        for token in test_chars {
+            dawg_state = dawg.transition(dawg_state, token, true).unwrap();
+            disk_state = disk_dawg.transition(disk_state, token, true).unwrap();
+            assert_eq!(dawg_state, disk_state);
+        }
     }
 
     #[test]
@@ -458,5 +475,10 @@ mod tests {
         let mb: Mb  = DiskBacking::new(tmp_dir.path());
         let mut dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
         dawg.build(&['a', 'b', 'b']);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(0)).get_count(), 4);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(1)).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(2)).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(3)).get_count(), 1);
+        assert_eq!(dawg.dawg.get_node(NodeIndex::new(4)).get_count(), 2);
     }
 }
