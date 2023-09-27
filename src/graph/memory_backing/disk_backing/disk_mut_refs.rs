@@ -1,12 +1,12 @@
-use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use graph::avl_graph::node::{Node, NodeMutRef};
 use graph::avl_graph::edge::{Edge, EdgeMutRef};
-use graph::memory_backing::disk_backing::{NodeIndex, EdgeIndex, IndexType};
-use serde::Serialize;
+use graph::avl_graph::node::{Node, NodeMutRef};
+use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use graph::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
 use serde::de::DeserializeOwned;
-use weight::Weight;
-use std::rc::Rc;
+use serde::Serialize;
 use std::cell::RefCell;
+use std::rc::Rc;
+use weight::Weight;
 
 pub trait MutRef<T> {
     fn new(disk_vec: Rc<RefCell<DiskVec<T>>>, index: usize) -> Self;
@@ -19,12 +19,13 @@ pub struct DiskNodeMutRef<N, Ix> {
 
 impl<N, Ix> MutRef<Node<N, Ix>> for DiskNodeMutRef<N, Ix> {
     fn new(disk_vec: Rc<RefCell<DiskVec<Node<N, Ix>>>>, index: usize) -> Self {
-        Self{disk_vec, index}
+        Self { disk_vec, index }
     }
 }
 
 // TODO: Only overwrite the specific field in the DiskVec rather than read/write.
-impl<N, Ix> NodeMutRef<Ix> for DiskNodeMutRef<N, Ix> where
+impl<N, Ix> NodeMutRef<Ix> for DiskNodeMutRef<N, Ix>
+where
     Ix: IndexType,
     N: Weight,
     Node<N, Ix>: Serialize + DeserializeOwned + Default,
@@ -70,7 +71,7 @@ pub struct DiskEdgeMutRef<E, Ix> {
 
 impl<E, Ix> MutRef<Edge<E, Ix>> for DiskEdgeMutRef<E, Ix> {
     fn new(disk_vec: Rc<RefCell<DiskVec<Edge<E, Ix>>>>, index: usize) -> Self {
-        Self{disk_vec, index}
+        Self { disk_vec, index }
     }
 }
 

@@ -1,4 +1,6 @@
 use dawg::Dawg;
+use graph::indexing::DefaultIx;
+use graph::memory_backing::MemoryBacking;
 use serde::{Deserialize, Serialize};
 use stat_utils::get_entropy;
 use std::cmp::max;
@@ -8,8 +10,6 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-use graph::indexing::DefaultIx;
-use graph::memory_backing::MemoryBacking;
 use weight::Weight;
 
 use graph::avl_graph::node::NodeRef;
@@ -52,10 +52,7 @@ impl<E> Evaluator<'_, E>
 where
     E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
 {
-    pub fn new<'a>(
-        test: &'a Vec<E>,
-        max_length: u64,
-    ) -> Evaluator<'a, E> {
+    pub fn new<'a>(test: &'a Vec<E>, max_length: u64) -> Evaluator<'a, E> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
@@ -139,9 +136,9 @@ where
 mod tests {
     use dawg::Dawg;
     use evaluator::Evaluator;
-    use tokenize::{TokenIndex, Tokenize};
     use graph::indexing::DefaultIx;
     use graph::memory_backing::RamBacking;
+    use tokenize::{TokenIndex, Tokenize};
 
     use crate::weight::weight40::DefaultWeight;
 

@@ -1,13 +1,13 @@
 use bincode::deserialize_from;
 use dawg::Dawg;
+use graph::indexing::DefaultIx;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::cmp::Eq;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
 use weight::Weight;
-use serde::de::DeserializeOwned;
-use graph::indexing::DefaultIx;
 
 use crate::graph::memory_backing::DiskBacking;
 
@@ -40,4 +40,3 @@ where
         Ok(dawg)
     }
 }
-

@@ -62,7 +62,6 @@ where
     Ix: IndexType + Copy,
     E: Copy,
 {
-
     fn get_weight(self) -> E {
         self.weight
     }

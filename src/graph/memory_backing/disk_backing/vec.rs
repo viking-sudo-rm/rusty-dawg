@@ -1,17 +1,18 @@
 // Implement the VecBacking interface for DiskVec.
 
-use graph::memory_backing::vec_backing::VecBacking;
-use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use graph::memory_backing::disk_backing::disk_mut_refs::{DiskVecItem,MutRef};
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use std::rc::Rc;
-use std::cell::RefCell;
 use anyhow::Result;
+use graph::memory_backing::disk_backing::disk_mut_refs::{DiskVecItem, MutRef};
+use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use graph::memory_backing::vec_backing::VecBacking;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::cell::RefCell;
 use std::path::Path;
+use std::rc::Rc;
 
 pub struct Vec<T>
-where T: Sized
+where
+    T: Sized,
 {
     disk_vec: Rc<RefCell<DiskVec<T>>>,
 }
@@ -22,12 +23,16 @@ where
 {
     pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize) -> Result<Self> {
         let disk_vec = DiskVec::new(path, capacity)?;
-        Ok(Self {disk_vec: Rc::new(RefCell::new(disk_vec))})
+        Ok(Self {
+            disk_vec: Rc::new(RefCell::new(disk_vec)),
+        })
     }
 
     pub fn load<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Self> {
         let disk_vec = DiskVec::load(path)?;
-        Ok(Self {disk_vec: Rc::new(RefCell::new(disk_vec))})
+        Ok(Self {
+            disk_vec: Rc::new(RefCell::new(disk_vec)),
+        })
     }
 }
 
@@ -59,12 +64,12 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use serde::Deserialize;
-    use tempfile::tempdir;
-    use graph::memory_backing::vec_backing::VecBacking;
     use graph::memory_backing::disk_backing::disk_mut_refs::MutRef;
-    use std::rc::Rc;
+    use graph::memory_backing::vec_backing::VecBacking;
+    use serde::Deserialize;
     use std::cell::RefCell;
+    use std::rc::Rc;
+    use tempfile::tempdir;
 
     pub struct DummyMutRef {
         disk_vec: Rc<RefCell<DiskVec<u8>>>,
@@ -73,7 +78,7 @@ mod tests {
 
     impl MutRef<u8> for DummyMutRef {
         fn new(disk_vec: Rc<RefCell<DiskVec<u8>>>, index: usize) -> Self {
-            Self{disk_vec, index}
+            Self { disk_vec, index }
         }
     }
 

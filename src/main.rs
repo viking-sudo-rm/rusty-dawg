@@ -25,17 +25,17 @@ mod dawg;
 mod evaluator;
 mod graph;
 mod io;
+mod stat_utils;
 mod tokenize;
 mod weight;
-mod stat_utils;
 
 use serde::{Deserialize, Serialize};
+use std::cmp::min;
 use std::cmp::Ord;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
 use std::io::{BufReader, Read};
-use std::cmp::min;
 
 use io::Save;
 
@@ -43,13 +43,13 @@ use clap::Parser;
 use std::fs;
 use std::mem::size_of;
 
-use kdam::{BarExt, tqdm};
+use kdam::{tqdm, BarExt};
 
 use dawg::Dawg;
 use evaluator::Evaluator;
 
 use graph::indexing::DefaultIx;
-use graph::memory_backing::{MemoryBacking, DiskBacking, RamBacking};
+use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
@@ -118,12 +118,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 type Mb = DiskBacking<N, E, DefaultIx>;
                 let mb = Mb::new(&path);
                 run_rusty_dawg::<E, Mb>(args, mb)
-            },
+            }
             None => {
                 type Mb = RamBacking<N, E, DefaultIx>;
                 let mb = Mb::default();
                 run_rusty_dawg::<E, Mb>(args, mb)
-            },
+            }
         }
     } else if args.utype == "u32" {
         type E = u32;
@@ -132,12 +132,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 type Mb = DiskBacking<N, E, DefaultIx>;
                 let mb = Mb::new(&path);
                 run_rusty_dawg::<E, Mb>(args, mb)
-            },
+            }
             None => {
                 type Mb = RamBacking<N, E, DefaultIx>;
                 let mb = Mb::default();
                 run_rusty_dawg::<E, Mb>(args, mb)
-            },
+            }
         }
     } else if args.utype == "usize" {
         type E = usize;
@@ -146,12 +146,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 type Mb = DiskBacking<N, E, DefaultIx>;
                 let mb = Mb::new(&path);
                 run_rusty_dawg::<E, Mb>(args, mb)
-            },
+            }
             None => {
                 type Mb = RamBacking<N, E, DefaultIx>;
                 let mb = Mb::default();
                 run_rusty_dawg::<E, Mb>(args, mb)
-            },
+            }
         }
     } else {
         panic!("Invalid usize type: {}", args.utype);
@@ -189,7 +189,11 @@ where
     let train_file = fs::File::open(args.train_path.as_str())?;
     let n_bytes = train_file.metadata().unwrap().len();
     let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
-    let eval_threshold = if args.n_eval == 0 { 0} else { est_n_tokens / args.n_eval };
+    let eval_threshold = if args.n_eval == 0 {
+        0
+    } else {
+        est_n_tokens / args.n_eval
+    };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
@@ -234,7 +238,11 @@ where
 
     eprintln!();
     println!("Completed!");
-    println!("  token/byte: {:.2} (tokens={})", (idx as f64) / (n_bytes as f64), idx);
+    println!(
+        "  token/byte: {:.2} (tokens={})",
+        (idx as f64) / (n_bytes as f64),
+        idx
+    );
     println!(
         "  node/token: {:.2} (nodes={})",
         (dawg.node_count() as f64) / (idx as f64),

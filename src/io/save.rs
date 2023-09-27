@@ -1,10 +1,10 @@
 use dawg::Dawg;
+use graph::indexing::DefaultIx;
+use graph::memory_backing::{DiskBacking, RamBacking};
 use serde::de::DeserializeOwned;
 use std::error::Error;
 use std::fs;
 use weight::Weight;
-use graph::indexing::DefaultIx;
-use graph::memory_backing::{DiskBacking,RamBacking};
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Eq;

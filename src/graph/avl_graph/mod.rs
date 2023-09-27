@@ -6,17 +6,17 @@
 
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
+use anyhow::Result;
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
-use anyhow::Result;
 use std::path::Path;
 
 use std::marker::PhantomData;
 
-use std::cmp::{max, min};
-use std::fmt::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::cmp::{max, min};
+use std::fmt::Debug;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use weight::Weight;
@@ -30,7 +30,7 @@ use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
 
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::vec_backing::VecBacking;
-use graph::memory_backing::{MemoryBacking, DiskBacking, disk_backing};
+use graph::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
 
 #[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, Ix>>
@@ -66,7 +66,11 @@ where
         // FIXME: This can be refactored to call a method in Mb.
         let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path())?;
         let edges = disk_backing::vec::Vec::load(mb.get_edges_path())?;
-        Ok(Self{nodes, edges, marker: PhantomData})
+        Ok(Self {
+            nodes,
+            edges,
+            marker: PhantomData,
+        })
     }
 }
 

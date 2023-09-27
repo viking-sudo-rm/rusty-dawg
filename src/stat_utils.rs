@@ -3,10 +3,10 @@ use std::cmp::Ord;
 use std::fmt::Debug;
 
 use dawg::Dawg;
-use graph::indexing::{NodeIndex, DefaultIx};
-use weight::Weight;
-use graph::memory_backing::MemoryBacking;
 use graph::avl_graph::node::NodeRef;
+use graph::indexing::{DefaultIx, NodeIndex};
+use graph::memory_backing::MemoryBacking;
+use weight::Weight;
 
 pub fn get_entropy<E, W, Mb>(dawg: &Dawg<E, W, DefaultIx, Mb>, state: NodeIndex) -> f64
 where

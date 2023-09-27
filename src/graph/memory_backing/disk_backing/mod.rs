@@ -1,19 +1,19 @@
-pub mod vec;  // Implement VecBacking for DiskVec and DiskVecItem
+mod disk_mut_refs;
 pub mod disk_vec;
-mod disk_mut_refs;  // Raw implementation of DiskVec data structure.
+pub mod vec; // Implement VecBacking for DiskVec and DiskVecItem // Raw implementation of DiskVec data structure.
 
 use graph::avl_graph::edge::Edge;
 use graph::avl_graph::node::Node;
 
 use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
 use graph::memory_backing::MemoryBacking;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use weight::Weight;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
 
-use self::disk_mut_refs::{DiskNodeMutRef, DiskEdgeMutRef};
+use self::disk_mut_refs::{DiskEdgeMutRef, DiskNodeMutRef};
 use self::vec::Vec;
 
 #[derive(Clone)]
@@ -24,7 +24,10 @@ pub struct DiskBacking<N, E, Ix> {
 
 impl<N, E, Ix> DiskBacking<N, E, Ix> {
     pub fn new<P: AsRef<Path> + Clone + std::fmt::Debug>(dir_path: P) -> Self {
-        Self {dir_path: Box::from(dir_path.as_ref()), marker: PhantomData}
+        Self {
+            dir_path: Box::from(dir_path.as_ref()),
+            marker: PhantomData,
+        }
     }
 
     pub fn get_nodes_path(&self) -> PathBuf {

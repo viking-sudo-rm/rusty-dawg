@@ -56,7 +56,10 @@ where
     Ix: IndexType,
     N: Weight,
 {
-    fn get_weight(self) -> N where N: Clone {
+    fn get_weight(self) -> N
+    where
+        N: Clone,
+    {
         self.weight.clone()
     }
 
@@ -163,10 +166,10 @@ mod tests {
 
     use super::*;
     use bincode;
-    use bincode::{serialize, deserialize, Options};
+    use bincode::{deserialize, serialize, Options};
     use weight::DefaultWeight;
 
-        #[test]
+    #[test]
     fn test_serialize_deserialize_node() {
         type NodeType = Node<WeightMinimal, DefaultIx>;
         let node: NodeType = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));

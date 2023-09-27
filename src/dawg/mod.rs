@@ -57,7 +57,10 @@ where
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
         let dawg = AvlGraph::load(path)?;
         // FIXME: Assumes that the initial state was numbered as 0.
-        Ok(Self{dawg, initial: NodeIndex::new(0)})
+        Ok(Self {
+            dawg,
+            initial: NodeIndex::new(0),
+        })
     }
 }
 
@@ -335,14 +338,14 @@ mod tests {
     use weight::Weight;
 
     use graph::avl_graph::node::NodeRef;
-    use graph::indexing::{NodeIndex, DefaultIx};
+    use graph::indexing::{DefaultIx, NodeIndex};
 
     use bincode::{deserialize_from, serialize_into};
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom, Write};
+    use tempfile::tempdir;
     use tempfile::NamedTempFile;
     use weight::weight40::DefaultWeight;
-    use tempfile::tempdir;
 
     use crate::graph::memory_backing::DiskBacking;
 
@@ -421,7 +424,7 @@ mod tests {
 
         let tmp_dir = tempdir().unwrap();
         type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
-        let mb: Mb  = DiskBacking::new(tmp_dir.path());
+        let mb: Mb = DiskBacking::new(tmp_dir.path());
         let mut disk_dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
         disk_dawg.build(&chars);
 
@@ -472,7 +475,7 @@ mod tests {
     fn test_build_abb_on_disk() {
         let tmp_dir = tempdir().unwrap();
         type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
-        let mb: Mb  = DiskBacking::new(tmp_dir.path());
+        let mb: Mb = DiskBacking::new(tmp_dir.path());
         let mut dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
         dawg.build(&['a', 'b', 'b']);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(0)).get_count(), 4);
