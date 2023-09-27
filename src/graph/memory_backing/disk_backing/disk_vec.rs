@@ -167,6 +167,7 @@ where
         };
         let deserialized = bincode::DefaultOptions::new()
             .with_fixint_encoding()
+            .allow_trailing_bytes()
             .deserialize::<T>(&bytes)?;
         Ok(deserialized)
     }
@@ -181,8 +182,8 @@ mod tests {
     use tempfile::tempdir;
 
     use graph::avl_graph::node::{Node, NodeRef};
+    use graph::indexing::{DefaultIx, NodeIndex};
     use weight::{DefaultWeight, Weight};
-    use graph::indexing::{NodeIndex, DefaultIx};
 
     #[derive(Serialize, Deserialize, Default, Debug)]
     struct Foo {
