@@ -50,7 +50,7 @@ use graph::indexing::DefaultIx;
 use graph::memory_backing::{MemoryBacking, DiskBacking, RamBacking};
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
-use weight::weight40::DefaultWeight;
+use weight::DefaultWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;

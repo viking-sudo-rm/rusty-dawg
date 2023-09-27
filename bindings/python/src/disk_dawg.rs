@@ -6,22 +6,19 @@ use rusty_dawg::graph::indexing::NodeIndex;
 use rusty_dawg::graph::memory_backing::edge_backing::EdgeBacking;
 use rusty_dawg::io::Load;
 use rusty_dawg::weight::{Weight, DefaultWeight};
+use rusty_dawg::graph::indexing::DefaultIx;
+use rusty_dawg::memory_backing::DiskBacking;
+
+type Mb = DiskBacking<DefaultWeight, usize, DefaultIx>;
 
 #[pyclass]
-pub struct Dawg {
-    dawg: dawg::Dawg<usize, DefaultWeight>,
+pub struct DiskDawg {
+    dawg: dawg::Dawg<usize, DefaultWeight, DefaultIx, Mb>,
 }
 
 // Wrap the normal Dawg class with a Python interface.
 #[pymethods]
-impl Dawg {
-    #[new]
-    pub fn new() -> Self {
-        Self {
-            dawg: dawg::Dawg::new(),
-        }
-    }
-
+impl DiskDawg {
     #[classmethod]
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
         // let file = fs::OpenOptions::new().read(true).open(&path)?;
@@ -88,8 +85,8 @@ impl Dawg {
     }
 }
 
-impl Dawg {
-    pub fn get_dawg(&self) -> &dawg::Dawg<usize, DefaultWeight> {
+impl DiskDawg {
+    pub fn get_dawg(&self) -> &dawg::Dawg<usize, DefaultWeight, DefaultIx, Mb> {
         &self.dawg
     }
 }
