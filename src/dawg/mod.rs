@@ -7,11 +7,13 @@
 
 mod serde;
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::cmp::{Eq, Ord};
 use std::collections::LinkedList;
 use std::fmt::Debug;
+use std::path::Path;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
@@ -20,9 +22,12 @@ use weight::Weight;
 use graph::indexing::{DefaultIx, IndexType};
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
+use serde::de::DeserializeOwned;
 
 use graph::avl_graph::edge::EdgeRef;
 use graph::avl_graph::node::{NodeMutRef, NodeRef};
+
+use crate::graph::memory_backing::DiskBacking;
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -42,10 +47,17 @@ where
         let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
         Self::new_mb(mb)
     }
+}
 
-    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Dawg<E, W> {
-        let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
-        Self::with_capacity_mb(mb, n_nodes, n_edges)
+impl<E, W> Dawg<E, W, DefaultIx, DiskBacking<W, E, DefaultIx>>
+where
+    E: Eq + Ord + Copy + Debug + Serialize + DeserializeOwned + Default,
+    W: Weight + Clone + Serialize + DeserializeOwned + Default,
+{
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
+        let dawg = AvlGraph::load(path)?;
+        // FIXME: Assumes that the initial state was numbered as 0.
+        Ok(Self{dawg, initial: NodeIndex::new(0)})
     }
 }
 
@@ -313,10 +325,6 @@ where
 
     pub fn get_graph(&self) -> &AvlGraph<W, E, DefaultIx, Mb> {
         &self.dawg
-    }
-
-    pub fn get_mb(&self) -> &Mb {
-        self.get_graph().get_mb()
     }
 }
 

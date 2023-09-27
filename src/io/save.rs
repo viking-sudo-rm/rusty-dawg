@@ -36,7 +36,7 @@ where
     E: Eq + Copy + Debug + Serialize + DeserializeOwned + Default,
     W: Weight + Clone + Serialize + DeserializeOwned + Default,
 {
-    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+    fn save(&self, _save_path: &str) -> Result<(), Box<dyn Error>> {
         // Everything is already saved with DiskBacking!
         Ok(())
     }

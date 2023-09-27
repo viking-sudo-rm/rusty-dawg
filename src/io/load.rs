@@ -6,6 +6,10 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
 use weight::Weight;
+use serde::de::DeserializeOwned;
+use graph::indexing::DefaultIx;
+
+use crate::graph::memory_backing::DiskBacking;
 
 pub trait Load {
     fn load(load_path: &str) -> Result<Self, Box<dyn Error>>
@@ -13,7 +17,7 @@ pub trait Load {
         Self: Sized;
 }
 
-// Disk-backed implementation can open the file at load_path.
+// load_path should be a file with a serialized Dawg object.
 impl<E, W> Load for Dawg<E, W>
 where
     E: Eq + Copy + Debug + for<'de> Deserialize<'de>,
@@ -24,3 +28,16 @@ where
         Ok(deserialize_from(&file)?)
     }
 }
+
+// load_path should be a directory containing two nodes.vec and edges.vec.
+impl<E, W> Load for Dawg<E, W, DefaultIx, DiskBacking<W, E, DefaultIx>>
+where
+    E: Eq + Copy + Ord + Debug + Serialize + DeserializeOwned + Default,
+    W: Weight + Clone + Serialize + DeserializeOwned + Default,
+{
+    fn load(load_path: &str) -> Result<Self, Box<dyn Error>> {
+        let dawg = Dawg::load(load_path)?;
+        Ok(dawg)
+    }
+}
+

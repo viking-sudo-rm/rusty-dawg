@@ -8,11 +8,15 @@
 
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
+use anyhow::Result;
+use std::path::Path;
 
 use std::marker::PhantomData;
 
 use std::cmp::{max, min};
 use std::fmt::Debug;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use weight::Weight;
@@ -26,7 +30,7 @@ use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
 
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::vec_backing::VecBacking;
-use graph::memory_backing::MemoryBacking;
+use graph::memory_backing::{MemoryBacking, DiskBacking, disk_backing};
 
 #[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, Ix>>
@@ -49,6 +53,21 @@ where
     pub fn new() -> Self {
         let mb: RamBacking<N, E, Ix> = RamBacking::default();
         Self::new_mb(mb)
+    }
+}
+
+impl<N, E, Ix> AvlGraph<N, E, Ix, DiskBacking<N, E, Ix>>
+where
+    E: Eq + Ord + Copy + Debug + Serialize + DeserializeOwned + Default,
+    N: Weight + Clone + Serialize + DeserializeOwned + Default,
+    Ix: IndexType + Serialize + DeserializeOwned,
+{
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
+        let mb = DiskBacking::new(path);
+        // FIXME: This can be refactored to call a method in Mb.
+        let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path())?;
+        let edges = disk_backing::vec::Vec::load(mb.get_edges_path())?;
+        Ok(Self{nodes, edges, mb, marker: PhantomData})
     }
 }
 
@@ -475,10 +494,6 @@ where
     // We can't use mutable indexing because we return custom MutNode, not &mut Node.
     pub fn get_node_mut(&mut self, node: NodeIndex<Ix>) -> Mb::NodeMutRef {
         self.nodes.index_mut(node.index())
-    }
-
-    pub fn get_mb(&self) -> &Mb {
-        &self.mb
     }
 }
 

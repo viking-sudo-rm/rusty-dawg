@@ -24,6 +24,11 @@ where
         let disk_vec = DiskVec::new(path, capacity)?;
         Ok(Self {disk_vec: Rc::new(RefCell::new(disk_vec))})
     }
+
+    pub fn load<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Self> {
+        let disk_vec = DiskVec::load(path)?;
+        Ok(Self {disk_vec: Rc::new(RefCell::new(disk_vec))})
+    }
 }
 
 impl<T> VecBacking<T> for Vec<T>
