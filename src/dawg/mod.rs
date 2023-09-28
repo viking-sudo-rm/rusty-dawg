@@ -24,7 +24,6 @@ use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
 use serde::de::DeserializeOwned;
 
-use graph::avl_graph::edge::EdgeRef;
 use graph::avl_graph::node::{NodeMutRef, NodeRef};
 
 use crate::graph::memory_backing::DiskBacking;
@@ -158,33 +157,19 @@ where
                     // Fail to an existing state.
                     self.dawg.get_node_mut(new).set_failure(Some(next_state));
                 } else {
-                    // Split a state and fail to the clone of it.
-
-                    // ==========================================
-                    // Original cloning code (pre-Hackathon)
-                    // ==========================================
                     let clone = self.dawg.add_node(W::split(
                         &self.get_node(state).get_weight(),
                         &self.get_node(next_state).get_weight(),
                     ));
-                    let edges: Vec<_> = self
-                        .dawg
-                        .edges(next_state)
-                        .map(|edge| (edge.get_target(), edge.get_weight()))
-                        .collect();
-                    for (target, weight) in edges {
-                        self.dawg.add_balanced_edge(clone, target, weight);
-                    }
-                    // ==========================================
-                    // Aug 10: First changed version to use clone
-                    // let clone = self.dawg.clone_node(next_state);
-                    // ==========================================
-                    // Cloning logic commented out from a while ago
-                    // ==========================================
-                    // let weight = W::split(&self.dawg[state], &self.dawg[next_state]);
-                    // let clone = self.dawg.clone_node(state);
-                    // self.dawg.set_node_weight(clone, weight);
-                    // ==========================================
+                    // let edges: Vec<_> = self
+                    //     .dawg
+                    //     .edges(next_state)
+                    //     .map(|edge| (edge.get_target(), edge.get_weight()))
+                    //     .collect();
+                    // for (target, weight) in edges {
+                    //     self.dawg.add_balanced_edge(clone, target, weight);
+                    // }
+                    self.dawg.clone_edges(next_state, clone);
                     self.dawg.get_node_mut(new).set_failure(Some(clone));
                     self.dawg.get_node_mut(next_state).set_failure(Some(clone));
 

@@ -222,7 +222,6 @@ where
     } else {
         None
     };
-    println!("max_state_length: {}", max_length.unwrap());
 
     let mut dawg: Dawg<E, N, DefaultIx, Mb> =
         Dawg::with_capacity_mb(mb, max_length, n_nodes, n_edges);
