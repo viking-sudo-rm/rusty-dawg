@@ -88,6 +88,9 @@ struct Args {
     n_eval: usize,
     #[arg(long, default_value_t = 10)]
     max_length: u64,
+    // Max length of a state in the Dawg.
+    #[arg(long, default_value_t = -1)]
+    max_state_length: i64,
 
     #[arg(long)]
     disk_path: Option<String>,
@@ -214,10 +217,19 @@ where
 
     let n_nodes = (args.nodes_ratio * (est_n_tokens as f64)).ceil() as usize;
     let n_edges = (args.edges_ratio * (est_n_tokens as f64)).ceil() as usize;
-    let mut dawg: Dawg<E, N, DefaultIx, Mb> = Dawg::with_capacity_mb(mb, n_nodes, n_edges);
+    let max_length: Option<u64> = if !args.max_state_length.is_negative() {
+        Some(args.max_state_length.try_into().unwrap())
+    } else {
+        None
+    };
+    println!("max_state_length: {}", max_length.unwrap());
+
+    let mut dawg: Dawg<E, N, DefaultIx, Mb> =
+        Dawg::with_capacity_mb(mb, max_length, n_nodes, n_edges);
 
     let mut idx = 0;
     let mut last = dawg.get_initial();
+    let mut length = 0;
     let mut pbar = tqdm!(total = est_n_tokens);
     let mut train_reader = BufReader::with_capacity(buf_size, train_file);
     let mut buffer = vec![0; buf_size];
@@ -229,7 +241,7 @@ where
         let text = std::str::from_utf8(&buffer);
         let tokens = index.tokenize(&text.unwrap());
         for token in &tokens {
-            last = dawg.extend(*token, last);
+            (last, length) = dawg.extend(*token, last, length);
             if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
                 evaluator.evaluate(&dawg, idx);
                 if !args.results_path.is_empty() {

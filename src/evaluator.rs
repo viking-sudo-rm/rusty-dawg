@@ -158,8 +158,9 @@ mod tests {
         let mut evaluator: Evaluator<u16> = Evaluator::new(&test, 3);
         let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
+        let mut length = 0;
         for (idx, token) in train.iter().enumerate() {
-            last = dawg.extend(*token, last);
+            (last, length) = dawg.extend(*token, last, length);
             evaluator.evaluate(&dawg, idx);
         }
         assert_eq!(*evaluator.get("suffix_lengths"), vec![1. / 3., 1., 1.]);
@@ -188,8 +189,9 @@ mod tests {
         let mut evaluator: Evaluator<u16> = Evaluator::new(&test, 3);
         let mut dawg: Dawg<u16, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
+        let mut length = 0;
         for (idx, token) in train.iter().enumerate() {
-            last = dawg.extend(*token, last);
+            (last, length) = dawg.extend(*token, last, length);
             evaluator.evaluate(&dawg, idx);
         }
         assert_eq!(*evaluator.get("suffix_lengths"), vec![1., 5. / 3.]);
