@@ -48,6 +48,8 @@ use kdam::{tqdm, BarExt};
 use dawg::Dawg;
 use evaluator::Evaluator;
 
+use graph::avl_graph::edge::Edge;
+use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
@@ -175,8 +177,11 @@ where
     Mb: MemoryBacking<N, E, DefaultIx>,
     Dawg<E, N, DefaultIx, Mb>: io::Save,
 {
-    println!("sizeof(edge): {}B", size_of::<E>());
-    println!("sizeof(node): {}B", size_of::<N>());
+    println!("sizeof(Ix) {}B", size_of::<DefaultIx>());
+    println!("sizeof(N) {}B", size_of::<N>());
+    println!("sizeof(E) {}B", size_of::<E>());
+    println!("sizeof(Node): {}B", size_of::<Node<N, DefaultIx>>());
+    println!("sizeof(Edge): {}B", size_of::<Edge<E, DefaultIx>>());
 
     let mut index: Box<dyn Tokenize<E>> = if args.tokenizer == "whitespace" {
         Box::new(TokenIndex::new())

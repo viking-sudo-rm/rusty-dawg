@@ -7,9 +7,9 @@ pub trait Weight {
     fn get_failure(&self) -> Option<NodeIndex>;
     fn set_failure(&mut self, failure: Option<NodeIndex>);
     fn increment_count(&mut self);
-    fn get_count(&self) -> u64;
+    fn get_count(&self) -> u16;
 
-    fn new(length: u64, failure: Option<NodeIndex>, count: u64) -> Self
+    fn new(length: u64, failure: Option<NodeIndex>, count: u16) -> Self
     where
         Self: Sized;
 
@@ -39,10 +39,10 @@ pub trait Weight {
     }
 }
 
-pub mod basic_weight;
-pub use self::basic_weight::BasicWeight;
+// pub mod basic_weight;
+// pub use self::basic_weight::BasicWeight;
 
 pub mod weight40;
 pub use self::weight40::{Weight40, WeightMinimal};
 
-pub mod weight_mutator;
+// pub mod weight_mutator;

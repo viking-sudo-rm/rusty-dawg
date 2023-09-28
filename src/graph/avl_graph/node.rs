@@ -76,7 +76,8 @@ where
     }
 
     fn get_count(self) -> u64 {
-        self.weight.get_count()
+        // FIXME: The count is actually stored in u16.
+        self.weight.get_count().into()
     }
 
     fn get_first_edge(self) -> EdgeIndex<Ix> {
@@ -111,7 +112,7 @@ where
     }
 
     fn get_count(self) -> u64 {
-        unsafe { (*self).weight.get_count() }
+        unsafe { (*self).weight.get_count().into() }
     }
 
     fn get_first_edge(self) -> EdgeIndex<Ix> {
