@@ -147,7 +147,7 @@ where
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
-            // FIXME: Handle case where 
+            // FIXME: Handle case where
             self.edges.index_mut(new.index()).set_left(new_left);
             self.clone_edges_helper(left, new_left);
         }
@@ -584,7 +584,7 @@ mod tests {
     use graph::avl_graph::edge::EdgeRef;
     use graph::avl_graph::node::{NodeMutRef, NodeRef};
     use graph::avl_graph::AvlGraph;
-    use graph::indexing::{EdgeIndex, IndexType, NodeIndex, DefaultIx};
+    use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
     use std::convert::TryInto;
     use weight::{Weight, Weight40};
 

@@ -80,6 +80,10 @@ where
             .next_element()?
             .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
 
-        Ok(Dawg { dawg, initial, max_length })
+        Ok(Dawg {
+            dawg,
+            initial,
+            max_length,
+        })
     }
 }

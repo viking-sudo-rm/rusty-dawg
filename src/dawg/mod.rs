@@ -115,7 +115,7 @@ where
                     last = phi;
                     length = self.get_node(phi).get_length();
                 }
-                None => {}  // Initial state; last/length should already be right
+                None => {} // Initial state; last/length should already be right
             }
         }
 
