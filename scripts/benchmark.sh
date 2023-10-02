@@ -13,6 +13,7 @@ TIMEFMT='================================'$'\n'\
 'runtime:         %*E sec'$'\n'\
 'max memory:      %M KB'
 
+# Benchmark should be built in RAM when committed so it doesn't break CI.
 time ./target/release/rusty-dawg \
     --train-path "$DATA_PATH/$1/wiki.train.raw" \
     --test-path "$DATA_PATH/$1/wiki.valid.raw" \
@@ -21,6 +22,4 @@ time ./target/release/rusty-dawg \
     --n-eval 0 \
     --nodes-ratio 1.25 \
     --edges-ratio 2.20 \
-    --disk-path "/Users/willm/Desktop/dawg" \
     --tokenizer "whitespace"
-
