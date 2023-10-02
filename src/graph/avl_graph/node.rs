@@ -84,11 +84,13 @@ where
     }
 }
 
+// FIXME(#52): We probably should not be allowing these clippy warnings but works for now :/
 impl<N, Ix> NodeRef<N, Ix> for *const Node<N, Ix>
 where
     Ix: IndexType,
     N: Weight,
 {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_weight(self) -> N
     where
         N: Clone,
@@ -96,10 +98,12 @@ where
         unsafe { (*self).weight.clone() }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_length(self) -> u64 {
         unsafe { (*self).weight.get_length() }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_failure(self) -> Option<NodeIndex<Ix>> {
         // Slightly hacky approach to handle a NodeIndex with non-default Ix.
         unsafe {
@@ -110,10 +114,12 @@ where
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_count(self) -> u64 {
         unsafe { (*self).weight.get_count().into() }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_first_edge(self) -> EdgeIndex<Ix> {
         unsafe { (*self).first_edge }
     }
@@ -131,12 +137,14 @@ where
     Ix: IndexType,
     N: Weight,
 {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_length(self, length: u64) {
         unsafe {
             (*self).weight.set_length(length);
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_failure(self, state: Option<NodeIndex<Ix>>) {
         // Slightly hacky approach to handle a NodeIndex with non-default Ix.
         unsafe {
@@ -147,12 +155,14 @@ where
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn increment_count(self) {
         unsafe {
             (*self).weight.increment_count();
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_first_edge(self, first_edge: EdgeIndex<Ix>) {
         unsafe {
             (*self).first_edge = first_edge;

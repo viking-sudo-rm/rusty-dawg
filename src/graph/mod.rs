@@ -3,5 +3,5 @@ pub mod avl_graph;
 pub mod indexing;
 pub mod memory_backing;
 
-pub use avl_graph::{EdgeRef, NodeRef};
-pub use indexing::NodeIndex;
+pub use self::avl_graph::{EdgeRef, NodeRef};
+pub use self::indexing::NodeIndex;

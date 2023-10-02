@@ -84,27 +84,33 @@ where
 }
 
 // We can use a pointer to an Edge object as a reference to data in RAM.
+// FIXME(#52): Probably should not be allowing unsafe pointer derefs
 impl<E, Ix> EdgeRef<E, Ix> for *const Edge<E, Ix>
 where
     Ix: IndexType + Copy,
     E: Copy,
 {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_weight(self) -> E {
         unsafe { (*self).weight }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_target(self) -> NodeIndex<Ix> {
         unsafe { (*self).target }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_left(self) -> EdgeIndex<Ix> {
         unsafe { (*self).left }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_right(self) -> EdgeIndex<Ix> {
         unsafe { (*self).right }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_balance_factor(self) -> i8 {
         unsafe { (*self).balance_factor }
     }
@@ -121,24 +127,28 @@ impl<E, Ix> EdgeMutRef<Ix> for *mut Edge<E, Ix>
 where
     Ix: IndexType + Copy,
 {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_target(self, target: NodeIndex<Ix>) {
         unsafe {
             (*self).target = target;
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_left(self, left: EdgeIndex<Ix>) {
         unsafe {
             (*self).left = left;
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_right(self, right: EdgeIndex<Ix>) {
         unsafe {
             (*self).right = right;
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_balance_factor(self, bf: i8) {
         unsafe {
             (*self).balance_factor = bf;
