@@ -116,17 +116,26 @@ where
     }
 }
 
-pub trait EdgeMutRef<Ix> {
+pub trait EdgeMutRef<E, Ix> {
+    fn set_weight(self, weight: E);
     fn set_target(self, target: NodeIndex<Ix>);
     fn set_left(self, left: EdgeIndex<Ix>);
     fn set_right(self, right: EdgeIndex<Ix>);
     fn set_balance_factor(self, bf: i8);
 }
 
-impl<E, Ix> EdgeMutRef<Ix> for *mut Edge<E, Ix>
+impl<E, Ix> EdgeMutRef<E, Ix> for *mut Edge<E, Ix>
 where
+    E: Copy,
     Ix: IndexType + Copy,
 {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    fn set_weight(self, weight: E) {
+        unsafe {
+            (*self).weight = weight;
+        }
+    }
+
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn set_target(self, target: NodeIndex<Ix>) {
         unsafe {
@@ -156,10 +165,15 @@ where
     }
 }
 
-impl<E, Ix> EdgeMutRef<Ix> for &mut Edge<E, Ix>
+impl<E, Ix> EdgeMutRef<E, Ix> for &mut Edge<E, Ix>
 where
+    E: Copy,
     Ix: IndexType + Copy,
 {
+    fn set_weight(self, weight: E) {
+        self.weight = weight;
+    }
+
     fn set_target(self, target: NodeIndex<Ix>) {
         self.target = target;
     }

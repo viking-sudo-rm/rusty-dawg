@@ -433,6 +433,20 @@ where
         Some(self.edges.index(e.index()).get_target())
     }
 
+    // Useful for CDAWG, where associated weight contains extra info.
+    pub fn get_edge_by_weight(&self, a: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
+        if first_edge == EdgeIndex::end() {
+            return None;
+        }
+
+        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight);
+        if e == EdgeIndex::end() {
+            return None;
+        }
+        Some(e)
+    }
+
     pub fn reroute_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
         let first_edge = self.nodes.index(a.index()).get_first_edge();
         if first_edge == EdgeIndex::end() {
@@ -483,9 +497,16 @@ where
         self.nodes.index(node.index())
     }
 
-    // We can't use mutable indexing because we return custom MutNode, not &mut Node.
     pub fn get_node_mut(&mut self, node: NodeIndex<Ix>) -> Mb::NodeMutRef {
         self.nodes.index_mut(node.index())
+    }
+
+    pub fn get_edge(&self, edge: EdgeIndex<Ix>) -> Mb::EdgeRef {
+        self.edges.index(edge.index())
+    }
+
+    pub fn get_edge_mut(&mut self, edge: EdgeIndex<Ix>) -> Mb::EdgeMutRef {
+        self.edges.index_mut(edge.index())
     }
 }
 
