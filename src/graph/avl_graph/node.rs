@@ -69,7 +69,9 @@ where
 
     fn get_failure(self) -> Option<NodeIndex<Ix>> {
         // Slightly hacky approach to handle a NodeIndex with non-default Ix.
-        self.weight.get_failure().map(|phi| NodeIndex::new(phi.index()))
+        self.weight
+            .get_failure()
+            .map(|phi| NodeIndex::new(phi.index()))
     }
 
     fn get_count(self) -> u64 {
@@ -101,7 +103,10 @@ where
     fn get_failure(self) -> Option<NodeIndex<Ix>> {
         // Slightly hacky approach to handle a NodeIndex with non-default Ix.
         unsafe {
-            (*self).weight.get_failure().map(|phi| NodeIndex::new(phi.index()))
+            (*self)
+                .weight
+                .get_failure()
+                .map(|phi| NodeIndex::new(phi.index()))
         }
     }
 
