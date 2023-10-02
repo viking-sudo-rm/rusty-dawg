@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyType;
 
 use rusty_dawg::dawg;
+use rusty_dawg::graph::avl_graph::edge::EdgeRef;
 use rusty_dawg::graph::indexing::NodeIndex;
 use rusty_dawg::graph::memory_backing::edge_backing::EdgeBacking;
 use rusty_dawg::io::Load;
@@ -59,7 +60,7 @@ impl DiskDawg {
 
     pub fn get_count(&self, state: usize) -> u64 {
         let state_index = NodeIndex::new(state);
-        self.dawg.get_weight(state_index).get_count()
+        self.dawg.get_node(state_index).get_count()
     }
 
     // Returns (State, TokenId)
@@ -68,7 +69,7 @@ impl DiskDawg {
         let graph = self.dawg.get_graph();
         graph
             .edges(state_index)
-            .map(|edge| (edge.get_target().index(), *edge.get_weight()))
+            .map(|edge| (edge.get_target().index(), edge.get_weight()))
             .collect()
     }
 

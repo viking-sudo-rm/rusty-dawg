@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 pub mod dawg;
+pub mod disk_dawg;
 
 use dawg::Dawg;
 use disk_dawg::DiskDawg;
