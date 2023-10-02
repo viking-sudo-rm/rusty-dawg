@@ -24,7 +24,6 @@ use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
 use serde::de::DeserializeOwned;
 
-use graph::avl_graph::edge::EdgeRef;
 use graph::avl_graph::node::{NodeMutRef, NodeRef};
 
 use crate::graph::memory_backing::DiskBacking;
@@ -36,6 +35,7 @@ where
 {
     dawg: AvlGraph<W, E, Ix, Mb>,
     initial: NodeIndex<Ix>,
+    max_length: Option<u64>,
 }
 
 impl<E, W> Dawg<E, W>
@@ -45,7 +45,7 @@ where
 {
     pub fn new() -> Dawg<E, W> {
         let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
-        Self::new_mb(mb)
+        Self::new_mb(mb, None)
     }
 }
 
@@ -56,10 +56,10 @@ where
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
         let dawg = AvlGraph::load(path)?;
-        // FIXME: Assumes that the initial state was numbered as 0.
         Ok(Self {
             dawg,
-            initial: NodeIndex::new(0),
+            initial: NodeIndex::new(0), // FIXME: Assumes that the initial state was numbered as 0.
+            max_length: None, // FIXME: Doesn't matter after building, but could load from config.
         })
     }
 }
@@ -71,29 +71,60 @@ where
     Mb: MemoryBacking<W, E, DefaultIx>,
     Mb::EdgeRef: Copy,
 {
-    pub fn new_mb(mb: Mb) -> Dawg<E, W, DefaultIx, Mb> {
+    pub fn new_mb(mb: Mb, max_length: Option<u64>) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> = AvlGraph::new_mb(mb);
         let initial = dawg.add_node(W::initial());
         dawg.get_node_mut(initial).increment_count();
-        Dawg { dawg, initial }
+        Dawg {
+            dawg,
+            initial,
+            max_length,
+        }
     }
 
-    pub fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Dawg<E, W, DefaultIx, Mb> {
+    pub fn with_capacity_mb(
+        mb: Mb,
+        max_length: Option<u64>,
+        n_nodes: usize,
+        n_edges: usize,
+    ) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
             AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let initial = dawg.add_node(W::initial());
         dawg.get_node_mut(initial).increment_count();
-        Dawg { dawg, initial }
+        Dawg {
+            dawg,
+            initial,
+            max_length,
+        }
     }
 
     pub fn build(&mut self, text: &[E]) {
         let mut last = self.initial;
+        let mut length = 0;
         for token in text.iter() {
-            last = self.extend(*token, last);
+            (last, length) = self.extend(*token, last, length);
         }
     }
 
-    pub fn extend(&mut self, token: E, last: NodeIndex) -> NodeIndex {
+    pub fn extend(&mut self, token: E, mut last: NodeIndex, mut length: u64) -> (NodeIndex, u64) {
+        // If we hit maximum length, fail once, then extend (doesn't need to be recursive!)
+        if self.max_length.is_some() && (length == self.max_length.unwrap()) {
+            match self.get_node(last).get_failure() {
+                Some(phi) => {
+                    last = phi;
+                    length = self.get_node(phi).get_length();
+                }
+                None => {}  // Initial state; last/length should already be right
+            }
+        }
+
+        // With max length or multiple documents, it is possible to hit this case.
+        let next_new = self.transition(last, token, false);
+        if next_new.is_some() {
+            return (next_new.unwrap(), length + 1);
+        }
+
         let new = self
             .dawg
             .add_node(W::extend(&self.get_node(last).get_weight()));
@@ -126,33 +157,19 @@ where
                     // Fail to an existing state.
                     self.dawg.get_node_mut(new).set_failure(Some(next_state));
                 } else {
-                    // Split a state and fail to the clone of it.
-
-                    // ==========================================
-                    // Original cloning code (pre-Hackathon)
-                    // ==========================================
                     let clone = self.dawg.add_node(W::split(
                         &self.get_node(state).get_weight(),
                         &self.get_node(next_state).get_weight(),
                     ));
-                    let edges: Vec<_> = self
-                        .dawg
-                        .edges(next_state)
-                        .map(|edge| (edge.get_target(), edge.get_weight()))
-                        .collect();
-                    for (target, weight) in edges {
-                        self.dawg.add_balanced_edge(clone, target, weight);
-                    }
-                    // ==========================================
-                    // Aug 10: First changed version to use clone
-                    // let clone = self.dawg.clone_node(next_state);
-                    // ==========================================
-                    // Cloning logic commented out from a while ago
-                    // ==========================================
-                    // let weight = W::split(&self.dawg[state], &self.dawg[next_state]);
-                    // let clone = self.dawg.clone_node(state);
-                    // self.dawg.set_node_weight(clone, weight);
-                    // ==========================================
+                    // let edges: Vec<_> = self
+                    //     .dawg
+                    //     .edges(next_state)
+                    //     .map(|edge| (edge.get_target(), edge.get_weight()))
+                    //     .collect();
+                    // for (target, weight) in edges {
+                    //     self.dawg.add_balanced_edge(clone, target, weight);
+                    // }
+                    self.dawg.clone_edges(next_state, clone);
                     self.dawg.get_node_mut(new).set_failure(Some(clone));
                     self.dawg.get_node_mut(next_state).set_failure(Some(clone));
 
@@ -190,7 +207,7 @@ where
             opt_ptr = self.get_node(ptr).get_failure();
         }
 
-        new
+        (new, length + 1)
     }
 
     // Set the lengths field to store min factor length instead of max factor length.
@@ -347,7 +364,7 @@ mod tests {
     use tempfile::NamedTempFile;
     use weight::weight40::DefaultWeight;
 
-    use crate::graph::memory_backing::DiskBacking;
+    use crate::graph::memory_backing::{DiskBacking, RamBacking};
 
     #[test]
     fn test_build_bab() {
@@ -404,40 +421,6 @@ mod tests {
     }
 
     #[test]
-    fn test_build_brown_ram_disk() {
-        let corpus = "Communication
-        may be facilitated by means of the high visibility within the larger
-        community. Intense interaction is easier where segregated living and
-        occupational segregation mark off a group from the rest of the community,
-        as in the case of this population. However, the factor of physical  
-        isolation is not a static situation. Although the Brandywine population
-        is still predominantly rural, there are indications of a consistent
-        and a statistically significant trend away from the older and
-        relatively isolated rural communities **h urbanization appears to be";
-        let chars: Vec<char> = corpus.chars().collect();
-
-        let test = "stat trend";
-        let test_chars: Vec<char> = test.chars().collect();
-
-        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
-        dawg.build(&chars);
-
-        let tmp_dir = tempdir().unwrap();
-        type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
-        let mb: Mb = DiskBacking::new(tmp_dir.path());
-        let mut disk_dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
-        disk_dawg.build(&chars);
-
-        let mut dawg_state = dawg.get_initial();
-        let mut disk_state = disk_dawg.get_initial();
-        for token in test_chars {
-            dawg_state = dawg.transition(dawg_state, token, true).unwrap();
-            disk_state = disk_dawg.transition(disk_state, token, true).unwrap();
-            assert_eq!(dawg_state, disk_state);
-        }
-    }
-
-    #[test]
     fn test_get_length() {
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         dawg.build(&['a', 'b']);
@@ -476,12 +459,91 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
         let mb: Mb = DiskBacking::new(tmp_dir.path());
-        let mut dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb);
+        let mut dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb, None);
         dawg.build(&['a', 'b', 'b']);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(0)).get_count(), 4);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(1)).get_count(), 1);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(2)).get_count(), 1);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(3)).get_count(), 1);
         assert_eq!(dawg.dawg.get_node(NodeIndex::new(4)).get_count(), 2);
+    }
+
+    #[test]
+    fn test_build_brown_ram_disk() {
+        let corpus = "Communication
+        may be facilitated by means of the high visibility within the larger
+        community. Intense interaction is easier where segregated living and
+        occupational segregation mark off a group from the rest of the community,
+        as in the case of this population. However, the factor of physical  
+        isolation is not a static situation. Although the Brandywine population
+        is still predominantly rural, there are indications of a consistent
+        and a statistically significant trend away from the older and
+        relatively isolated rural communities **h urbanization appears to be";
+        let chars: Vec<char> = corpus.chars().collect();
+
+        let test = "stat trend";
+        let test_chars: Vec<char> = test.chars().collect();
+
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
+        dawg.build(&chars);
+
+        let tmp_dir = tempdir().unwrap();
+        type Mb = DiskBacking<DefaultWeight, char, DefaultIx>;
+        let mb: Mb = DiskBacking::new(tmp_dir.path());
+        let mut disk_dawg: Dawg<char, DefaultWeight, DefaultIx, Mb> = Dawg::new_mb(mb, None);
+        disk_dawg.build(&chars);
+
+        let mut dawg_state = dawg.get_initial();
+        let mut disk_state = disk_dawg.get_initial();
+        for token in test_chars {
+            dawg_state = dawg.transition(dawg_state, token, true).unwrap();
+            disk_state = disk_dawg.transition(disk_state, token, true).unwrap();
+            assert_eq!(dawg_state, disk_state);
+        }
+    }
+
+    #[test]
+    fn test_build_brown_max_length() {
+        let corpus = "Communication
+        may be facilitated by means of the high visibility within the larger
+        community. Intense interaction is easier where segregated living and
+        occupational segregation mark off a group from the rest of the community,
+        as in the case of this population. However, the factor of physical  
+        isolation is not a static situation. Although the Brandywine population
+        is still predominantly rural, there are indications of a consistent
+        and a statistically significant trend away from the older and
+        relatively isolated rural communities **h urbanization appears to be";
+        let chars: Vec<char> = corpus.chars().collect();
+
+        type Mb = RamBacking<DefaultWeight, char, DefaultIx>;
+        let mut dawg1: Dawg<char, DefaultWeight> = Dawg::new_mb(Mb::default(), None);
+        dawg1.build(&chars);
+        let mut dawg2: Dawg<char, DefaultWeight> = Dawg::new_mb(Mb::default(), Some(50));
+        dawg2.build(&chars);
+
+        let query: &str = "stat trend predom rural";
+        let mut state1 = Some(dawg1.get_initial());
+        let mut state2 = Some(dawg2.get_initial());
+        let mut length1 = 0;
+        let mut length2 = 0;
+        for token in query.chars() {
+            (state1, length1) = dawg1.transition_and_count(state1.unwrap(), token, length1);
+            (state2, length2) = dawg2.transition_and_count(state2.unwrap(), token, length2);
+            assert_eq!(length1, length2);
+        }
+
+        // We run into issues at 45 here, even though length is only 33
+        let query2 = "olation is not a static situation";
+        println!("query length: {}", query2.len());
+        state1 = Some(dawg1.get_initial());
+        state2 = Some(dawg2.get_initial());
+        length1 = 0;
+        length2 = 0;
+        for token in query2.chars() {
+            (state1, length1) = dawg1.transition_and_count(state1.unwrap(), token, length1);
+            (state2, length2) = dawg2.transition_and_count(state2.unwrap(), token, length2);
+            println!("length1: {}, length2: {}", length1, length2);
+            assert_eq!(length1, length2);
+        }
     }
 }

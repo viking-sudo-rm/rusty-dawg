@@ -116,20 +116,11 @@ where
         node_idx
     }
 
-    pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
-    where
-        N: Clone,
-        E: Clone,
-        Ix: Clone,
-        Mb::EdgeRef: Copy,
-    {
-        let clone = Node::new(self.nodes.index(a.index()).get_weight().clone());
-        let clone_idx = NodeIndex::new(self.nodes.len());
-        self.nodes.push(clone);
-
-        let first_source_idx = self.nodes.index(a.index()).get_first_edge();
+    // Copy edges from a Node onto another Node
+    pub fn clone_edges(&mut self, old: NodeIndex<Ix>, new: NodeIndex<Ix>) {
+        let first_source_idx = self.nodes.index(old.index()).get_first_edge();
         if first_source_idx == EdgeIndex::end() {
-            return clone_idx;
+            return;
         }
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
@@ -137,14 +128,13 @@ where
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes
-            .index_mut(clone_idx.index())
+            .index_mut(new.index())
             .set_first_edge(first_clone_idx);
-        self.clone_edges(first_source_idx, first_clone_idx);
-        clone_idx
+        self.clone_edges_helper(first_source_idx, first_clone_idx)
     }
 
     // The nodes that get passed in are the parents of the ones getting cloned.
-    pub fn clone_edges(&mut self, old: EdgeIndex<Ix>, new: EdgeIndex<Ix>) {
+    fn clone_edges_helper(&mut self, old: EdgeIndex<Ix>, new: EdgeIndex<Ix>) {
         if old == EdgeIndex::end() {
             return;
         }
@@ -157,8 +147,9 @@ where
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
+            // FIXME: Handle case where 
             self.edges.index_mut(new.index()).set_left(new_left);
-            self.clone_edges(left, new_left);
+            self.clone_edges_helper(left, new_left);
         }
 
         if right != EdgeIndex::end() {
@@ -168,7 +159,7 @@ where
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
             self.edges.index_mut(new.index()).set_right(new_right);
-            self.clone_edges(right, new_right);
+            self.clone_edges_helper(right, new_right);
         }
     }
 
@@ -593,7 +584,7 @@ mod tests {
     use graph::avl_graph::edge::EdgeRef;
     use graph::avl_graph::node::{NodeMutRef, NodeRef};
     use graph::avl_graph::AvlGraph;
-    use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
+    use graph::indexing::{EdgeIndex, IndexType, NodeIndex, DefaultIx};
     use std::convert::TryInto;
     use weight::{Weight, Weight40};
 
@@ -783,16 +774,21 @@ mod tests {
     }
 
     #[test]
-    fn test_clone_node() {
+    fn test_clone_edges() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(Weight40::new(42, None, 0));
+        let q0 = graph.add_node(weight.clone());
         let q1 = graph.add_node(weight.clone());
-        graph.add_edge(q0, q1, 2);
+        for idx in 2..10 {
+            let qi = graph.add_node(weight.clone());
+            graph.add_edge(q0, qi, idx);
+        }
 
-        let q2 = graph.clone_node(q0);
-        assert_eq!(graph.get_node(q2).get_length(), 42);
-        assert_eq!(graph.edge_target(q2, 2), Some(q1));
+        graph.clone_edges(q0, q1);
+        for idx in 2..10 {
+            let qi: NodeIndex<DefaultIx> = NodeIndex::new(idx.into());
+            assert_eq!(graph.edge_target(q1, idx), Some(qi));
+        }
     }
 
     #[test]

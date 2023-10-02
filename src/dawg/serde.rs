@@ -24,6 +24,7 @@ where
         let mut s = serializer.serialize_struct("Dawg", 2)?;
         s.serialize_field("dawg", &self.dawg)?;
         s.serialize_field("initial", &self.initial)?;
+        s.serialize_field("max_length", &self.max_length)?;
         s.end()
     }
 }
@@ -38,7 +39,7 @@ where
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         d.deserialize_struct(
             "Dawg",
-            &["dawg", "initial"],
+            &["dawg", "initial", "max_length"],
             DawgVisitor::<E, W, Ix, Mb> {
                 marker: PhantomData,
             },
@@ -75,6 +76,10 @@ where
             .next_element()?
             .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
 
-        Ok(Dawg { dawg, initial })
+        let max_length: Option<u64> = seq
+            .next_element()?
+            .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
+
+        Ok(Dawg { dawg, initial, max_length })
     }
 }
