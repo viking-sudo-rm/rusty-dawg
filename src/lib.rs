@@ -18,7 +18,6 @@ pub mod dawg;
 pub mod evaluator;
 pub mod graph;
 pub mod io;
-pub mod memory_backing;
 pub mod stat_utils;
 pub mod tokenize;
 pub mod weight;

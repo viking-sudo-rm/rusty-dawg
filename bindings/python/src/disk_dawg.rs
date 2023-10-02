@@ -7,7 +7,7 @@ use rusty_dawg::graph::indexing::NodeIndex;
 use rusty_dawg::io::Load;
 use rusty_dawg::weight::{Weight, DefaultWeight};
 use rusty_dawg::graph::indexing::DefaultIx;
-use rusty_dawg::memory_backing::DiskBacking;
+use rusty_dawg::graph::memory_backing::DiskBacking;
 
 type Mb = DiskBacking<DefaultWeight, usize, DefaultIx>;
 
