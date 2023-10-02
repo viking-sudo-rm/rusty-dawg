@@ -2,9 +2,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyType;
 
 use rusty_dawg::dawg;
-use rusty_dawg::graph::avl_graph::edge::EdgeRef;
+use rusty_dawg::graph::{EdgeRef, NodeRef};
 use rusty_dawg::graph::indexing::NodeIndex;
-use rusty_dawg::graph::memory_backing::edge_backing::EdgeBacking;
 use rusty_dawg::io::Load;
 use rusty_dawg::weight::{Weight, DefaultWeight};
 use rusty_dawg::graph::indexing::DefaultIx;

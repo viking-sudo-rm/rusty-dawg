@@ -25,8 +25,8 @@ pub mod edge;
 pub mod node;
 mod serde;
 
-use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
-use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
+pub use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
+pub use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
 
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::vec_backing::VecBacking;
