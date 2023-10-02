@@ -27,3 +27,4 @@ unicode-segmentation = "1.10"
 openssl = { version = "0.10", features = ["vendored"] }
 num = "0.4.1"
 fslock = "0.2.1"
+memmap2 = "0.7.1"

@@ -1,19 +1,14 @@
 pub trait VecBacking<T> {
-    fn new() -> Self
-    where
-        Self: Sized;
-
-    fn with_capacity(size: usize) -> Self
-    where
-        Self: Sized;
+    type TRef;
+    type TMutRef;
 
     fn len(&self) -> usize;
 
     fn push(&mut self, item: T);
 
-    fn index(&self, index: usize) -> &T;
+    fn index(&self, index: usize) -> Self::TRef;
 
-    fn index_mut(&mut self, index: usize) -> &mut T;
+    fn index_mut(&mut self, index: usize) -> Self::TMutRef;
 
     fn is_empty(&self) -> bool {
         self.len() == 0

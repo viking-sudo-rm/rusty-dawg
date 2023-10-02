@@ -1,21 +1,29 @@
-// pub mod byte_field;
-pub mod edge_backing;
-pub mod node_backing;
+pub mod disk_backing;
 pub mod ram_backing;
 pub mod vec_backing;
 
-use self::edge_backing::EdgeBacking;
-use self::node_backing::NodeBacking;
+pub use self::disk_backing::DiskBacking;
+pub use self::ram_backing::RamBacking;
+
+use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
+use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
+
 use self::vec_backing::VecBacking;
 
-// pub enum Backings {
-//     RamBacking(Box<ram_backing::RamBacking>),
-// }
+pub trait MemoryBacking<N, E, Ix>
+where
+    Self: Clone,
+    Self::EdgeRef: Copy,
+{
+    type NodeRef: NodeRef<N, Ix>;
+    type EdgeRef: EdgeRef<E, Ix>;
+    type NodeMutRef: NodeMutRef<Ix>;
+    type EdgeMutRef: EdgeMutRef<Ix>;
 
-pub trait MemoryBacking<N, E, Ix> {
-    type Node: NodeBacking<N, Ix>;
-    type Edge: EdgeBacking<E, Ix>;
+    type VecN: VecBacking<Node<N, Ix>, TRef = Self::NodeRef, TMutRef = Self::NodeMutRef>;
+    type VecE: VecBacking<Edge<E, Ix>, TRef = Self::EdgeRef, TMutRef = Self::EdgeMutRef>;
 
-    type VecN: VecBacking<Self::Node>;
-    type VecE: VecBacking<Self::Edge>;
+    fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN;
+
+    fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE;
 }

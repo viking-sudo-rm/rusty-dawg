@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 impl<N, E, Ix, Mb> Serialize for AvlGraph<N, E, Ix, Mb>
 where
-    Mb: MemoryBacking<N, E, Ix>,
+    Mb: MemoryBacking<N, E, Ix> + Default,
     Mb::VecE: Serialize,
     Mb::VecN: Serialize,
     Ix: Serialize + IndexType,
@@ -28,7 +28,7 @@ where
 
 impl<'de, N, E, Ix, Mb> Deserialize<'de> for AvlGraph<N, E, Ix, Mb>
 where
-    Mb: MemoryBacking<N, E, Ix>,
+    Mb: MemoryBacking<N, E, Ix> + Default,
     Mb::VecE: Deserialize<'de>,
     Mb::VecN: Deserialize<'de>,
     Ix: Deserialize<'de> + IndexType,
@@ -50,7 +50,7 @@ pub struct AvlGraphVisitor<N, E, Ix, Mb> {
 
 impl<'de, N, E, Ix, Mb> Visitor<'de> for AvlGraphVisitor<N, E, Ix, Mb>
 where
-    Mb: MemoryBacking<N, E, Ix>,
+    Mb: MemoryBacking<N, E, Ix> + Default,
     Mb::VecE: Deserialize<'de>,
     Mb::VecN: Deserialize<'de>,
     Ix: Deserialize<'de> + IndexType,

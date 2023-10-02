@@ -6,28 +6,34 @@
 
 // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
+use anyhow::Result;
 use std::clone::Clone;
 use std::cmp::{Eq, Ord};
+use std::path::Path;
 
 use std::marker::PhantomData;
 
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::cmp::{max, min};
 use std::fmt::Debug;
-use std::ops::{Index, IndexMut};
 
 use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use weight::Weight;
 
-pub mod dot;
+pub mod edge;
+pub mod node;
 mod serde;
 
-use graph::memory_backing::edge_backing::EdgeBacking;
-use graph::memory_backing::node_backing::NodeBacking;
+pub use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
+pub use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
+
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::vec_backing::VecBacking;
-use graph::memory_backing::MemoryBacking;
+use graph::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
 
 #[derive(Default)]
-pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, DefaultIx>>
+pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, Ix>>
 where
     Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
@@ -37,15 +43,46 @@ where
     marker: PhantomData<(N, E, Ix)>,
 }
 
+impl<N, E, Ix> AvlGraph<N, E, Ix>
+where
+    E: Eq + Ord + Copy + Debug,
+    Ix: IndexType,
+    N: Weight + Clone,
+{
+    pub fn new() -> Self {
+        let mb: RamBacking<N, E, Ix> = RamBacking::default();
+        Self::new_mb(mb)
+    }
+}
+
+impl<N, E, Ix> AvlGraph<N, E, Ix, DiskBacking<N, E, Ix>>
+where
+    E: Eq + Ord + Copy + Debug + Serialize + DeserializeOwned + Default,
+    N: Weight + Clone + Serialize + DeserializeOwned + Default,
+    Ix: IndexType + Serialize + DeserializeOwned,
+{
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
+        let mb: DiskBacking<N, E, Ix> = DiskBacking::new(path);
+        // FIXME: This can be refactored to call a method in Mb.
+        let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path())?;
+        let edges = disk_backing::vec::Vec::load(mb.get_edges_path())?;
+        Ok(Self {
+            nodes,
+            edges,
+            marker: PhantomData,
+        })
+    }
+}
+
 impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
     E: Eq + Ord + Copy + Debug,
     Ix: IndexType,
 {
-    pub fn new() -> Self {
-        let nodes = Mb::VecN::new();
-        let edges = Mb::VecE::new();
+    pub fn new_mb(mb: Mb) -> Self {
+        let nodes = mb.new_node_vec(None);
+        let edges = mb.new_edge_vec(None);
         AvlGraph {
             nodes,
             edges,
@@ -53,53 +90,51 @@ where
         }
     }
 
-    pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
-        let nodes = Mb::VecN::with_capacity(n_nodes);
-        let edges = Mb::VecE::with_capacity(n_edges);
+    pub fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Self {
+        let nodes = mb.new_node_vec(Some(n_nodes));
+        let edges = mb.new_edge_vec(Some(n_edges));
         AvlGraph {
             nodes,
             edges,
             marker: PhantomData,
         }
     }
+}
 
+impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
+where
+    Mb: MemoryBacking<N, E, Ix>,
+    E: Eq + Ord + Copy + Debug,
+    N: Weight,
+    Ix: IndexType,
+{
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
-        let node = Mb::Node::new(weight);
+        let node = Node::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
         assert!(<Ix as IndexType>::max_value().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
         node_idx
     }
 
-    pub fn clone_node(&mut self, a: NodeIndex<Ix>) -> NodeIndex<Ix>
-    where
-        N: Clone,
-        E: Clone,
-        Ix: Clone,
-    {
-        let clone = Mb::Node::new(self.nodes.index(a.index()).get_weight().clone());
-        let clone_idx = NodeIndex::new(self.nodes.len());
-        self.nodes.push(clone);
-
-        let first_source_idx = self.nodes.index(a.index()).get_first_edge();
+    // Copy edges from a Node onto another Node
+    pub fn clone_edges(&mut self, old: NodeIndex<Ix>, new: NodeIndex<Ix>) {
+        let first_source_idx = self.nodes.index(old.index()).get_first_edge();
         if first_source_idx == EdgeIndex::end() {
-            return clone_idx;
+            return;
         }
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
-        let first_clone_edge =
-            Mb::Edge::new(*edge_to_clone.get_weight(), edge_to_clone.get_target());
+        let first_clone_edge = Edge::new(edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes
-            .index_mut(clone_idx.index())
+            .index_mut(new.index())
             .set_first_edge(first_clone_idx);
-        self.clone_edges(first_source_idx, first_clone_idx);
-        clone_idx
+        self.clone_edges_helper(first_source_idx, first_clone_idx)
     }
 
     // The nodes that get passed in are the parents of the ones getting cloned.
-    pub fn clone_edges(&mut self, old: EdgeIndex<Ix>, new: EdgeIndex<Ix>) {
+    fn clone_edges_helper(&mut self, old: EdgeIndex<Ix>, new: EdgeIndex<Ix>) {
         if old == EdgeIndex::end() {
             return;
         }
@@ -107,23 +142,24 @@ where
         let right = self.edges.index(old.index()).get_right();
 
         if left != EdgeIndex::end() {
-            let left_weight = *self.edges.index(left.index()).get_weight();
+            let left_weight = self.edges.index(left.index()).get_weight();
             let left_target = self.edges.index(left.index()).get_target();
-            let new_left_edge = Mb::Edge::new(left_weight, left_target);
+            let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
+            // FIXME: Handle case where
             self.edges.index_mut(new.index()).set_left(new_left);
-            self.clone_edges(left, new_left);
+            self.clone_edges_helper(left, new_left);
         }
 
         if right != EdgeIndex::end() {
-            let right_weight = *self.edges.index(right.index()).get_weight();
+            let right_weight = self.edges.index(right.index()).get_weight();
             let right_target = self.edges.index(right.index()).get_target();
-            let new_right_edge = Mb::Edge::new(right_weight, right_target);
+            let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
             self.edges.index_mut(new.index()).set_right(new_right);
-            self.clone_edges(right, new_right);
+            self.clone_edges_helper(right, new_right);
         }
     }
 
@@ -156,7 +192,7 @@ where
             return (edge, last_edge);
         }
 
-        let edge_weight = *self.edges.index(edge.index()).get_weight();
+        let edge_weight = self.edges.index(edge.index()).get_weight();
         if weight == edge_weight {
             (edge, last_edge)
         } else if weight < edge_weight {
@@ -173,7 +209,7 @@ where
         b: NodeIndex<Ix>,
         weight: E,
     ) -> Option<EdgeIndex<Ix>> {
-        let edge = Mb::Edge::new(weight, b);
+        let edge = Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
         // look for root, simple case where no root handled
@@ -190,7 +226,7 @@ where
             return None;
         }
         // weight of the parent
-        let add_weight = *self.edges.index(last_e.index()).get_weight();
+        let add_weight = self.edges.index(last_e.index()).get_weight();
         // weight less than parent, add left else right (the tree thing, no case where weights are equal)
         if weight < add_weight {
             self.edges.index_mut(last_e.index()).set_left(edge_idx);
@@ -222,13 +258,13 @@ where
     ) -> EdgeIndex<Ix> {
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
-            let edge = Mb::Edge::new(weight, b);
+            let edge = Edge::new(weight, b);
             self.edges.push(edge);
             return EdgeIndex::new(self.edges.len() - 1);
         }
 
         // keep recursing into the tree according to balance tree insert rule
-        let root_edge_weight = *self.edges.index(root_edge_idx.index()).get_weight();
+        let root_edge_weight = self.edges.index(root_edge_idx.index()).get_weight();
 
         if weight < root_edge_weight {
             let init_left_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).get_left();
@@ -440,26 +476,16 @@ where
     pub fn edges(&self, edges: NodeIndex<Ix>) -> Edges<N, E, Ix, Mb> {
         Edges::new(self, edges)
     }
-}
 
-impl<N, E, Ix, Mb> Index<NodeIndex<Ix>> for AvlGraph<N, E, Ix, Mb>
-where
-    Mb: MemoryBacking<N, E, Ix>,
-    Ix: IndexType,
-{
-    type Output = N;
-    fn index(&self, index: NodeIndex<Ix>) -> &N {
-        self.nodes.index(index.index()).get_weight()
+    // We can't use standard indexing because we have custom reference types.
+
+    pub fn get_node(&self, node: NodeIndex<Ix>) -> Mb::NodeRef {
+        self.nodes.index(node.index())
     }
-}
 
-impl<N, E, Ix, Mb> IndexMut<NodeIndex<Ix>> for AvlGraph<N, E, Ix, Mb>
-where
-    Mb: MemoryBacking<N, E, Ix>,
-    Ix: IndexType,
-{
-    fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
-        self.nodes.index_mut(index.index()).get_weight_mut()
+    // We can't use mutable indexing because we return custom MutNode, not &mut Node.
+    pub fn get_node_mut(&mut self, node: NodeIndex<Ix>) -> Mb::NodeMutRef {
+        self.nodes.index_mut(node.index())
     }
 }
 
@@ -507,13 +533,13 @@ impl<'a, N, E, Ix, Mb> Iterator for Edges<'a, N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
+    Mb::EdgeRef: Sized,
 {
-    type Item = &'a Mb::Edge;
+    // Was: type Item = &'a Edge<E, Ix>;
+    // Should be: type Item = Mb::EdgeRef<'a>;
+    type Item = Mb::EdgeRef;
 
-    // Note that this was hurting performance a lot before!
-    // Be careful using a vector as a stack.
-    // https://stackoverflow.com/questions/40848918/are-there-queue-and-stack-collections-in-rust
-    fn next(&mut self) -> Option<&'a Mb::Edge> {
+    fn next(&mut self) -> Option<Self::Item> {
         // Is this pop_back()????
         match self.stack.pop() {
             None => None,
@@ -555,26 +581,31 @@ where
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
+    use graph::avl_graph::edge::EdgeRef;
+    use graph::avl_graph::node::{NodeMutRef, NodeRef};
     use graph::avl_graph::AvlGraph;
-    use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
-    use graph::memory_backing::node_backing::NodeBacking;
+    use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+    use std::convert::TryInto;
+    use weight::{Weight, Weight40};
 
     use serde::{Deserialize, Serialize};
 
     #[test]
     fn test_create_graph() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        assert_eq!(graph.add_node(5).index(), 0);
-        assert_eq!(graph.add_node(5).index(), 1);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        assert_eq!(graph.add_node(weight).index(), 0);
+        assert_eq!(graph.add_node(weight).index(), 1);
     }
 
     #[test]
     fn test_add_edge() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
-        let q2 = graph.add_node(2);
-        let q3 = graph.add_node(3);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
+        let q3 = graph.add_node(weight);
 
         assert_eq!(graph.add_edge(q1, q2, 2), Some(EdgeIndex::new(0)));
         // assert_eq!(weights(&graph, q1), vec![2]);
@@ -595,32 +626,22 @@ mod tests {
 
     #[test]
     fn test_add_edge_ba() {
-        let mut graph: AvlGraph<u8, char> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
-        let q2 = graph.add_node(2);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, char> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
 
         assert_eq!(graph.add_edge(q0, q1, 'b'), Some(EdgeIndex::new(0)));
         assert_eq!(graph.add_edge(q0, q2, 'a'), Some(EdgeIndex::new(1)));
     }
 
-    // #[test]
-    // fn test_remove_edge() {
-    //     let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-    //     let q0 = graph.add_node(0);
-    //     let q1 = graph.add_node(1);
-
-    //     assert_eq!(graph.remove_edge(q0, 2), false);
-    //     assert_eq!(graph.add_edge(q0, q1, 2), true);
-    //     assert_eq!(graph.remove_edge(q0, 2), true);
-    //     assert_eq!(graph.remove_edge(q0, 2), false);
-    // }
-
     #[test]
     fn test_rotate_from_right() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
 
         let mut root = graph.add_edge(q0, q1, 1).unwrap();
         let e1 = graph.add_edge(q0, q1, 0).unwrap();
@@ -650,9 +671,10 @@ mod tests {
 
     #[test]
     fn test_rotate_from_left() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
 
         let mut root = graph.add_edge(q0, q1, 3).unwrap();
         let e1 = graph.add_edge(q0, q1, 1).unwrap();
@@ -682,11 +704,12 @@ mod tests {
 
     #[test]
     fn test_add_balanced_edge() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
-        let q2 = graph.add_node(2);
-        let q3 = graph.add_node(3);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
+        let q3 = graph.add_node(weight);
 
         graph.add_balanced_edge(q1, q2, 2);
         graph.add_balanced_edge(q1, q3, 2);
@@ -697,8 +720,8 @@ mod tests {
         graph.add_balanced_edge(q1, q2, 4);
 
         for idx in 5..16 {
-            let q = graph.add_node(idx);
-            graph.add_balanced_edge(q1, q, idx.into());
+            let q = graph.add_node(weight);
+            graph.add_balanced_edge(q1, q, idx.try_into().unwrap());
         }
 
         assert_eq!(graph.edge_target(q1, 2), Some(q2));
@@ -711,9 +734,10 @@ mod tests {
 
     #[test]
     fn test_add_balanced_edge_left_branching() {
-        let mut graph: AvlGraph<u8, u64> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u64> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
         for idx in (0..127).rev() {
             graph.add_balanced_edge(q0, q1, idx);
         }
@@ -723,14 +747,15 @@ mod tests {
 
     #[test]
     fn test_tree_construction() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
 
         graph.add_balanced_edge(q1, q0, 0);
         graph.add_balanced_edge(q1, q0, 1);
 
-        let mut root = graph.nodes[q1.index()].get_first_edge();
+        let mut root = graph.get_node(q1).get_first_edge();
         let mut left: EdgeIndex = graph.edges[root.index()].left;
         let mut right: EdgeIndex = graph.edges[root.index()].right;
         assert_eq!(graph.edges[root.index()].balance_factor, -1);
@@ -739,7 +764,7 @@ mod tests {
 
         graph.add_balanced_edge(q1, q0, 2);
 
-        root = graph.nodes[q1.index()].get_first_edge();
+        root = graph.get_node(q1).get_first_edge();
         left = graph.edges[root.index()].left;
         right = graph.edges[root.index()].right;
         assert_eq!(graph.edges[root.index()].balance_factor, 0);
@@ -749,23 +774,30 @@ mod tests {
     }
 
     #[test]
-    fn test_clone_node() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
-        graph.add_edge(q0, q1, 2);
+    fn test_clone_edges() {
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        for idx in 2..10 {
+            let qi = graph.add_node(weight);
+            graph.add_edge(q0, qi, idx);
+        }
 
-        let q2 = graph.clone_node(q0);
-        assert_eq!(graph[q2], 0_u8);
-        assert_eq!(graph.edge_target(q2, 2), Some(q1));
+        graph.clone_edges(q0, q1);
+        for idx in 2..10 {
+            let qi: NodeIndex<DefaultIx> = NodeIndex::new(idx.into());
+            assert_eq!(graph.edge_target(q1, idx), Some(qi));
+        }
     }
 
     #[test]
     fn test_reroute_edge() {
-        let mut graph: AvlGraph<u8, u16> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
-        let q2 = graph.add_node(2);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
         graph.add_edge(q0, q1, 2);
         assert!(graph.reroute_edge(q0, q2, 2));
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
@@ -773,15 +805,16 @@ mod tests {
 
     #[test]
     fn test_edges_iterator() {
-        let mut graph: AvlGraph<u8, u32> = AvlGraph::new();
-        let q0 = graph.add_node(0);
-        let q1 = graph.add_node(1);
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
         for idx in 0..7 {
             graph.add_balanced_edge(q0, q1, idx);
         }
         let edges: Vec<_> = graph
             .edges(q0)
-            .map(|x| (x.weight, x.target.index()))
+            .map(|x| (x.get_weight(), x.get_target().index()))
             .collect();
         assert_eq!(
             edges,
@@ -790,5 +823,15 @@ mod tests {
 
         assert_eq!(graph.balance_ratio(q0), 1.0);
         // FIXME: But stilll take the time tho
+    }
+
+    #[test]
+    fn test_node_index_mut() {
+        let weight = Weight40::new(0, None, 0);
+        let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
+        let q0 = graph.add_node(weight);
+        let idx0 = NodeIndex::new(0);
+        graph.get_node_mut(idx0).set_length(1);
+        assert_eq!(graph.get_node(idx0).get_length(), 1);
     }
 }

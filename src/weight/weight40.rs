@@ -6,25 +6,25 @@ use graph::indexing::{DefaultIx, IndexType, NodeIndex};
 
 pub type DefaultWeight = WeightMinimal;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
 pub struct Weight40 {
     length1: u8,
     length2: u32,
     failure1: u8,
     failure2: u32,
-    count: u32,
+    count: u16,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
 pub struct WeightMinimal {
     length: DefaultIx,
     failure: DefaultIx,
-    count: u32,
+    count: u16,
 }
 
 #[allow(arithmetic_overflow)]
 impl Weight for Weight40 {
-    fn new(length: u64, failure: Option<NodeIndex>, count: u64) -> Self {
+    fn new(length: u64, failure: Option<NodeIndex>, count: u16) -> Self {
         Self {
             length1: (length >> 32) as u8,
             length2: length as u32,
@@ -36,8 +36,7 @@ impl Weight for Weight40 {
                 Some(f) => f.index() as u32,
                 None => u32::MAX,
             },
-            // solid: solid,
-            count: count as u32,
+            count,
         }
     }
 
@@ -75,13 +74,13 @@ impl Weight for Weight40 {
         self.count += 1;
     }
 
-    fn get_count(&self) -> u64 {
-        self.count as u64
+    fn get_count(&self) -> u16 {
+        self.count
     }
 }
 
 impl Weight for WeightMinimal {
-    fn new(length: u64, failure: Option<NodeIndex>, count: u64) -> Self {
+    fn new(length: u64, failure: Option<NodeIndex>, count: u16) -> Self {
         Self {
             length: DefaultIx::new(length as usize),
             //length: length as DefaultIx,
@@ -89,7 +88,7 @@ impl Weight for WeightMinimal {
                 Some(f) => DefaultIx::new(f.index()),
                 None => DefaultIx::max_value(),
             },
-            count: count as u32,
+            count,
         }
     }
 
@@ -119,8 +118,8 @@ impl Weight for WeightMinimal {
         self.count += 1;
     }
 
-    fn get_count(&self) -> u64 {
-        self.count as u64
+    fn get_count(&self) -> u16 {
+        self.count
     }
 }
 

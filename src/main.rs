@@ -12,7 +12,7 @@ extern crate bincode;
 extern crate bitvec;
 extern crate clap;
 extern crate kdam;
-extern crate petgraph;
+extern crate memmap2;
 extern crate rusty_dawg;
 extern crate serde;
 extern crate serde_json;
@@ -25,20 +25,17 @@ mod dawg;
 mod evaluator;
 mod graph;
 mod io;
-mod lms;
 mod stat_utils;
 mod tokenize;
 mod weight;
 
 use serde::{Deserialize, Serialize};
+use std::cmp::min;
 use std::cmp::Ord;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
-
-use lms::induction_lm::InductionLM;
-use lms::kn_lm::KNLM;
-use lms::LM;
+use std::io::{BufReader, Read};
 
 use io::Save;
 
@@ -46,14 +43,18 @@ use clap::Parser;
 use std::fs;
 use std::mem::size_of;
 
-use kdam::tqdm;
+use kdam::{tqdm, BarExt};
 
 use dawg::Dawg;
 use evaluator::Evaluator;
 
-use stat_utils::*;
+use graph::avl_graph::edge::Edge;
+use graph::avl_graph::node::Node;
+use graph::indexing::DefaultIx;
+use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
-use weight::weight40::DefaultWeight;
+use weight::DefaultWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;
@@ -72,12 +73,6 @@ struct Args {
     save_path: String,
     #[arg(long)]
     results_path: String,
-    #[arg(long)]
-    gen_path: Option<String>,
-    #[arg(long)]
-    gen_results_path: Option<String>,
-    // #[arg(long, default_value_t = false)]
-    // tokenize: bool,
 
     // This value can take on the following values:
     // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
@@ -93,39 +88,82 @@ struct Args {
     n_eval: usize,
     #[arg(long, default_value_t = 10)]
     max_length: u64,
+    // Max length of a state in the Dawg.
+    #[arg(long, default_value_t = -1)]
+    max_state_length: i64,
 
-    #[arg(long, short = 'f')]
-    min_freq: Vec<u64>,
-    #[arg(long, short = 'd')]
-    delta: Vec<f64>,
-    #[arg(long, short = 'n')]
-    n_gram: Vec<i64>,
-    #[arg(long, short = 'i')]
-    induct_delta: Vec<f64>,
+    #[arg(long)]
+    disk_path: Option<String>,
 
     #[arg(long, default_value_t = 2.)]
     nodes_ratio: f64,
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
+    #[arg(long, default_value_t = 0.33)]
+    tokens_per_byte: f64,
+
+    // Amount of input to read at a time while consuming file. Defaults to 10 GB.
+    #[arg(long, default_value_t = 10000000000)]
+    buf_size: usize,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    // type E = u32;
+    match args.disk_path.clone() {
+        Some(path) => println!("DAWG on disk: {}", path),
+        None => println!("DAWG in RAM"),
+    };
+
+    // Messy, but it works.
     if args.utype == "u16" {
-        run_rusty_dawg::<u16>(args)
+        type E = u16;
+        match args.disk_path.clone() {
+            Some(path) => {
+                type Mb = DiskBacking<N, E, DefaultIx>;
+                let mb = Mb::new(path);
+                run_rusty_dawg::<E, Mb>(args, mb)
+            }
+            None => {
+                type Mb = RamBacking<N, E, DefaultIx>;
+                let mb = Mb::default();
+                run_rusty_dawg::<E, Mb>(args, mb)
+            }
+        }
     } else if args.utype == "u32" {
-        run_rusty_dawg::<u32>(args)
+        type E = u32;
+        match args.disk_path.clone() {
+            Some(path) => {
+                type Mb = DiskBacking<N, E, DefaultIx>;
+                let mb = Mb::new(path);
+                run_rusty_dawg::<E, Mb>(args, mb)
+            }
+            None => {
+                type Mb = RamBacking<N, E, DefaultIx>;
+                let mb = Mb::default();
+                run_rusty_dawg::<E, Mb>(args, mb)
+            }
+        }
     } else if args.utype == "usize" {
-        run_rusty_dawg::<usize>(args)
+        type E = usize;
+        match args.disk_path.clone() {
+            Some(path) => {
+                type Mb = DiskBacking<N, E, DefaultIx>;
+                let mb = Mb::new(path);
+                run_rusty_dawg::<E, Mb>(args, mb)
+            }
+            None => {
+                type Mb = RamBacking<N, E, DefaultIx>;
+                let mb = Mb::default();
+                run_rusty_dawg::<E, Mb>(args, mb)
+            }
+        }
     } else {
         panic!("Invalid usize type: {}", args.utype);
     }
-    // run_rusty_dawg::<E>(args)
 }
 
-fn run_rusty_dawg<E>(args: Args) -> Result<(), Box<dyn std::error::Error>>
+fn run_rusty_dawg<E, Mb>(args: Args, mb: Mb) -> Result<(), Box<dyn std::error::Error>>
 where
     E: Eq
         + Ord
@@ -139,9 +177,14 @@ where
         + TryInto<u32>
         + TryFrom<u32>,
     usize: TryFrom<E>,
+    Mb: MemoryBacking<N, E, DefaultIx>,
+    Dawg<E, N, DefaultIx, Mb>: io::Save,
 {
-    println!("sizeof(edge): {}B", size_of::<E>());
-    println!("sizeof(node): {}B", size_of::<N>());
+    println!("sizeof(Ix) {}B", size_of::<DefaultIx>());
+    println!("sizeof(N) {}B", size_of::<N>());
+    println!("sizeof(E) {}B", size_of::<E>());
+    println!("sizeof(Node): {}B", size_of::<Node<N, DefaultIx>>());
+    println!("sizeof(Edge): {}B", size_of::<Edge<E, DefaultIx>>());
 
     let mut index: Box<dyn Tokenize<E>> = if args.tokenizer == "whitespace" {
         Box::new(TokenIndex::new())
@@ -150,83 +193,80 @@ where
     } else {
         Box::new(PretrainedTokenizer::new(&args.tokenizer))
     };
-    // let mut index: Box<dyn Tokenize<E>> = Box::new(TokenIndex::new());
-    // let mut index: Box<dyn Tokenize<E>> = Box::new(PretrainedTokenizer::new("gpt2"));
-    // let mut index: Box<dyn Tokenize> = if args.tokenize {
-    //     Box::new(TokenIndex::<usize>::new())
-    // } else {
-    //     Box::new(NullTokenIndex::new())
-    // };
 
-    let train_raw: String =
-        fs::read_to_string(args.train_path.as_str()).expect("Error loading train");
-    index.build(&train_raw);
-    let train: Vec<E> = index.tokenize(&train_raw);
-    // let train: Vec<usize> = train_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let eval_threshold = if args.n_eval != 0 {
-        train.len() / args.n_eval
-    } else {
+    let train_file = fs::File::open(args.train_path.as_str())?;
+    let n_bytes = train_file.metadata().unwrap().len();
+    let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
+    let eval_threshold = if args.n_eval == 0 {
         0
+    } else {
+        est_n_tokens / args.n_eval
     };
-    println!("#(train): {}", train.len());
+    let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
+    index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
     let mut test: Vec<E> = index.tokenize(&test_raw);
     // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
         test = test[0..args.truncate_test].to_vec();
     }
+    let mut evaluator = Evaluator::new(&test, args.max_length);
     println!("#(test): {}/{}", test.len(), old_test_len);
 
-    let gen_raw: String = match &args.gen_path {
-        Some(path) => {
-            fs::read_to_string(path).unwrap_or_else(|_| panic!("Error loading gen path: {}", path))
-        }
-        None => "".to_string(),
+    let n_nodes = (args.nodes_ratio * (est_n_tokens as f64)).ceil() as usize;
+    let n_edges = (args.edges_ratio * (est_n_tokens as f64)).ceil() as usize;
+    let max_length: Option<u64> = if !args.max_state_length.is_negative() {
+        Some(args.max_state_length.try_into().unwrap())
+    } else {
+        None
     };
-    // let gen: Vec<E> = gen_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let gen: Vec<E> = index.tokenize(&gen_raw);
-    println!("#(gen): {}", gen.len());
-    println!("#(vocab): {}", index.get_count());
 
-    let mut lms: Vec<Box<dyn LM<E>>> = Vec::new();
-    create_lms(&args, &mut lms);
-    let mut evaluator = Evaluator::new(&mut lms, &test, args.max_length);
-    let mut gen_lms: Vec<Box<dyn LM<E>>> = Vec::new();
-    create_lms(&args, &mut gen_lms);
-    let mut gen_evaluator = Evaluator::new(&mut gen_lms, &gen, args.max_length);
+    let mut dawg: Dawg<E, N, DefaultIx, Mb> =
+        Dawg::with_capacity_mb(mb, max_length, n_nodes, n_edges);
 
-    let n_nodes = (args.nodes_ratio * (train.len() as f64)).ceil() as usize;
-    let n_edges = (args.edges_ratio * (train.len() as f64)).ceil() as usize;
-    let mut dawg: Dawg<E, N> = Dawg::with_capacity(n_nodes, n_edges);
+    let mut idx = 0;
     let mut last = dawg.get_initial();
-    for (idx, token) in tqdm!(train.iter()).enumerate() {
-        last = dawg.extend(*token, last);
-        if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
-            let good_turing = good_turing_estimate(&dawg, train.len());
-            evaluator.evaluate(&dawg, idx, good_turing);
-            if !args.results_path.is_empty() {
-                evaluator.to_json(&args.results_path)?;
-            }
-            match &args.gen_results_path {
-                Some(gen_path) => {
-                    gen_evaluator.evaluate(&dawg, idx, good_turing);
-                    gen_evaluator.to_json(gen_path)?;
+    let mut length = 0;
+    let mut pbar = tqdm!(total = est_n_tokens);
+    let mut train_reader = BufReader::with_capacity(buf_size, train_file);
+    let mut buffer = vec![0; buf_size];
+    loop {
+        let n_bytes_read = train_reader.read(&mut buffer).unwrap();
+        if n_bytes_read == 0 {
+            break;
+        }
+        let text = std::str::from_utf8(&buffer);
+        let tokens = index.tokenize(text.unwrap());
+        for token in &tokens {
+            (last, length) = dawg.extend(*token, last, length);
+            if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
+                evaluator.evaluate(&dawg, idx);
+                if !args.results_path.is_empty() {
+                    evaluator.to_json(&args.results_path)?;
                 }
-                None => {}
             }
+            idx += 1;
+            pbar.update(1);
         }
     }
+
+    eprintln!();
     println!("Completed!");
     println!(
-        "  Node ratio: {:.2} (total={})",
-        (dawg.node_count() as f64) / (train.len() as f64),
+        "  token/byte: {:.2} (tokens={})",
+        (idx as f64) / (n_bytes as f64),
+        idx
+    );
+    println!(
+        "  node/token: {:.2} (nodes={})",
+        (dawg.node_count() as f64) / (idx as f64),
         dawg.node_count()
     );
     println!(
-        "  Edge ratio: {:.2} (total={})",
-        (dawg.edge_count() as f64) / (train.len() as f64),
+        "  edge/token: {:.2} (edges={})",
+        (dawg.edge_count() as f64) / (idx as f64),
         dawg.edge_count()
     );
     println!("  Balance ratio: {}", dawg.balance_ratio(1));
@@ -237,54 +277,4 @@ where
         println!("Successfully saved DAWG to {}!", &args.save_path);
     }
     Ok(())
-}
-
-fn create_lms<E>(args: &Args, lms: &mut Vec<Box<dyn LM<E>>>)
-where
-    E: Eq
-        + Ord
-        + Serialize
-        + for<'a> Deserialize<'a>
-        + Copy
-        + Debug
-        + TryInto<usize>
-        + TryFrom<usize>
-        + 'static,
-    usize: TryFrom<E>,
-{
-    for min_freq in args.min_freq.iter() {
-        for delta in args.delta.iter() {
-            let maxgram = KNLM::new(
-                format!("maxgram-kn{}-#{}", delta, min_freq),
-                *delta,
-                -1,
-                *min_freq,
-            );
-            lms.push(Box::new(maxgram));
-            for n in args.n_gram.iter() {
-                let ngram = KNLM::new(
-                    format!("{}gram-kn{}-#{}", n, delta, min_freq),
-                    *delta,
-                    *n,
-                    *min_freq,
-                );
-                lms.push(Box::new(ngram));
-                for induct_delta in args.induct_delta.iter() {
-                    let induct_backoff = KNLM::new(
-                        format!("sub-{}gram-kn{}-#{}", n, delta, min_freq),
-                        *delta,
-                        *n,
-                        *min_freq,
-                    );
-                    let induct = InductionLM::new(
-                        format!("{}gram-kn{}-#{}-induct{}", n, delta, min_freq, induct_delta),
-                        Box::new(induct_backoff),
-                        *induct_delta,
-                    );
-                    let induct = Box::new(induct);
-                    lms.push(induct)
-                }
-            }
-        }
-    }
 }

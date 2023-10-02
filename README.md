@@ -2,7 +2,7 @@
 
 A library for building suffix automata for string indexing and searching in Rust.
 
-For most basic use cases, it might be easier to use the Python wrapper [py-rusty-dawg](https://github.com/viking-sudo-rm/py-rusty-dawg).
+Contains Python bindings that should address most basic use cases.
 
 # Getting Started
 

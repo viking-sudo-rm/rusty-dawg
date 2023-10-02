@@ -1,0 +1,119 @@
+use graph::avl_graph::edge::{Edge, EdgeMutRef};
+use graph::avl_graph::node::{Node, NodeMutRef};
+use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use graph::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::cell::RefCell;
+use std::rc::Rc;
+use weight::Weight;
+
+pub trait MutRef<T> {
+    fn new(disk_vec: Rc<RefCell<DiskVec<T>>>, index: usize) -> Self;
+}
+
+pub struct DiskNodeMutRef<N, Ix> {
+    disk_vec: Rc<RefCell<DiskVec<Node<N, Ix>>>>,
+    index: usize,
+}
+
+impl<N, Ix> MutRef<Node<N, Ix>> for DiskNodeMutRef<N, Ix> {
+    fn new(disk_vec: Rc<RefCell<DiskVec<Node<N, Ix>>>>, index: usize) -> Self {
+        Self { disk_vec, index }
+    }
+}
+
+// TODO: Only overwrite the specific field in the DiskVec rather than read/write.
+impl<N, Ix> NodeMutRef<Ix> for DiskNodeMutRef<N, Ix>
+where
+    Ix: IndexType,
+    N: Weight,
+    Node<N, Ix>: Serialize + DeserializeOwned + Default,
+{
+    fn set_length(self, length: u64) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut node = disk_vec.get(self.index).unwrap();
+        node.weight.set_length(length);
+        let _ = disk_vec.set(self.index, &node);
+    }
+
+    fn set_failure(self, state: Option<NodeIndex<Ix>>) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut node = disk_vec.get(self.index).unwrap();
+        // Handle potential mismatch in Ix.
+        let fail_state = state.map(|phi| NodeIndex::new(phi.index()));
+        node.weight.set_failure(fail_state);
+        let _ = disk_vec.set(self.index, &node);
+    }
+
+    fn increment_count(self) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut node = disk_vec.get(self.index).unwrap();
+        node.weight.increment_count();
+        let _ = disk_vec.set(self.index, &node);
+    }
+
+    fn set_first_edge(self, first_edge: EdgeIndex<Ix>) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut node = disk_vec.get(self.index).unwrap();
+        node.first_edge = first_edge;
+        let _ = disk_vec.set(self.index, &node);
+    }
+}
+
+pub struct DiskEdgeMutRef<E, Ix> {
+    disk_vec: Rc<RefCell<DiskVec<Edge<E, Ix>>>>,
+    index: usize,
+}
+
+impl<E, Ix> MutRef<Edge<E, Ix>> for DiskEdgeMutRef<E, Ix> {
+    fn new(disk_vec: Rc<RefCell<DiskVec<Edge<E, Ix>>>>, index: usize) -> Self {
+        Self { disk_vec, index }
+    }
+}
+
+impl<E, Ix> EdgeMutRef<Ix> for DiskEdgeMutRef<E, Ix>
+where
+    Ix: IndexType + Copy,
+    Edge<E, Ix>: Serialize + DeserializeOwned + Default,
+{
+    fn set_target(self, target: NodeIndex<Ix>) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut edge = disk_vec.get(self.index).unwrap();
+        edge.target = target;
+        let _ = disk_vec.set(self.index, &edge);
+    }
+
+    fn set_left(self, left: EdgeIndex<Ix>) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut edge = disk_vec.get(self.index).unwrap();
+        edge.left = left;
+        let _ = disk_vec.set(self.index, &edge);
+    }
+
+    fn set_right(self, right: EdgeIndex<Ix>) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut edge = disk_vec.get(self.index).unwrap();
+        edge.right = right;
+        let _ = disk_vec.set(self.index, &edge);
+    }
+
+    fn set_balance_factor(self, bf: i8) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut edge = disk_vec.get(self.index).unwrap();
+        edge.balance_factor = bf;
+        let _ = disk_vec.set(self.index, &edge);
+    }
+}
+
+pub trait DiskVecItem: Sized {
+    type MutRef: MutRef<Self>;
+}
+
+impl<N, Ix> DiskVecItem for Node<N, Ix> {
+    type MutRef = DiskNodeMutRef<N, Ix>;
+}
+
+impl<E, Ix> DiskVecItem for Edge<E, Ix> {
+    type MutRef = DiskEdgeMutRef<E, Ix>;
+}

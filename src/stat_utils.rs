@@ -2,34 +2,29 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ord;
 use std::fmt::Debug;
 
-use crate::weight::weight40::DefaultWeight;
 use dawg::Dawg;
-use graph::indexing::NodeIndex;
+use graph::avl_graph::node::NodeRef;
+use graph::indexing::{DefaultIx, NodeIndex};
+use graph::memory_backing::MemoryBacking;
 use weight::Weight;
 
-pub fn get_entropy<E, W>(dawg: &Dawg<E, W>, state: NodeIndex) -> f64
+pub fn get_entropy<E, W, Mb>(dawg: &Dawg<E, W, DefaultIx, Mb>, state: NodeIndex) -> f64
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
     W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    Mb: MemoryBacking<W, E, DefaultIx>,
 {
-    // let denom = counts[state.index()];
-    // println!("{:?}", Dot::new(dawg.get_graph()));
-
-    let denom = dawg.get_weight(state).get_count();
+    let denom = dawg.get_node(state).get_count();
     let mut sum_num = 0;
     let mut sum_prob = 0.;
     for next_state in dawg.get_graph().neighbors(state) {
-        // let num = counts[next_state.index()];
-        let num = dawg.get_weight(next_state).get_count();
+        let num = dawg.get_node(next_state).get_count();
         if num > 0 {
             let prob = (num as f64) / (denom as f64);
             sum_prob -= prob * prob.log2();
             sum_num += num;
         }
     }
-    // println!("state: {}", state.index());
-    // println!("denom: {}", denom);
-    // println!("sum_num: {}", sum_num);
     if denom - sum_num > 0 {
         // Missing probability mass corresponding to <eos>
         let missing = ((denom - sum_num) as f64) / (denom as f64);
@@ -38,26 +33,13 @@ where
     sum_prob
 }
 
-pub fn good_turing_estimate<E>(dawg: &Dawg<E, DefaultWeight>, n_tokens: usize) -> f64
-where
-    E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-{
-    let mut n_once = 0;
-    let graph = dawg.get_graph();
-    for unigram in graph.neighbors(dawg.get_initial()) {
-        if graph[unigram].get_count() == 1 {
-            n_once += 1;
-        }
-    }
-    (n_once as f64) / (n_tokens as f64)
-}
-
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
     use dawg::Dawg;
     use stat_utils::*;
     use tokenize::{TokenIndex, Tokenize};
+    use weight::DefaultWeight;
 
     use graph::indexing::NodeIndex;
 
@@ -69,32 +51,5 @@ mod tests {
         assert_eq!(get_entropy(&dawg, NodeIndex::new(0)), 1.584962500721156);
         assert_eq!(get_entropy(&dawg, NodeIndex::new(1)), 0.);
         assert_eq!(get_entropy(&dawg, NodeIndex::new(2)), 0.);
-    }
-
-    #[test]
-    fn test_good_turing_estimate_ab() {
-        let tokens = ["a", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
-        let mut indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
-        indices.push(index.eos());
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
-
-        let good_turing = good_turing_estimate(&dawg, indices.len());
-        assert_eq!(good_turing, 1.);
-    }
-
-    #[test]
-    fn test_good_turing_estimate_abb() {
-        let tokens = ["a", "b", "b"];
-        let mut index: TokenIndex<usize> = TokenIndex::new();
-        let mut indices: Vec<_> = tokens.iter().map(|x| index.add(x)).collect();
-        indices.push(index.eos());
-        let mut dawg = Dawg::new();
-        dawg.build(&indices);
-
-        // println!("{:?}", Dot::new(dawg.get_graph()));
-        let good_turing = good_turing_estimate(&dawg, indices.len());
-        assert_eq!(good_turing, 2. / 4.);
     }
 }
