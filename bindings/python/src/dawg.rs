@@ -2,10 +2,10 @@ use pyo3::prelude::*;
 use pyo3::types::PyType;
 
 use rusty_dawg::dawg;
-use rusty_dawg::graph::{EdgeRef, NodeRef};
 use rusty_dawg::graph::indexing::NodeIndex;
+use rusty_dawg::graph::{EdgeRef, NodeRef};
 use rusty_dawg::io::Load;
-use rusty_dawg::weight::{Weight, DefaultWeight};
+use rusty_dawg::weight::{DefaultWeight, Weight};
 
 #[pyclass]
 pub struct Dawg {
@@ -25,9 +25,9 @@ impl Dawg {
     #[classmethod]
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
         // let file = fs::OpenOptions::new().read(true).open(&path)?;
-        Ok(Self {
-            dawg: dawg::Dawg::load(&path).expect("Failed to deserialize"),
-        })
+        let wrapped_dawg: dawg::Dawg<usize, DefaultWeight> =
+            dawg::Dawg::load(&path).expect("Failed to deserialize");
+        Ok(Self { dawg: wrapped_dawg })
     }
 
     pub fn build(&mut self, text: Vec<usize>) {

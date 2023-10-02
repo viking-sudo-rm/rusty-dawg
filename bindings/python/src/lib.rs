@@ -13,4 +13,3 @@ fn rusty_dawg(_py: Python, m: &PyModule) -> PyResult<()> {
     // m.add_class::<DiskDawg>()?;
     Ok(())
 }
-
