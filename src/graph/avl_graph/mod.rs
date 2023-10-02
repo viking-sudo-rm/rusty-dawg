@@ -594,18 +594,18 @@ mod tests {
     fn test_create_graph() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        assert_eq!(graph.add_node(weight.clone()).index(), 0);
-        assert_eq!(graph.add_node(weight.clone()).index(), 1);
+        assert_eq!(graph.add_node(weight).index(), 0);
+        assert_eq!(graph.add_node(weight).index(), 1);
     }
 
     #[test]
     fn test_add_edge() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
-        let q2 = graph.add_node(weight.clone());
-        let q3 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
+        let q3 = graph.add_node(weight);
 
         assert_eq!(graph.add_edge(q1, q2, 2), Some(EdgeIndex::new(0)));
         // assert_eq!(weights(&graph, q1), vec![2]);
@@ -628,9 +628,9 @@ mod tests {
     fn test_add_edge_ba() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, char> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
-        let q2 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
 
         assert_eq!(graph.add_edge(q0, q1, 'b'), Some(EdgeIndex::new(0)));
         assert_eq!(graph.add_edge(q0, q2, 'a'), Some(EdgeIndex::new(1)));
@@ -640,8 +640,8 @@ mod tests {
     fn test_rotate_from_right() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
 
         let mut root = graph.add_edge(q0, q1, 1).unwrap();
         let e1 = graph.add_edge(q0, q1, 0).unwrap();
@@ -673,8 +673,8 @@ mod tests {
     fn test_rotate_from_left() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
 
         let mut root = graph.add_edge(q0, q1, 3).unwrap();
         let e1 = graph.add_edge(q0, q1, 1).unwrap();
@@ -706,10 +706,10 @@ mod tests {
     fn test_add_balanced_edge() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
-        let q2 = graph.add_node(weight.clone());
-        let q3 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
+        let q3 = graph.add_node(weight);
 
         graph.add_balanced_edge(q1, q2, 2);
         graph.add_balanced_edge(q1, q3, 2);
@@ -720,7 +720,7 @@ mod tests {
         graph.add_balanced_edge(q1, q2, 4);
 
         for idx in 5..16 {
-            let q = graph.add_node(weight.clone());
+            let q = graph.add_node(weight);
             graph.add_balanced_edge(q1, q, idx.try_into().unwrap());
         }
 
@@ -736,8 +736,8 @@ mod tests {
     fn test_add_balanced_edge_left_branching() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u64> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
         for idx in (0..127).rev() {
             graph.add_balanced_edge(q0, q1, idx);
         }
@@ -749,8 +749,8 @@ mod tests {
     fn test_tree_construction() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
 
         graph.add_balanced_edge(q1, q0, 0);
         graph.add_balanced_edge(q1, q0, 1);
@@ -777,10 +777,10 @@ mod tests {
     fn test_clone_edges() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
         for idx in 2..10 {
-            let qi = graph.add_node(weight.clone());
+            let qi = graph.add_node(weight);
             graph.add_edge(q0, qi, idx);
         }
 
@@ -795,9 +795,9 @@ mod tests {
     fn test_reroute_edge() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
-        let q2 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
+        let q2 = graph.add_node(weight);
         graph.add_edge(q0, q1, 2);
         assert!(graph.reroute_edge(q0, q2, 2));
         assert_eq!(graph.edge_target(q0, 2), Some(q2));
@@ -807,8 +807,8 @@ mod tests {
     fn test_edges_iterator() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
-        let q1 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
+        let q1 = graph.add_node(weight);
         for idx in 0..7 {
             graph.add_balanced_edge(q0, q1, idx);
         }
@@ -829,7 +829,7 @@ mod tests {
     fn test_node_index_mut() {
         let weight = Weight40::new(0, None, 0);
         let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
-        let q0 = graph.add_node(weight.clone());
+        let q0 = graph.add_node(weight);
         let idx0 = NodeIndex::new(0);
         graph.get_node_mut(idx0).set_length(1);
         assert_eq!(graph.get_node(idx0).get_length(), 1);

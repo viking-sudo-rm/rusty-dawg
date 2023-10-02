@@ -121,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
-                let mb = Mb::new(&path);
+                let mb = Mb::new(path);
                 run_rusty_dawg::<E, Mb>(args, mb)
             }
             None => {
@@ -135,7 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
-                let mb = Mb::new(&path);
+                let mb = Mb::new(path);
                 run_rusty_dawg::<E, Mb>(args, mb)
             }
             None => {
@@ -149,7 +149,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
-                let mb = Mb::new(&path);
+                let mb = Mb::new(path);
                 run_rusty_dawg::<E, Mb>(args, mb)
             }
             None => {
@@ -238,7 +238,7 @@ where
             break;
         }
         let text = std::str::from_utf8(&buffer);
-        let tokens = index.tokenize(&text.unwrap());
+        let tokens = index.tokenize(text.unwrap());
         for token in &tokens {
             (last, length) = dawg.extend(*token, last, length);
             if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {

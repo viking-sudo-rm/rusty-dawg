@@ -36,7 +36,7 @@ impl Weight for Weight40 {
                 Some(f) => f.index() as u32,
                 None => u32::MAX,
             },
-            count: count as u16,
+            count,
         }
     }
 

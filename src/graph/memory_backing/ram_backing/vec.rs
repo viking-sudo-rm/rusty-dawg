@@ -32,8 +32,8 @@ mod tests {
         let mb: Box<dyn VecBacking<u8, TRef = *const u8, TMutRef = *mut u8>> =
             Box::new(vec![12, 21]);
         unsafe {
-            assert_eq!(*(mb.index(0) as *const u8), 12);
-            assert_eq!(*(mb.index(1) as *const u8), 21);
+            assert_eq!(*mb.index(0), 12);
+            assert_eq!(*mb.index(1), 21);
         }
     }
 
@@ -42,9 +42,9 @@ mod tests {
         let mut mb: Box<dyn VecBacking<u8, TRef = *const u8, TMutRef = *mut u8>> =
             Box::new(vec![12, 21]);
         unsafe {
-            assert_eq!(*(mb.index(0) as *const u8), 12);
-            *(mb.index_mut(0) as *mut u8) = 32;
-            assert_eq!(*(mb.index(0) as *const u8), 32);
+            assert_eq!(*mb.index(0), 12);
+            *mb.index_mut(0) = 32;
+            assert_eq!(*mb.index(0), 32);
         }
     }
 }
