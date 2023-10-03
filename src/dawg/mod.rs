@@ -218,7 +218,20 @@ where
         (new, length + 1)
     }
 
-    pub fn new_document(&self) -> (NodeIndex, u64) {
+    pub fn end_document(&mut self, mut last: NodeIndex, doc_id_token: E, doc_id: u64) -> (NodeIndex, u64) {
+        loop {
+            match self.transition(last, doc_id_token, false) {
+                Some(doc_state) => {
+                    last = doc_state;
+                },
+                None => {
+                    // Add a special node representing the end of a document.
+                    let dnode = self.dawg.add_node(W::new(doc_id, None, 0));
+                    self.dawg.add_balanced_edge(last, dnode, doc_id_token);
+                    break;
+                },
+            }
+        }
         (self.get_initial(), 0)
     }
 
@@ -370,6 +383,7 @@ mod tests {
     use graph::indexing::{DefaultIx, NodeIndex};
 
     use bincode::{deserialize_from, serialize_into};
+    use std::convert::TryInto;
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom, Write};
     use tempfile::tempdir;
@@ -562,15 +576,16 @@ mod tests {
     #[test]
     pub fn test_multiple_docs() {
         let docs: Vec<&str> = vec!["abb", "aca"];
+        let doc_id_token = '$';
 
         let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
         let mut last = dawg.get_initial();
         let mut length = 0;
-        for doc in docs.iter() {
+        for (doc_id, doc) in docs.iter().enumerate() {
             for token in doc.chars() {
                 (last, length) = dawg.extend(token, last, length);
             }
-            (last, length) = dawg.new_document();
+            (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
         }
 
         // Shared prefix.
@@ -586,6 +601,8 @@ mod tests {
         let q3_abb = dawg.transition(q2_abb, 'b', false).unwrap();
         assert_eq!(dawg.get_node(q3_abb).get_length(), 3);
         assert_eq!(dawg.get_node(q3_abb).get_count(), 1);
+        let doc_abb = dawg.transition(q3_abb, doc_id_token, false).unwrap();
+        assert_eq!(dawg.get_node(doc_abb).get_length(), 0);  // Document ID 0
 
         // Branch of aca.
         let q2_aca = dawg.transition(q1, 'c', false).unwrap();
@@ -596,6 +613,8 @@ mod tests {
         assert_eq!(dawg.get_node(q3_aca).get_length(), 3);
         assert_eq!(dawg.get_node(q3_aca).get_count(), 1);
         assert_ne!(q3_abb, q3_aca);
+        let doc_aca = dawg.transition(q3_aca, doc_id_token, false).unwrap();
+        assert_eq!(dawg.get_node(doc_aca).get_length(), 1);  // Document ID 1
 
         assert_eq!(dawg.transition(q1, 'a', false), None);
         assert_eq!(dawg.transition(q2_abb, 'a', false), None);

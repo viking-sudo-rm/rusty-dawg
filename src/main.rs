@@ -179,7 +179,9 @@ where
         + TryInto<u32>
         + TryFrom<u32>,
     usize: TryFrom<E>,
+    u64: TryFrom<E>,
     Mb: MemoryBacking<N, E, DefaultIx>,
+    <E as TryFrom<usize>>::Error: Debug,
     Dawg<E, N, DefaultIx, Mb>: io::Save,
 {
     println!("sizeof(Ix) {}B", size_of::<DefaultIx>());
@@ -208,8 +210,8 @@ where
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
+    let doc_id_token = E::try_from(index.get_count()).unwrap(); // The token used to store document IDs.
     let mut test: Vec<E> = index.tokenize(&test_raw);
-    // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
         test = test[0..args.truncate_test].to_vec();
@@ -244,7 +246,7 @@ where
             Some(token) => text.split(&token).collect(),
             None => vec![text],
         };
-        for doc in docs.iter() {
+        for (doc_id, doc) in docs.iter().enumerate() {
             let tokens = index.tokenize(&doc);
             for token in &tokens {
                 (last, length) = dawg.extend(*token, last, length);
@@ -257,7 +259,7 @@ where
                 idx += 1;
                 pbar.update(1);
             }
-            (last, length) = dawg.new_document();
+            (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
         }
     }
 
