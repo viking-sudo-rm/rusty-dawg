@@ -247,7 +247,7 @@ where
             None => vec![text],
         };
         for (doc_id, doc) in docs.iter().enumerate() {
-            let tokens = index.tokenize(&doc);
+            let tokens = index.tokenize(doc);
             for token in &tokens {
                 (last, length) = dawg.extend(*token, last, length);
                 if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
