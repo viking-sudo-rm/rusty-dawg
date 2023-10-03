@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
-                let mb = Mb::new(&path);
+                let mb = Mb::new(path);
                 run_rusty_dawg::<E, Mb>(args, mb)
             }
             None => {
@@ -137,7 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
-                let mb = Mb::new(&path);
+                let mb = Mb::new(path);
                 run_rusty_dawg::<E, Mb>(args, mb)
             }
             None => {
@@ -151,7 +151,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match args.disk_path.clone() {
             Some(path) => {
                 type Mb = DiskBacking<N, E, DefaultIx>;
-                let mb = Mb::new(&path);
+                let mb = Mb::new(path);
                 run_rusty_dawg::<E, Mb>(args, mb)
             }
             None => {

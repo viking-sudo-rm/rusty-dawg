@@ -43,9 +43,19 @@ where
     E: Eq + Ord + Serialize + for<'de> Deserialize<'de> + Copy + Debug,
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
 {
-    pub fn new() -> Dawg<E, W> {
+    pub fn new() -> Self {
         let mb: RamBacking<W, E, DefaultIx> = RamBacking::default();
         Self::new_mb(mb, None)
+    }
+}
+
+impl<E, W> Default for Dawg<E, W>
+where
+    E: Eq + Ord + Serialize + for<'de> Deserialize<'de> + Copy + Debug,
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -64,7 +74,7 @@ where
     }
 }
 
-impl<'a, E, W, Mb> Dawg<E, W, DefaultIx, Mb>
+impl<E, W, Mb> Dawg<E, W, DefaultIx, Mb>
 where
     E: Eq + Ord + Serialize + for<'de> Deserialize<'de> + Copy + Debug,
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
@@ -110,19 +120,16 @@ where
     pub fn extend(&mut self, token: E, mut last: NodeIndex, mut length: u64) -> (NodeIndex, u64) {
         // If we hit maximum length, fail once, then extend (doesn't need to be recursive!)
         if self.max_length.is_some() && (length == self.max_length.unwrap()) {
-            match self.get_node(last).get_failure() {
-                Some(phi) => {
-                    last = phi;
-                    length = self.get_node(phi).get_length();
-                }
-                None => {}  // Initial state; last/length should already be right
+            if let Some(phi) = self.get_node(last).get_failure() {
+                last = phi;
+                length = self.get_node(phi).get_length();
             }
         }
 
         // With max length or multiple documents, it is possible to hit this case.
         let next_new = self.transition(last, token, false);
-        if next_new.is_some() {
-            return (next_new.unwrap(), length + 1);
+        if let Some(next_q) = next_new {
+            return (next_q, length + 1);
         }
 
         let new = self

@@ -41,10 +41,7 @@ where
         let mut disk_vec = self.disk_vec.borrow_mut();
         let mut node = disk_vec.get(self.index).unwrap();
         // Handle potential mismatch in Ix.
-        let fail_state = match state {
-            Some(phi) => Some(NodeIndex::new(phi.index())),
-            None => None,
-        };
+        let fail_state = state.map(|phi| NodeIndex::new(phi.index()));
         node.weight.set_failure(fail_state);
         let _ = disk_vec.set(self.index, &node);
     }

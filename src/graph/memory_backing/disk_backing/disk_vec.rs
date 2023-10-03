@@ -143,7 +143,7 @@ where
 
     /// The number of items in the `DiskVec`.
     pub fn len(&self) -> usize {
-        self.len as usize
+        self.len
     }
 
     /// Returns `true` if the `DiskVec` is empty.
@@ -168,7 +168,7 @@ where
         let deserialized = bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
-            .deserialize::<T>(&bytes)?;
+            .deserialize::<T>(bytes)?;
         Ok(deserialized)
     }
 }

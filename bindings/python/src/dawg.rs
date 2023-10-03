@@ -3,9 +3,9 @@ use pyo3::types::PyType;
 
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
-use rusty_dawg::graph::memory_backing::edge_backing::EdgeBacking;
+use rusty_dawg::graph::{EdgeRef, NodeRef};
 use rusty_dawg::io::Load;
-use rusty_dawg::weight::{Weight, DefaultWeight};
+use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass]
 pub struct Dawg {
@@ -25,9 +25,9 @@ impl Dawg {
     #[classmethod]
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
         // let file = fs::OpenOptions::new().read(true).open(&path)?;
-        Ok(Self {
-            dawg: dawg::Dawg::load(&path).expect("Failed to deserialize"),
-        })
+        let wrapped_dawg =
+            <dawg::Dawg<usize, DefaultWeight> as Load>::load(&path).expect("Failed to deserialize");
+        Ok(Self { dawg: wrapped_dawg })
     }
 
     pub fn build(&mut self, text: Vec<usize>) {
@@ -62,7 +62,7 @@ impl Dawg {
 
     pub fn get_count(&self, state: usize) -> u64 {
         let state_index = NodeIndex::new(state);
-        self.dawg.get_weight(state_index).get_count()
+        self.dawg.get_node(state_index).get_count()
     }
 
     // Returns (State, TokenId)
@@ -71,7 +71,7 @@ impl Dawg {
         let graph = self.dawg.get_graph();
         graph
             .edges(state_index)
-            .map(|edge| (edge.get_target().index(), *edge.get_weight()))
+            .map(|edge| (edge.get_target().index(), edge.get_weight()))
             .collect()
     }
 

@@ -52,7 +52,7 @@ impl<E> Evaluator<'_, E>
 where
     E: Eq + Ord + serde::Serialize + for<'a> Deserialize<'a> + Copy + Debug,
 {
-    pub fn new<'a>(test: &'a Vec<E>, max_length: u64) -> Evaluator<'a, E> {
+    pub fn new(test: &Vec<E>, max_length: u64) -> Evaluator<'_, E> {
         let indices = Vec::new();
         let mut metrics = HashMap::new();
 
