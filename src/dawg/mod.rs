@@ -210,6 +210,10 @@ where
         (new, length + 1)
     }
 
+    pub fn new_document(&self) -> (NodeIndex, u64) {
+        (self.get_initial(), 0)
+    }
+
     // Set the lengths field to store min factor length instead of max factor length.
     pub fn recompute_lengths(&mut self) {
         self._zero_lengths(self.initial);

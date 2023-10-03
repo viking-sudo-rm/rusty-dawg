@@ -94,6 +94,8 @@ struct Args {
 
     #[arg(long)]
     disk_path: Option<String>,
+    #[arg(long)]
+    split_token: Option<String>,
 
     #[arg(long, default_value_t = 2.)]
     nodes_ratio: f64,
@@ -237,18 +239,25 @@ where
         if n_bytes_read == 0 {
             break;
         }
-        let text = std::str::from_utf8(&buffer);
-        let tokens = index.tokenize(&text.unwrap());
-        for token in &tokens {
-            (last, length) = dawg.extend(*token, last, length);
-            if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
-                evaluator.evaluate(&dawg, idx);
-                if !args.results_path.is_empty() {
-                    evaluator.to_json(&args.results_path)?;
+        let text = std::str::from_utf8(&buffer)?;
+        let docs = match args.split_token.clone() {
+            Some(token) => text.split(&token).collect(),
+            None => vec![text],
+        };
+        for doc in docs.iter() {
+            let tokens = index.tokenize(&doc);
+            for token in &tokens {
+                (last, length) = dawg.extend(*token, last, length);
+                if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
+                    evaluator.evaluate(&dawg, idx);
+                    if !args.results_path.is_empty() {
+                        evaluator.to_json(&args.results_path)?;
+                    }
                 }
+                idx += 1;
+                pbar.update(1);
             }
-            idx += 1;
-            pbar.update(1);
+            (last, length) = dawg.new_document();
         }
     }
 
