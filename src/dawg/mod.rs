@@ -218,18 +218,23 @@ where
         (new, length + 1)
     }
 
-    pub fn end_document(&mut self, mut last: NodeIndex, doc_id_token: E, doc_id: u64) -> (NodeIndex, u64) {
+    pub fn end_document(
+        &mut self,
+        mut last: NodeIndex,
+        doc_id_token: E,
+        doc_id: u64,
+    ) -> (NodeIndex, u64) {
         loop {
             match self.transition(last, doc_id_token, false) {
                 Some(doc_state) => {
                     last = doc_state;
-                },
+                }
                 None => {
                     // Add a special node representing the end of a document.
                     let dnode = self.dawg.add_node(W::new(doc_id, None, 0));
                     self.dawg.add_balanced_edge(last, dnode, doc_id_token);
                     break;
-                },
+                }
             }
         }
         (self.get_initial(), 0)
@@ -602,7 +607,7 @@ mod tests {
         assert_eq!(dawg.get_node(q3_abb).get_length(), 3);
         assert_eq!(dawg.get_node(q3_abb).get_count(), 1);
         let doc_abb = dawg.transition(q3_abb, doc_id_token, false).unwrap();
-        assert_eq!(dawg.get_node(doc_abb).get_length(), 0);  // Document ID 0
+        assert_eq!(dawg.get_node(doc_abb).get_length(), 0); // Document ID 0
 
         // Branch of aca.
         let q2_aca = dawg.transition(q1, 'c', false).unwrap();
@@ -614,7 +619,7 @@ mod tests {
         assert_eq!(dawg.get_node(q3_aca).get_count(), 1);
         assert_ne!(q3_abb, q3_aca);
         let doc_aca = dawg.transition(q3_aca, doc_id_token, false).unwrap();
-        assert_eq!(dawg.get_node(doc_aca).get_length(), 1);  // Document ID 1
+        assert_eq!(dawg.get_node(doc_aca).get_length(), 1); // Document ID 1
 
         assert_eq!(dawg.transition(q1, 'a', false), None);
         assert_eq!(dawg.transition(q2_abb, 'a', false), None);
