@@ -126,9 +126,10 @@ where
             }
         }
 
-        // With max length or multiple documents, it is possible to hit this case.
+        // With max length or multiple documents, the transition sometimes already exists.
         let next_new = self.transition(last, token, false);
         if let Some(next_q) = next_new {
+            self.dawg.get_node_mut(next_q).increment_count();
             return (next_q, length + 1);
         }
 
@@ -556,5 +557,48 @@ mod tests {
             println!("length1: {}, length2: {}", length1, length2);
             assert_eq!(length1, length2);
         }
+    }
+
+    #[test]
+    pub fn test_multiple_docs() {
+        let docs: Vec<&str> = vec!["abb", "aca"];
+
+        let mut dawg: Dawg<char, DefaultWeight> = Dawg::new();
+        let mut last = dawg.get_initial();
+        let mut length = 0;
+        for doc in docs.iter() {
+            for token in doc.chars() {
+                (last, length) = dawg.extend(token, last, length);
+            }
+            (last, length) = dawg.new_document();
+        }
+
+        // Shared prefix.
+        let q0 = dawg.get_initial();
+        let q1 = dawg.transition(q0, 'a', false).unwrap();
+        assert_eq!(dawg.get_node(q1).get_length(), 1);
+        assert_eq!(dawg.get_node(q1).get_count(), 3);
+
+        // Branch of abb.
+        let q2_abb = dawg.transition(q1, 'b', false).unwrap();
+        assert_eq!(dawg.get_node(q2_abb).get_length(), 2);
+        assert_eq!(dawg.get_node(q2_abb).get_count(), 1);
+        let q3_abb = dawg.transition(q2_abb, 'b', false).unwrap();
+        assert_eq!(dawg.get_node(q3_abb).get_length(), 3);
+        assert_eq!(dawg.get_node(q3_abb).get_count(), 1);
+
+        // Branch of aca.
+        let q2_aca = dawg.transition(q1, 'c', false).unwrap();
+        assert_eq!(dawg.get_node(q2_aca).get_length(), 2);
+        assert_eq!(dawg.get_node(q2_aca).get_count(), 1);
+        assert_ne!(q2_abb, q2_aca);
+        let q3_aca = dawg.transition(q2_aca, 'a', false).unwrap();
+        assert_eq!(dawg.get_node(q3_aca).get_length(), 3);
+        assert_eq!(dawg.get_node(q3_aca).get_count(), 1);
+        assert_ne!(q3_abb, q3_aca);
+
+        assert_eq!(dawg.transition(q1, 'a', false), None);
+        assert_eq!(dawg.transition(q2_abb, 'a', false), None);
+        assert_eq!(dawg.transition(q2_aca, 'b', false), None);
     }
 }
