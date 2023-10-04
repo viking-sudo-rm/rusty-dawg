@@ -21,7 +21,7 @@ fn get_pile_map() -> HashMap<String, usize> {
         "ArXiv",
         "Github",
         "FreeLaw",
-        "Stack Exchange",
+        "StackExchange",
         "USPTO Backgrounds",
         "PubMed Abstracts",
         "Gutenberg (PG-19)",
@@ -74,7 +74,6 @@ impl Iterator for PileReader {
         match opt_line {
             Some(line) => {
                 let blob: PileDocument = serde_json::from_str(line.unwrap().as_str()).unwrap();
-                println!("Pile set name: {}", &blob.meta.pile_set_name);
                 let doc_id = *self.split_map.get(&blob.meta.pile_set_name).unwrap();
                 let doc_text = Rc::new(blob.text);
                 Some((doc_id, doc_text))
