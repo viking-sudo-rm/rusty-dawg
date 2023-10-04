@@ -13,6 +13,7 @@ pub struct PileReader {
 fn get_pile_map() -> HashMap<String, usize> {
     // See: https://arxiv.org/pdf/2101.00027.pdf
     let splits = vec![
+        "None",
         "Pile-CC",
         "PubMed Central",
         "Books3",
@@ -73,6 +74,7 @@ impl Iterator for PileReader {
         match opt_line {
             Some(line) => {
                 let blob: PileDocument = serde_json::from_str(line.unwrap().as_str()).unwrap();
+                println!("Pile set name: {}", &blob.meta.pile_set_name);
                 let doc_id = *self.split_map.get(&blob.meta.pile_set_name).unwrap();
                 let doc_text = Rc::new(blob.text);
                 Some((doc_id, doc_text))
