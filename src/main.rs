@@ -20,8 +20,10 @@ extern crate substring;
 extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
+extern crate flate2;
 
 mod dawg;
+mod data_reader;
 mod evaluator;
 mod graph;
 mod io;
@@ -52,6 +54,8 @@ use graph::avl_graph::edge::Edge;
 use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+
+use data_reader::TxtReader;
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
@@ -199,6 +203,8 @@ where
     };
 
     let train_file = fs::File::open(args.train_path.as_str())?;
+    let mut reader = TxtReader::new(train_file, buf_size, args.split_token.clone());
+
     let n_bytes = train_file.metadata().unwrap().len();
     let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
     let eval_threshold = if args.n_eval == 0 {
@@ -234,33 +240,20 @@ where
     let mut last = dawg.get_initial();
     let mut length = 0;
     let mut pbar = tqdm!(total = est_n_tokens);
-    let mut train_reader = BufReader::with_capacity(buf_size, train_file);
-    let mut buffer = vec![0; buf_size];
-    loop {
-        let n_bytes_read = train_reader.read(&mut buffer).unwrap();
-        if n_bytes_read == 0 {
-            break;
-        }
-        let text = std::str::from_utf8(&buffer)?;
-        let docs = match args.split_token.clone() {
-            Some(token) => text.split(&token).collect(),
-            None => vec![text],
-        };
-        for (doc_id, doc) in docs.iter().enumerate() {
-            let tokens = index.tokenize(doc);
-            for token in &tokens {
-                (last, length) = dawg.extend(*token, last, length);
-                if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
-                    evaluator.evaluate(&dawg, idx);
-                    if !args.results_path.is_empty() {
-                        evaluator.to_json(&args.results_path)?;
-                    }
+    for (doc_id, doc) in reader {
+        let tokens = index.tokenize(doc.as_str());
+        for token in &tokens {
+            (last, length) = dawg.extend(*token, last, length);
+            if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
+                evaluator.evaluate(&dawg, idx);
+                if !args.results_path.is_empty() {
+                    evaluator.to_json(&args.results_path)?;
                 }
-                idx += 1;
-                pbar.update(1);
             }
-            (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
+            idx += 1;
+            pbar.update(1);
         }
+        (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
     }
 
     eprintln!();

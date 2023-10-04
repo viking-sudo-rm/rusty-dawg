@@ -13,8 +13,10 @@ extern crate substring;
 extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
+extern crate flate2;
 
 pub mod dawg;
+pub mod data_reader;
 pub mod evaluator;
 pub mod graph;
 pub mod io;
