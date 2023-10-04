@@ -70,11 +70,11 @@ version, about, long_about = None,
 struct Args {
     #[arg(long)]
     train_path: String,
-    #[arg(long)]
+    #[arg(long, default_value = "")]
     test_path: String,
-    #[arg(long)]
+    #[arg(long, default_value = "")]
     save_path: String,
-    #[arg(long)]
+    #[arg(long, default_value = "")]
     results_path: String,
 
     // This value can take on the following values:
@@ -87,9 +87,9 @@ struct Args {
     #[arg(long, default_value = "u32")]
     utype: String,
 
-    #[arg(long, default_value_t = 10000)]
+    #[arg(long, default_value_t = 0)]
     truncate_test: usize,
-    #[arg(long, default_value_t = 20)]
+    #[arg(long, default_value_t = 0)]
     n_eval: usize,
     #[arg(long, default_value_t = 10)]
     max_length: u64,
@@ -222,7 +222,11 @@ where
         ))
     };
 
-    let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
+    let test_raw: String = if args.test_path.is_empty() {
+        "".to_string()
+    } else {
+        fs::read_to_string(args.test_path.as_str()).expect("Error loading test")
+    };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
     let doc_id_token = E::try_from(index.get_count()).unwrap(); // The token used to store document IDs.
     let mut test: Vec<E> = index.tokenize(&test_raw);
