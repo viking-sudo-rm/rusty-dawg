@@ -1,8 +1,8 @@
 use anyhow::Result;
-use std::io::{BufReader, Read};
 use std::collections::VecDeque;
-use std::rc::Rc;
 use std::fs::File;
+use std::io::{BufReader, Read};
+use std::rc::Rc;
 
 pub struct TxtReader {
     buf_reader: BufReader<File>,
@@ -17,7 +17,13 @@ impl TxtReader {
         let buf_reader = BufReader::with_capacity(buf_size, file);
         let buffer = vec![0; buf_size];
         let docs: VecDeque<Rc<String>> = VecDeque::new();
-        Self {buf_reader, buffer, split_token, docs, counter: 0}
+        Self {
+            buf_reader,
+            buffer,
+            split_token,
+            docs,
+            counter: 0,
+        }
     }
 
     // Returned value represents whether anything was read.
@@ -33,7 +39,7 @@ impl TxtReader {
                 for doc in text.split(&token) {
                     self.docs.push_back(Rc::new(doc.to_string()));
                 }
-            },
+            }
             None => {
                 self.docs.push_back(Rc::new(text.to_string()));
             }

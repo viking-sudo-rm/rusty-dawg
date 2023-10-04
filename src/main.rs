@@ -11,6 +11,7 @@ extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
 extern crate clap;
+extern crate flate2;
 extern crate kdam;
 extern crate memmap2;
 extern crate rusty_dawg;
@@ -20,10 +21,9 @@ extern crate substring;
 extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
-extern crate flate2;
 
-mod dawg;
 mod data_reader;
+mod dawg;
 mod evaluator;
 mod graph;
 mod io;
@@ -54,7 +54,7 @@ use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
-use data_reader::{DataReader, TxtReader, PileReader};
+use data_reader::{DataReader, PileReader, TxtReader};
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
@@ -215,7 +215,11 @@ where
     let reader: Box<DataReader> = if args.data_reader == "pile" {
         Box::new(PileReader::new(args.train_path).unwrap())
     } else {
-        Box::new(TxtReader::new(train_file, buf_size, args.split_token.clone()))
+        Box::new(TxtReader::new(
+            train_file,
+            buf_size,
+            args.split_token.clone(),
+        ))
     };
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");

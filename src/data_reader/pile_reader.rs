@@ -1,7 +1,7 @@
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::rc::Rc;
-use serde::{Deserialize, Serialize};
 
 use data_reader::buf_reader::BufReader;
 
@@ -58,7 +58,10 @@ impl PileReader {
     pub fn new(file: impl AsRef<std::path::Path>) -> Result<Self> {
         let buf_reader = BufReader::open(file)?;
         let split_map = get_pile_map();
-        Ok(Self {buf_reader, split_map})
+        Ok(Self {
+            buf_reader,
+            split_map,
+        })
     }
 }
 
@@ -73,7 +76,7 @@ impl Iterator for PileReader {
                 let doc_id = *self.split_map.get(&blob.meta.pile_set_name).unwrap();
                 let doc_text = Rc::new(blob.text);
                 Some((doc_id, doc_text))
-            },
+            }
             None => None,
         }
     }
