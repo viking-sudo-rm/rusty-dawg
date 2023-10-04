@@ -37,7 +37,6 @@ use std::cmp::Ord;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
-use std::io::{BufReader, Read};
 
 use io::Save;
 
@@ -55,7 +54,7 @@ use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
-use data_reader::TxtReader;
+use data_reader::{DataReader, TxtReader, PileReader};
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
@@ -82,6 +81,8 @@ struct Args {
     // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
     #[arg(long)]
     tokenizer: String,
+    #[arg(long, default_value = "txt")]
+    data_reader: String,
 
     #[arg(long, default_value = "u32")]
     utype: String,
@@ -203,8 +204,6 @@ where
     };
 
     let train_file = fs::File::open(args.train_path.as_str())?;
-    let mut reader = TxtReader::new(train_file, buf_size, args.split_token.clone());
-
     let n_bytes = train_file.metadata().unwrap().len();
     let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
     let eval_threshold = if args.n_eval == 0 {
@@ -213,6 +212,11 @@ where
         est_n_tokens / args.n_eval
     };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
+    let reader: Box<DataReader> = if args.data_reader == "pile" {
+        Box::new(PileReader::new(args.train_path).unwrap())
+    } else {
+        Box::new(TxtReader::new(train_file, buf_size, args.split_token.clone()))
+    };
 
     let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!

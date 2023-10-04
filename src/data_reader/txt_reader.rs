@@ -50,7 +50,7 @@ impl Iterator for TxtReader {
             let doc = self.docs.pop_front().unwrap();
             let counter = self.counter;
             self.counter += 1;
-            Some((self.counter, doc.clone()))
+            Some((counter, doc.clone()))
         } else {
             None
         }
