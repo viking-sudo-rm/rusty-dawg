@@ -21,7 +21,7 @@ fn get_pile_map() -> HashMap<String, usize> {
         "ArXiv",
         "Github",
         "FreeLaw",
-        "Stack Exchange",
+        "StackExchange",
         "USPTO Backgrounds",
         "PubMed Abstracts",
         "Gutenberg (PG-19)",
