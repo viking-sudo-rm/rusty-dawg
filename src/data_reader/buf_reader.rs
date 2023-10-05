@@ -8,14 +8,6 @@ use std::{
 
 use anyhow::Result;
 use flate2::read::MultiGzDecoder;
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct DataInstance {
-    // Unfortunately we can't just use a borrowed string here.
-    // See https://github.com/serde-rs/serde/issues/1413#issuecomment-494892266
-    pub(crate) text: Option<String>,
-}
 
 pub(crate) struct BufReader {
     reader: io::BufReader<MultiGzDecoder<File>>,
