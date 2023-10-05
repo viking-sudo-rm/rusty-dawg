@@ -64,7 +64,7 @@ jobs:
               ./scripts/benchmark.sh wikitext-2-raw
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         with:
@@ -137,7 +137,7 @@ jobs:
       matrix:
         target: [x86_64, aarch64, s390x, ppc64le]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         with:
@@ -170,7 +170,7 @@ jobs:
       matrix:
         target: [x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         with:
@@ -199,7 +199,7 @@ jobs:
       matrix:
         target: [x86_64, aarch64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         with:
@@ -223,7 +223,7 @@ jobs:
     name: Python bindings (sdist)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build sdist
         uses: PyO3/maturin-action@v1
@@ -244,7 +244,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [rust_checks]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install rust stable
         uses: actions-rs/toolchain@v1
@@ -286,7 +286,7 @@ jobs:
     needs: [publish_crate, publish_python_bindings]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
