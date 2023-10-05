@@ -106,8 +106,9 @@ struct Args {
     nodes_ratio: f64,
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
-    #[arg(long, default_value_t = 0.33)]
-    tokens_per_byte: f64,
+    // Estimate of the number of tokens, used to allocate DAWG.
+    #[arg(long, default_value_t = 200000000)]
+    n_tokens: usize,
 
     // Amount of input to read at a time while consuming file. Defaults to 10 GB.
     #[arg(long, default_value_t = 10000000000)]
@@ -205,11 +206,10 @@ where
 
     let train_file = fs::File::open(args.train_path.as_str())?;
     let n_bytes = train_file.metadata().unwrap().len();
-    let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
     let eval_threshold = if args.n_eval == 0 {
         0
     } else {
-        est_n_tokens / args.n_eval
+        args.n_tokens / args.n_eval
     };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
     let reader: Box<DataReader> = if args.data_reader == "pile" {
@@ -237,8 +237,8 @@ where
     let mut evaluator = Evaluator::new(&test, args.max_length);
     println!("#(test): {}/{}", test.len(), old_test_len);
 
-    let n_nodes = (args.nodes_ratio * (est_n_tokens as f64)).ceil() as usize;
-    let n_edges = (args.edges_ratio * (est_n_tokens as f64)).ceil() as usize;
+    let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
+    let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
     let max_length: Option<u64> = if !args.max_state_length.is_negative() {
         Some(args.max_state_length.try_into().unwrap())
     } else {
@@ -251,7 +251,7 @@ where
     let mut idx = 0;
     let mut last = dawg.get_initial();
     let mut length = 0;
-    let mut pbar = tqdm!(total = est_n_tokens);
+    let mut pbar = tqdm!(total = args.n_tokens);
     for (doc_id, doc) in reader {
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
