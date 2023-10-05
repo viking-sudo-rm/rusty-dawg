@@ -1,4 +1,4 @@
-from .rusty_dawg import Dawg
+from .rusty_dawg import Dawg, DiskDawg
 from transformers.tokenization_utils import PreTrainedTokenizer
 from typing import Dict
 
