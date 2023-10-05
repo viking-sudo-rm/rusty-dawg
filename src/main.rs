@@ -257,6 +257,7 @@ where
         for token in &tokens {
             (last, length) = dawg.extend(*token, last, length);
             if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
+                println!("Evaluating...");
                 evaluator.evaluate(&dawg, idx);
                 if !args.results_path.is_empty() {
                     evaluator.to_json(&args.results_path)?;
