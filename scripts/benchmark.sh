@@ -17,6 +17,7 @@ TIMEFMT='================================'$'\n'\
 time ./target/release/rusty-dawg \
     --train-path "$DATA_PATH/$1/wiki.train.raw" \
     --test-path "$DATA_PATH/$1/wiki.valid.raw" \
+    --n-tokens 2051910 \
     --nodes-ratio 1.25 \
     --edges-ratio 2.20 \
     --tokenizer "whitespace"

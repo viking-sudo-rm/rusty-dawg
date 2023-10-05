@@ -42,6 +42,12 @@ make release
 This will generate a Python wheel file `bindings/python/target/wheels/` which you can then install with `pip install target/wheels/*.whl`.
 Alternatively you can just run `make install` to combine those two steps.
 
+If that does not work, you can try:
+
+```
+python -m maturin build --release
+```
+
 ## Running Benchmarking Script
 
 To run the benchmarking script, you need the Wikitext2/103 data. You can either download this to rusty-dawg/data path or point to an existing repository (easy on beaker, you can use my copy of the data).
