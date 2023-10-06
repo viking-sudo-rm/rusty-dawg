@@ -138,12 +138,14 @@ where
         if old == EdgeIndex::end() {
             return;
         }
-        let left = self.edges.index(old.index()).get_left();
-        let right = self.edges.index(old.index()).get_right();
+        let old_edge = self.edges.index(old.index());
+        let left = old_edge.get_left();
+        let right = old_edge.get_right();
 
         if left != EdgeIndex::end() {
-            let left_weight = self.edges.index(left.index()).get_weight();
-            let left_target = self.edges.index(left.index()).get_target();
+            let left_edge = self.edges.index(left.index());
+            let left_weight = left_edge.get_weight();
+            let left_target = left_edge.get_target();
             let new_left_edge = Edge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
@@ -153,8 +155,9 @@ where
         }
 
         if right != EdgeIndex::end() {
-            let right_weight = self.edges.index(right.index()).get_weight();
-            let right_target = self.edges.index(right.index()).get_target();
+            let right_edge = self.edges.index(right.index());
+            let right_weight = right_edge.get_weight();
+            let right_target = right_edge.get_target();
             let new_right_edge = Edge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
@@ -171,9 +174,10 @@ where
         if root == EdgeIndex::end() {
             return 0;
         }
+        let root_edge = self.edges.index(root.index());
         std::cmp::max(
-            self.edge_tree_height_helper(self.edges.index(root.index()).get_left()),
-            self.edge_tree_height_helper(self.edges.index(root.index()).get_right()),
+            self.edge_tree_height_helper(root_edge.get_left()),
+            self.edge_tree_height_helper(root_edge.get_right()),
         ) + 1
     }
 
@@ -192,13 +196,14 @@ where
             return (edge, last_edge);
         }
 
-        let edge_weight = self.edges.index(edge.index()).get_weight();
+        let edge_ref = self.edges.index(edge.index());
+        let edge_weight = edge_ref.get_weight();
         if weight == edge_weight {
             (edge, last_edge)
         } else if weight < edge_weight {
-            return self.binary_search(self.edges.index(edge.index()).get_left(), edge, weight);
+            return self.binary_search(edge_ref.get_left(), edge, weight);
         } else {
-            return self.binary_search(self.edges.index(edge.index()).get_right(), edge, weight);
+            return self.binary_search(edge_ref.get_right(), edge, weight);
         }
     }
 
@@ -264,10 +269,11 @@ where
         }
 
         // keep recursing into the tree according to balance tree insert rule
-        let root_edge_weight = self.edges.index(root_edge_idx.index()).get_weight();
+        let root_edge = self.edges.index(root_edge_idx.index());
+        let root_edge_weight = root_edge.get_weight();
 
         if weight < root_edge_weight {
-            let init_left_idx: EdgeIndex<Ix> = self.edges.index(root_edge_idx.index()).get_left();
+            let init_left_idx: EdgeIndex<Ix> = root_edge.get_left();
             let init_balance_factor: i8 = if init_left_idx == EdgeIndex::end() {
                 0
             } else {
