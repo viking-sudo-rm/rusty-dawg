@@ -11,7 +11,6 @@ DATA_PATH="${DATA:-data}"
     --edges-ratio 2.20 \
     --disk-path "/tmp/$1-dawg" \
     --tokenizer gpt2 \
-    --utype u16 \
-    --reset-on-end
+    --utype u16
 
     # --max-state-length
