@@ -113,6 +113,10 @@ struct Args {
     // Amount of input to read at a time while consuming file. Defaults to 10 GB.
     #[arg(long, default_value_t = 10000000000)]
     buf_size: usize,
+
+    // Go back to initial state when a document ends.
+    #[arg(long)]
+    reset_on_end: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -266,7 +270,11 @@ where
             idx += 1;
             pbar.update(1);
         }
-        (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
+        if args.reset_on_end {
+            // TODO: Can modify end_document in this case to still insert doc_id_token.
+            (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
+        }
+        
     }
 
     eprintln!();
