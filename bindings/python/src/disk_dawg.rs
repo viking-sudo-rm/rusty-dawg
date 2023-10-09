@@ -9,11 +9,11 @@ use rusty_dawg::weight::{Weight, DefaultWeight};
 use rusty_dawg::graph::indexing::DefaultIx;
 use rusty_dawg::graph::memory_backing::DiskBacking;
 
-type Mb = DiskBacking<DefaultWeight, usize, DefaultIx>;
+type Mb = DiskBacking<DefaultWeight, u16, DefaultIx>;
 
 #[pyclass(unsendable)]
 pub struct DiskDawg {
-    dawg: dawg::Dawg<usize, DefaultWeight, DefaultIx, Mb>,
+    dawg: dawg::Dawg<u16, DefaultWeight, DefaultIx, Mb>,
 }
 
 // Wrap the normal Dawg class with a Python interface.
@@ -27,7 +27,7 @@ impl DiskDawg {
         })
     }
 
-    pub fn build(&mut self, text: Vec<usize>) {
+    pub fn build(&mut self, text: Vec<u16>) {
         self.dawg.build(&text);
     }
 
@@ -35,7 +35,7 @@ impl DiskDawg {
         self.dawg.get_initial().index()
     }
 
-    pub fn transition(&self, state: usize, token: usize, use_failures: bool) -> Option<usize> {
+    pub fn transition(&self, state: usize, token: u16, use_failures: bool) -> Option<usize> {
         let state_index = NodeIndex::new(state);
         match self.dawg.transition(state_index, token, use_failures) {
             Some(q) => Some(q.index()),
@@ -46,7 +46,7 @@ impl DiskDawg {
     pub fn transition_and_count(
         &self,
         state: usize,
-        token: usize,
+        token: u16,
         length: u64,
     ) -> (Option<usize>, u64) {
         let state_index = NodeIndex::new(state);
@@ -63,7 +63,7 @@ impl DiskDawg {
     }
 
     // Returns (State, TokenId)
-    pub fn get_edges(&self, state: usize) -> Vec<(usize, usize)> {
+    pub fn get_edges(&self, state: usize) -> Vec<(usize, u16)> {
         let state_index = NodeIndex::new(state);
         let graph = self.dawg.get_graph();
         graph
@@ -86,7 +86,7 @@ impl DiskDawg {
 }
 
 impl DiskDawg {
-    pub fn get_dawg(&self) -> &dawg::Dawg<usize, DefaultWeight, DefaultIx, Mb> {
+    pub fn get_dawg(&self) -> &dawg::Dawg<u16, DefaultWeight, DefaultIx, Mb> {
         &self.dawg
     }
 }
