@@ -1,12 +1,72 @@
 #!/usr/bin/bash
 # Start a screen in the background with each Pile subsplit.
 
-DATA=/home/yanaie/data/pile/train/original
-DAWGS=/home/willm/dawgs/pile/train
+# Hosts with enough disk space (roughly, more than 1T).
+# Excluded allennlp-cirrascale-20 because in use!
+# Unused for now since we have small chunks.
+HOSTS=(
+    "allennlp-cirrascale-01.reviz.ai2.in"
+    "s2-cirrascale-07.reviz.ai2.in"
+    "s2-cirrascale-08.reviz.ai2.in"
+    "s2-cirrascale-10.reviz.ai2.in"
+    "s2-cirrascale-11.reviz.ai2.in"
+    "aristo-cirrascale-12.reviz.ai2.in"
+    "aristo-cirrascale-12.reviz.ai2.in"
+    "aristo-cirrascale-13.reviz.ai2.in"
+    "aristo-cirrascale-14.reviz.ai2.in"
+    "general-cirrascale-15.reviz.ai2.in"
+    "general-cirrascale-16.reviz.ai2.in"
+    "prior-cirrascale-18.reviz.ai2.in"
+    "prior-cirrascale-19.reviz.ai2.in"
+    "mosaic-cirrascale-21.reviz.ai2.in"
+    "mosaic-cirrascale-29.reviz.ai2.in"
+    "mosaic-cirrascale-35.reviz.ai2.in"
+    "mosaic-cirrascale-36.reviz.ai2.in"
+    "mosaic-cirrascale-37.reviz.ai2.in"
+    "mosaic-cirrascale-38.reviz.ai2.in"
+    "general-cirrascale-39.reviz.ai2.in"
+    "general-cirrascale-40.reviz.ai2.in"
+    "general-cirrascale-41.reviz.ai2.in"
+    "general-cirrascale-42.reviz.ai2.in"
+    "s2-cirrascale-43.reviz.ai2.in"
+    "s2-cirrascale-44.reviz.ai2.in"
+    "general-cirrascale-45.reviz.ai2.in"
+    "general-cirrascale-46.reviz.ai2.in"
+    "general-cirrascale-47.reviz.ai2.in"
+    "general-cirrascale-48.reviz.ai2.in"
+    "general-cirrascale-49.reviz.ai2.in"
+    "allennlp-cirrascale-50.reviz.ai2.in"
+    "allennlp-cirrascale-51.reviz.ai2.in"
+    "prior-cirrascale-64.reviz.ai2.in"
+    "prior-cirrascale-65.reviz.ai2.in"
+    "prior-cirrascale-66.reviz.ai2.in"
+    "allennlp-cirrascale-68.reviz.ai2.in"
+    "climate-cirrascale-72.reviz.ai2.in"
+    "general-cirrascale-73.reviz.ai2.in"
+    "prior-cirrascale-74.reviz.ai2.in"
+    "s2-elanding-22.reviz.ai2.in"
+    "s2-elanding-24.reviz.ai2.in"
+    "allennlp-elanding-30.reviz.ai2.in"
+    "mosaic-elanding-33.reviz.ai2.in"
+    "mosaic-elanding-34.reviz.ai2.in"
+    "prior-elanding-52.reviz.ai2.in"
+    "prior-elanding-54.reviz.ai2.in"
+    "prior-elanding-55.reviz.ai2.in"
+    "prior-elanding-56.reviz.ai2.in"
+    "aristo-elanding-57.reviz.ai2.in"
+    "aristo-elanding-58.reviz.ai2.in"
+    "prior-elanding-59.reviz.ai2.in"
+    "prior-elanding-60.reviz.ai2.in"
+    "prior-elanding-62.reviz.ai2.in"
+    "prior-elanding-67.reviz.ai2.in"
+    "prior-elanding-75.reviz.ai2.in"
+    "prior-elanding-76.reviz.ai2.in"
+)
 
-for split_str in {00..00}
-# for split_str in {00..29}
+for split in {00..29}
 do
-    echo "Starting ${split_str}"
-    screen -A -m -d -S "${split_str}" sh -c "./scripts/run_pile.sh ${DATA}/${split_str}.jsonl.gz ${DAWGS}/${split_str}"
+    host="${HOSTS[$((10#$split + 1))]}"
+    echo "Starting $split on $host"
+    SPLIT=$split HOST=$host beaker experiment create beaker/pile.yaml
+    # screen -A -m -d -S "${split}" sh -c "./scripts/run_pile.sh ${DATA}/${split}.jsonl.gz ${DAWGS}/${split}"
 done

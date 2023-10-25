@@ -1,5 +1,3 @@
-#!/usr/bin/env zsh
-
 DATA_PATH="${DATA:-data}"
 
 # More GPT-2 tokens compared to 

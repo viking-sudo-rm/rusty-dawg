@@ -79,7 +79,7 @@ struct Args {
 
     // This value can take on the following values:
     // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
-    #[arg(long)]
+    #[arg(long, default_value = "gpt2")]
     tokenizer: String,
     #[arg(long, default_value = "txt")]
     data_reader: String,
