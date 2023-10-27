@@ -25,6 +25,7 @@ def main(args):
         length = 0
         tokens = tokenizer(blob["text"]).input_ids
         lengths = []
+
         for token in tokens:
             if not args.handle_exceptions:
                 state, length = dawg.transition_and_count(state, token, length)
