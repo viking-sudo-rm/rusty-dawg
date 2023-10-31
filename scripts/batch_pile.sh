@@ -1,72 +1,114 @@
 #!/usr/bin/bash
-# Start a screen in the background with each Pile subsplit.
+# Create a job to process the larger or smaller subsplits of the Pile
+# For the larger original splits, N_TOKENS=10B and INPUT_PATH=original/${split}.jsonl.gz
+# For the smaller subsplits, N_TOKENS=2B and INPUT_PATH=splits/${split}_${subsplit}.json.gz
 
-# Hosts with enough disk space (roughly, more than 1T).
-# Excluded allennlp-cirrascale-20 because in use!
-# Unused for now since we have small chunks.
-HOSTS=(
-    "allennlp-cirrascale-01.reviz.ai2.in"
-    "s2-cirrascale-07.reviz.ai2.in"
-    "s2-cirrascale-08.reviz.ai2.in"
-    "s2-cirrascale-10.reviz.ai2.in"
-    "s2-cirrascale-11.reviz.ai2.in"
-    "aristo-cirrascale-12.reviz.ai2.in"
-    "aristo-cirrascale-12.reviz.ai2.in"
-    "aristo-cirrascale-13.reviz.ai2.in"
-    "aristo-cirrascale-14.reviz.ai2.in"
-    "general-cirrascale-15.reviz.ai2.in"
-    "general-cirrascale-16.reviz.ai2.in"
-    "prior-cirrascale-18.reviz.ai2.in"
-    "prior-cirrascale-19.reviz.ai2.in"
-    "mosaic-cirrascale-21.reviz.ai2.in"
-    "mosaic-cirrascale-29.reviz.ai2.in"
-    "mosaic-cirrascale-35.reviz.ai2.in"
-    "mosaic-cirrascale-36.reviz.ai2.in"
-    "mosaic-cirrascale-37.reviz.ai2.in"
-    "mosaic-cirrascale-38.reviz.ai2.in"
-    "general-cirrascale-39.reviz.ai2.in"
-    "general-cirrascale-40.reviz.ai2.in"
-    "general-cirrascale-41.reviz.ai2.in"
-    "general-cirrascale-42.reviz.ai2.in"
-    "s2-cirrascale-43.reviz.ai2.in"
-    "s2-cirrascale-44.reviz.ai2.in"
-    "general-cirrascale-45.reviz.ai2.in"
-    "general-cirrascale-46.reviz.ai2.in"
-    "general-cirrascale-47.reviz.ai2.in"
-    "general-cirrascale-48.reviz.ai2.in"
-    "general-cirrascale-49.reviz.ai2.in"
-    "allennlp-cirrascale-50.reviz.ai2.in"
-    "allennlp-cirrascale-51.reviz.ai2.in"
-    "prior-cirrascale-64.reviz.ai2.in"
-    "prior-cirrascale-65.reviz.ai2.in"
-    "prior-cirrascale-66.reviz.ai2.in"
-    "allennlp-cirrascale-68.reviz.ai2.in"
-    "climate-cirrascale-72.reviz.ai2.in"
-    "general-cirrascale-73.reviz.ai2.in"
-    "prior-cirrascale-74.reviz.ai2.in"
-    "s2-elanding-22.reviz.ai2.in"
-    "s2-elanding-24.reviz.ai2.in"
-    "allennlp-elanding-30.reviz.ai2.in"
-    "mosaic-elanding-33.reviz.ai2.in"
-    "mosaic-elanding-34.reviz.ai2.in"
-    "prior-elanding-52.reviz.ai2.in"
-    "prior-elanding-54.reviz.ai2.in"
-    "prior-elanding-55.reviz.ai2.in"
-    "prior-elanding-56.reviz.ai2.in"
-    "aristo-elanding-57.reviz.ai2.in"
-    "aristo-elanding-58.reviz.ai2.in"
-    "prior-elanding-59.reviz.ai2.in"
-    "prior-elanding-60.reviz.ai2.in"
-    "prior-elanding-62.reviz.ai2.in"
-    "prior-elanding-67.reviz.ai2.in"
-    "prior-elanding-75.reviz.ai2.in"
-    "prior-elanding-76.reviz.ai2.in"
+# for split in {00..29}; do
+#     for subsplit in {0..4}; do
+#         split_subsplit="${split}_${subsplit}"
+#         echo "Starting ${split_subsplit}"
+#         N_TOKENS=2000000000 \
+#         INPUT_PATH="splits/${split_subsplit}.json.gz" \
+#         OUTPUT_PATH="/output/${split_subsplit}" \
+#         beaker experiment create beaker/pile.yaml
+#         sleep 1  # Try to sleep to avoid SSH auth issues?
+#     done
+# done
+
+# Manual restarts on October 19.
+failed=(
+    29_3
+    29_2
+    29_1
+    28_4
+    28_1
+    27_4
+    27_2
+    27_0
+    26_4
+    25_4
+    24_4
+    24_3
+    24_2
+    24_1
+    23_4
+    23_3
+    23_2
+    23_1
+    23_0
+    22_4
+    22_3
+    22_2
+    21_4
+    21_0
+    20_2
+    20_1
+    20_0
+    19_4
+    19_1
+    19_0
+    18_4
+    18_1
+    18_0
+    17_4
+    17_3
+    17_1
+    17_0
+    16_0
+    15_4
+    15_0
+    14_4
+    14_3
+    14_2
+    14_1
+    14_0
+    13_3
+    13_2
+    13_1
+    13_0
+    12_4
+    12_2
+    12_1
+    11_4
+    11_3
+    11_2
+    10_4
+    09_3
+    09_0
+    08_4
+    08_3
+    08_2
+    08_1
+    07_4
+    07_2
+    07_0
+    06_4
+    06_3
+    06_2
+    06_1
+    06_0
+    05_4
+    05_3
+    05_2
+    05_1
+    05_0
+    04_4
+    04_1
+    04_0
+    03_4
+    03_3
+    03_0
+    01_4
+    01_1
+    00_3
 )
 
-for split in {00..29}
-do
-    host="${HOSTS[$((10#$split + 1))]}"
-    echo "Starting $split on $host"
-    SPLIT=$split HOST=$host beaker experiment create beaker/pile.yaml
-    # screen -A -m -d -S "${split}" sh -c "./scripts/run_pile.sh ${DATA}/${split}.jsonl.gz ${DAWGS}/${split}"
+
+for split_subsplit in "${failed[@]}"; do
+    echo "Starting ${split_subsplit}"
+    N_TOKENS=2000000000 \
+    INPUT_PATH="splits/${split_subsplit}.json.gz" \
+    OUTPUT_PATH="/output/${split_subsplit}" \
+    beaker experiment create beaker/pile.yaml
+    sleep 1  # Try to sleep to avoid SSH auth issues?
 done

@@ -23,3 +23,6 @@ SPLIT=04 HOST=prior-elanding-55.reviz.ai2.in beaker experiment create beaker/pil
 SPLIT=05 HOST=prior-elanding-56.reviz.ai2.in beaker experiment create beaker/pile.yaml
 SPLIT=12 HOST=aristo-elanding-57.reviz.ai2.in beaker experiment create beaker/pile.yaml
 SPLIT=15 HOST=aristo-elanding-58.reviz.ai2.in beaker experiment create beaker/pile.yaml
+
+# Cancelled and moved to different machine because it was competing with @minyoungh's experiment for memory.
+SPLIT=19 HOST=prior-elanding-59.reviz.ai2.in beaker experiment create beaker/pile.yaml

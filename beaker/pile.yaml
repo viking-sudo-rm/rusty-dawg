@@ -1,16 +1,17 @@
 version: v2
-description: Dawg on the Pile split {{.Env.SPLIT}}
+description: Build DAWG on the Pile split {{.Env.INPUT_PATH}}
 tasks:
   - name: build-dawg
     image:
-      beaker: willm/rusty-dawg-stype
+      beaker: willm/rusty-dawg-ssh-debug
     command: [scripts/run_pile_beaker.sh]
     envVars:
-      - name: SPLIT
-        value: {{.Env.SPLIT}}
-      - name: SPLIT_TYPE
-        # Either original (30 splits) or splits (150 splits)
-        value: original
+      - name: N_TOKENS
+        value: {{.Env.N_TOKENS}}
+      - name: INPUT_PATH
+        value: {{.Env.INPUT_PATH}}
+      - name: OUTPUT_PATH
+        value: {{.Env.OUTPUT_PATH}}
       - name: GCLOUD_KEY
         value: /gcloud_key.json
     datasets:
@@ -21,7 +22,10 @@ tasks:
       path: /output
     context:
       priority: normal
+    resources:
+      memory: 150 GB
+      cpuCount: 1
     constraints:
-      # HOST should be a hostname with enough disk space.
-      hostname: [{{.Env.HOST}}]
+      cluster: [ "ai2/rusty-dawg" ]
+      # hostname: [{{.Env.HOST}}]
       # cluster: [ ai2/general-cirrascale ]

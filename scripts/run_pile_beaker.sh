@@ -1,19 +1,21 @@
 #!/usr/bin/bash
-# Takes environment variables: $GCLOUD_KEY, $SPLIT, $SPLIT_TYPE
+# Takes environment variables: $N_TOKENS, $INPUT_PATH, $OUTPUT_PATH
+set -xe
 
-GCLOUD_PATH="lm-datasets:/mnt/tank/pile/train/$SPLIT_TYPE/$SPLIT.jsonl.gz"
-SPLIT_PATH="/$SPLIT.jsonl.gz"
-DISK_PATH="/output/$SPLIT"
+GCLOUD_PATH="lm-datasets:/mnt/tank/pile/train/$INPUT_PATH"
 
-# First, authenticate with gcloud and copy the relevant Pile shard.
+# First, authenticate with gcloud.
 gcloud auth activate-service-account --project=ai2-allennlp --key-file=$GCLOUD_KEY
-gcloud compute scp --zone "us-central1-a" --recurse $GCLOUD_PATH $SPLIT_PATH
 
-# Second, run Rusty DAWG on the downloaded Pile shard.
+# Copy the relevant pile shard.
+echo "Copying Pile shard: $GCLOUD_PATH"
+gcloud compute scp --zone "us-central1-a" --recurse $GCLOUD_PATH /data.jsonl.gz
+
+# Run Rusty DAWG on the downloaded Pile shard.
 ./target/release/rusty-dawg \
-    --train-path $SPLIT_PATH \
-    --disk-path $DISK_PATH \
-    --n-tokens 10000000000 \
+    --train-path /data.jsonl.gz \
+    --disk-path $OUTPUT_PATH \
+    --n-tokens $N_TOKENS \
     --nodes-ratio 1.5 \
     --edges-ratio 2.3 \
     --utype "u16" \
