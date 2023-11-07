@@ -44,15 +44,14 @@ pip install maturin
 Then `cd` into the Python bindings directory (`bindings/python`) and run:
 
 ```
-make release
+make install
 ```
-This will generate a Python wheel file `bindings/python/target/wheels/` which you can then install with `pip install target/wheels/*.whl`.
-Alternatively you can just run `make install` to combine those two steps.
 
-If that does not work, you can try:
+If, for some reason, you cannot run make files, you can alternatively run the following in two steps:
 
 ```
 python -m maturin build --release
+pip install target/wheels/*.whl
 ```
 
 ## Running Benchmarking Script

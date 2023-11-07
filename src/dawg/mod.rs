@@ -17,16 +17,15 @@ use std::path::Path;
 
 use graph::avl_graph::AvlGraph;
 use graph::indexing::NodeIndex;
-use weight::Weight;
+use weight::{DefaultWeight, Weight};
 
 use graph::indexing::{DefaultIx, IndexType};
+use graph::memory_backing::disk_backing::DiskBacking;
 use graph::memory_backing::ram_backing::RamBacking;
 use graph::memory_backing::MemoryBacking;
 use serde::de::DeserializeOwned;
 
 use graph::avl_graph::node::{NodeMutRef, NodeRef};
-
-use crate::graph::memory_backing::DiskBacking;
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -377,6 +376,10 @@ where
         &self.dawg
     }
 }
+
+// pyo3 requires that types implement Send
+type Mb = DiskBacking<DefaultWeight, u16, DefaultIx>;
+unsafe impl Send for Dawg<u16, DefaultWeight, DefaultIx, Mb> {}
 
 #[cfg(test)]
 #[allow(unused_imports)]

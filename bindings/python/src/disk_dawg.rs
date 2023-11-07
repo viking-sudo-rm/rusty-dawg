@@ -11,7 +11,8 @@ use rusty_dawg::graph::memory_backing::DiskBacking;
 
 type Mb = DiskBacking<DefaultWeight, u16, DefaultIx>;
 
-#[pyclass(unsendable)]
+#[pyclass]
+// #[pyclass(unsendable)]
 pub struct DiskDawg {
     dawg: dawg::Dawg<u16, DefaultWeight, DefaultIx, Mb>,
 }

@@ -1,7 +1,7 @@
 import spacy
 from spacy import displacy
 from spacy.tokens import Span
-from rusty_dawg import Dawg, PyDawg
+from rusty_dawg import Dawg, DiskDawg, PyDawg
 from transformers import GPT2Tokenizer
 import pandas as pd
 from typing import List
@@ -13,8 +13,18 @@ import os
 dawg_path = os.getenv("DAWG_PATH")
 tokenizer = os.getenv("TOKENIZER", "gpt2")
 
+# Use the type of path to determine the Dawg format (Disk or RAM).
+if dawg_path.endswith(".dawg"):
+    DawgType = Dawg
+elif os.path.isdir(dawg_path):
+    DawgType = DiskDawg
+elif not os.path.exists(dawg_path):
+    raise ValueError(f"Path doesn't exist: {dawg_path}")
+else:
+    raise ValueError(f"Unknown DAWG format: {dawg_path}")
+
 # Set globals.
-DAWG = Dawg.load(dawg_path)
+DAWG = DawgType.load(dawg_path)
 NLP = spacy.load("en_core_web_sm")
 TOKENIZER = GPT2Tokenizer.from_pretrained(tokenizer)
 PY_DAWG = PyDawg(DAWG, TOKENIZER)
