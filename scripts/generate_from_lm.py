@@ -15,15 +15,20 @@ from transformers import set_seed
 
 def get_params_grid(args):
     all_params = {}
-    all_params["sample"] = dict(do_sample=True)  # By default, this is the only parameter that gets used.
+    if args.sample:
+        all_params["sample-norepeat=2"] = dict(do_sample=True, no_repeat_ngram_size=2)
+        all_params["sample"] = dict(do_sample=True)  # This does top_k=50 by default I believe.
     for b in args.beam:
         all_params[f"beam={b}-norepeat=2"] = dict(num_beams=b, no_repeat_ngram_size=2)
         all_params[f"beam={b}"] = dict(num_beams=b)
     for k in args.top_k:
+        all_params[f"top_k={k}-norepeat=2"] = dict(do_sample=True, top_k=k, no_repeat_ngram_size=2)
         all_params[f"top_k={k}"] = dict(do_sample=True, top_k=k)
     for p in args.top_p:
+        all_params[f"top_p={p}-norepeat=2"] = dict(do_sample=True, top_p=p, no_repeat_ngram_size=2)
         all_params[f"top_p={p}"] = dict(do_sample=True, top_p=p)
     for temp in args.temperature:
+        all_params[f"temp={temp}-norepeat=2"] = dict(do_sample=True, temperature=temp, no_repeat_ngram_size=2)
         all_params[f"temp={temp}"] = dict(do_sample=True, temperature=temp)
     return all_params
 
@@ -35,11 +40,11 @@ def iterate_generate(tokenizer, model, title, params: dict, full_length: int, co
     pbar.update(input_ids.size(1))
     while input_ids.size(1) < full_length:
         context = input_ids[:, -context_length:].to(device)
-        n_return = n_return if context.size(0) == 1 else 1
+        num_return_sequences = n_return if context.size(0) == 1 else 1
         output_ids = model.generate(context,
                                     max_new_tokens=stride,
                                     pad_token_id=50256,
-                                    num_return_sequences=n_return,
+                                    num_return_sequences=num_return_sequences,
                                     **params)
         if input_ids.size(0) == output_ids.size(0):
             input_ids = torch.cat([input_ids[:, :-context_length], output_ids.cpu()], dim=1)
@@ -49,22 +54,19 @@ def iterate_generate(tokenizer, model, title, params: dict, full_length: int, co
     pbar.close()
     return input_ids
 
-def save_jsonl(tokenizer, all_input_ids, name, args):
-    # Only do multiple seeds for nondeterministic decoding strategies.
-    # seeds = range(args.seed, args.seed + args.n_seeds) if "do_sample" in params else [args.seed]
-    with open(args.save_path, "w") as fh:
-        for seed, input_ids in enumerate(all_input_ids):
-            text = tokenizer.decode(input_ids, skip_special_tokens=True)
-            blob = {
-                "text": text,
-                "meta": {
-                    "model": args.model,
-                    "decoding": name,
-                    "seed": seed,
-                }
+def append_to_jsonl(fh, all_tokens, texts, base_seed, model, decoding):    
+    for seed, (tokens, text) in enumerate(zip(all_tokens, texts)):
+        blob = {
+            "tokens": tokens.tolist(),
+            "text": text,
+            "meta": {
+                "model": model,
+                "decoding": decoding,
+                "seed": base_seed + seed,
             }
-            fh.write(json.dumps(blob))
-            fh.write("\n")
+        }
+        fh.write(json.dumps(blob))
+        fh.write("\n")
 
 def parse_args():
     parser = ArgumentParser()
@@ -74,8 +76,11 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--n_seeds", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=10)
+
     # Arguments for grid search
-    parser.add_argument("-t", "--temperature", type=int, nargs="+", default=[],
+    parser.add_argument("--sample", action="store_true",
+                        help="Try decoding with naive sampling")
+    parser.add_argument("-t", "--temperature", type=float, nargs="+", default=[],
                         help="List of temperatures to decode with")
     parser.add_argument("-k", "--top_k", type=int, nargs="+", default=[],
                         help="top-k sampling parameter list")
@@ -93,16 +98,22 @@ def main(args):
     model.cuda()
 
     all_params = get_params_grid(args)
-    for name, params in all_params.items():
-        all_input_ids = None
-        while all_input_ids is None or all_input_ids.size(0) < args.n_seeds:
-            n_return = min(args.batch_size, args.n_seeds - (0 if all_input_ids is None else all_input_ids.size(0)))
-            input_ids = iterate_generate(tokenizer, model, name, params, full_length=args.n_tokens, seed=args.seed, n_return=n_return, device=args.device).squeeze()
-            if all_input_ids is None:
-                all_input_ids = input_ids
-            else:
-                all_input_ids = torch.concatenate([all_input_ids, input_ids], dim=0)
-        save_jsonl(tokenizer, all_input_ids, name, args)
+    with open(args.save_path, "w") as fh:
+        for name, params in all_params.items():
+            greedy = ("do_sample" not in params or not params["do_sample"])
+            n_seeds = 1 if greedy else args.n_seeds
+            all_input_ids = None
+            while all_input_ids is None or all_input_ids.size(0) < n_seeds:
+                n_return = min(args.batch_size, n_seeds - (0 if all_input_ids is None else all_input_ids.size(0)))
+                input_ids = iterate_generate(tokenizer, model, name, params, full_length=args.n_tokens, seed=args.seed, n_return=n_return, device=args.device)
+                if all_input_ids is None:
+                    all_input_ids = input_ids
+                else:
+                    all_input_ids = torch.concatenate([all_input_ids, input_ids], dim=0)
+
+            # Save texts generated by this model/decoding setup.
+            texts = [tokenizer.decode(input_ids, skip_special_tokens=True) for input_ids in all_input_ids]
+            append_to_jsonl(fh, all_input_ids, texts, base_seed=args.seed, model=args.model, decoding=params)
 
 if __name__ == "__main__":
     main(parse_args())
