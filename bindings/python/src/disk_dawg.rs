@@ -92,6 +92,11 @@ impl DiskDawg {
             None => None,
         }
     }
+
+    pub fn get_length(&self, state: usize) -> u64 {
+        let state_node = NodeIndex::new(state);
+        self.dawg.get_node(state_node).get_length()
+    }
 }
 
 impl DiskDawg {
