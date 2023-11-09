@@ -86,6 +86,10 @@ impl Dawg {
     pub fn edge_count(&self) -> usize {
         self.dawg.edge_count()
     }
+
+    pub fn get_failure(&self, state: usize) -> Option<usize> {
+        self.get_node(state).get_failure()
+    }
 }
 
 impl Dawg {
