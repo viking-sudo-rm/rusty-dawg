@@ -86,7 +86,11 @@ impl DiskDawg {
     }
 
     pub fn get_failure(&self, state: usize) -> Option<usize> {
-        self.get_node(state).get_failure()
+        let state_node = NodeIndex::new(state);
+        match self.dawg.get_node(state_node).get_failure() {
+            Some(phi) => Some(phi.index()),
+            None => None,
+        }
     }
 }
 

@@ -378,8 +378,8 @@ where
 }
 
 // pyo3 requires that types implement Send
-type Mb = DiskBacking<DefaultWeight, u16, DefaultIx>;
-unsafe impl Send for Dawg<u16, DefaultWeight, DefaultIx, Mb> {}
+unsafe impl<Mb> Send for Dawg<u16, DefaultWeight, DefaultIx, Mb>
+where Mb: MemoryBacking<DefaultWeight, u16, DefaultIx> {}
 
 #[cfg(test)]
 #[allow(unused_imports)]
