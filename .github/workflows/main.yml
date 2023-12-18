@@ -157,7 +157,7 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
@@ -186,7 +186,7 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
@@ -214,7 +214,7 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
@@ -233,7 +233,7 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
