@@ -96,9 +96,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.73"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f768393e7fabd388fe8409b13faa4d93ab0fef35db1508438dfdb066918bcf38"
+checksum = "ca87830a3e3fb156dc96cfbd31cb620265dd053be734723f22b760d6cc3c3051"
 
 [[package]]
 name = "autocfg"
