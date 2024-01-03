@@ -53,15 +53,16 @@ impl Cdawg {
             match edge {
                 Some(span) => {
                     let edge_token = self.tokens[span.0 + edge_pos];
-                    if *token == edge_token {
-                        edge_pos += 1;
-                        // Check if we have completed the edge.
-                        if span.0 + edge_pos == span.1 {
-                            p = target.unwrap();
-                            edge = None;
-                        }
-                    } else {
+                    if *token != edge_token {
+                        // The next token on the edge does not match.
                         return (p, (span.0, span.0 + edge_pos));
+                    }
+
+                    edge_pos += 1;
+                    // Check if we have completed the edge.
+                    if span.0 + edge_pos == span.1 {
+                        p = target.unwrap();
+                        edge = None;
                     }
                 },
                 None => {
@@ -80,9 +81,9 @@ impl Cdawg {
                             }
                         },
                         None => {
-                            // We hit a state and there is no edge out.
-                            return (p, (0, 0))
-                        }
+                            // The right edge out of the state does not exist.
+                            return (p, (0, 0));
+                        },
                     };
                 },
             };
@@ -93,7 +94,6 @@ impl Cdawg {
             Some(span) => (p, (span.0, span.0 + edge_pos)),
             None => (p, (0, 0)),
         }
-        
     }
 
     fn get_edge_idx(&self, state: NodeIndex, token: u16) -> Option<EdgeIndex> {
