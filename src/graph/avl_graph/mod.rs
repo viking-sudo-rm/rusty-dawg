@@ -203,7 +203,7 @@ where
     }
 
     // DONT USE THIS, here for legacy test reasons
-    pub fn add_edge(
+    fn add_edge(
         &mut self,
         a: NodeIndex<Ix>,
         b: NodeIndex<Ix>,
@@ -617,44 +617,6 @@ mod tests {
         let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
         assert_eq!(graph.add_node(weight).index(), 0);
         assert_eq!(graph.add_node(weight).index(), 1);
-    }
-
-    #[test]
-    fn test_add_edge() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
-        let q0 = graph.add_node(weight);
-        let q1 = graph.add_node(weight);
-        let q2 = graph.add_node(weight);
-        let q3 = graph.add_node(weight);
-
-        assert_eq!(graph.add_edge(q1, q2, 2), Some(EdgeIndex::new(0)));
-        // assert_eq!(weights(&graph, q1), vec![2]);
-        assert_eq!(graph.add_edge(q1, q3, 2), None);
-        assert_eq!(graph.add_edge(q1, q3, 3), Some(EdgeIndex::new(1)));
-        // assert_eq!(weights(&graph, q1), vec![2, 3]);
-        assert_eq!(graph.add_edge(q1, q3, 4), Some(EdgeIndex::new(2)));
-        // assert_eq!(weights(&graph, q1), vec![2, 3, 4]);
-        assert_eq!(graph.add_edge(q1, q3, 3), None);
-        assert_eq!(graph.add_edge(q1, q2, 4), None);
-
-        assert_eq!(graph.edge_target(q1, 2), Some(q2));
-        assert_eq!(graph.edge_target(q1, 3), Some(q3));
-        assert_eq!(graph.edge_target(q1, 7), None);
-
-        assert_eq!(graph.n_edges(q1), 3);
-    }
-
-    #[test]
-    fn test_add_edge_ba() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, char> = AvlGraph::new();
-        let q0 = graph.add_node(weight);
-        let q1 = graph.add_node(weight);
-        let q2 = graph.add_node(weight);
-
-        assert_eq!(graph.add_edge(q0, q1, 'b'), Some(EdgeIndex::new(0)));
-        assert_eq!(graph.add_edge(q0, q2, 'a'), Some(EdgeIndex::new(1)));
     }
 
     #[test]
