@@ -2,7 +2,7 @@ use std::cmp::{Eq, Ord, PartialEq, PartialOrd, Ordering};
 
 #[derive(Eq, Ord, Copy, Clone, Default, Debug)]
 pub struct CdawgEdgeWeight {
-    pub token: u16,
+    pub token: u16,  // TODO: Can remove this and just look it up dynamically as tokens[start]
     pub start: usize,  // TODO: Can make this lower precision.
     pub end: usize,  // TODO: Can make this lower precision.
 }
@@ -23,7 +23,12 @@ impl CdawgEdgeWeight {
     }
 }
 
-// Note: Compare CdawgEdgeWeight's purely in terms of their associated token.
+// Can we make custom PartialEq/PartialOrd objects with a pointer to tokens and pass these when we
+// search? Would be much more space-efficient. In this case, we could potentially get rid of this
+// object and just use a (start, end) tuple (Span).
+//
+// However, it seems like the LCDAWG extension *requires* the extra token field, so this is probably
+// not worth doing.
 
 impl PartialEq for CdawgEdgeWeight {
     fn eq(&self, other: &Self) -> bool {
