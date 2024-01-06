@@ -111,9 +111,8 @@ impl Cdawg {
         (self.source, (0, 0))
     }
 
+    // Split the edge and leave failure transitions unedited.
     fn split_edge(&mut self, q: NodeIndex, gamma: Span) -> NodeIndex {
-        // Split the edge and leave failure transitions unedited.
-
         // First, create a new node.
         let v = self.graph.add_node(self.graph.get_node(q).get_weight());
         let q_length = self.graph.get_node(q).get_weight().get_length();
