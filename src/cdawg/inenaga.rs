@@ -14,8 +14,18 @@ use weight::{DefaultWeight, Weight};
 
 use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
-// Note that this code uses standard end-inclusive indexing for spans, unlike the paper.
+// There are two differences with indexing in our implementation from the pseudo-code:
+//   1) Everything is 0-indexed.
+//   2) Span end positions are exclusive, not inclusive.
+// As a consequence:
+//  * their start = our start + 1
+//  * their end = our end
+//  * their length = our length - 1
+// ???
 type Span = (usize, usize);
+
+// TODO: How to handle first step? Don't want to insert empty string into try.
+// We want (0, 5), (1, 5), (2, 5), etc.
 
 pub struct Cdawg {
     tokens: Vec<u16>,
@@ -40,49 +50,58 @@ impl Cdawg {
         //     self.graph.add_balanced_edge(self.source, self.sink, weight);
         // }
 
-        let (mut state, mut start) = (self.sink, 0);
+        let (mut state, mut start) = (self.source, 0);
         for idx in 0..self.tokens.len() {
             (state, start) = self.update(state, start, idx);
         }
     }
 
     fn update(&mut self, mut state: NodeIndex, mut start: usize, end: usize) -> (NodeIndex, usize) {
-        let token = self.tokens[start];
+        let token = self.tokens[end];
         let mut dest: Option<NodeIndex> = None;
+        let mut r = NodeIndex::end();
         let mut opt_r: Option<NodeIndex> = None;
         let mut opt_old_r: Option<NodeIndex> = None;
         while !self.check_end_point(state, (start, end), token) {
-            if start <= end {
-                // Implicit case: there is some stuff left.
+            println!("\tupdate with start={}, end={}", start, end);
+            if start < end {
+                // Implicit case checks when an edge is active.
                 let cur_dest = self.get_target(state, (start, end));
                 if dest == Some(cur_dest) {
-                    if let Some(r) = opt_r {
-                        self.redirect_edge(state, (start, end), r);
-                        let fstate = self.graph.get_node(state).get_failure();
-                        (state, start) = self.canonize(fstate.unwrap(), (start, end));
-                    }
+                    println!("hit if");
+                    self.redirect_edge(state, (start, end), r);
+                    let fstate = self.graph.get_node(state).get_failure();
+                    (state, start) = self.canonize(fstate.unwrap(), (start, end));
                     continue;
                 } else {
+                    // FIXME: On cocoa, why does second case hit here?
+                    println!("hit else");
                     dest = Some(cur_dest);
-                    opt_r = Some(self.split_edge(state, (start, end)));
+                    r = self.split_edge(state, (start, end));
                 }
             } else {
-                opt_r = Some(state);
+                // Explicit case checks when a state is active.
+                r = state;
             }
 
-            // This condition should always be hit.
-            if let Some(r) = opt_r {
-                // FIXME: Original had e[j] here instead of end + 1.
-                let weight = CdawgEdgeWeight::new(self.tokens[end], end, end + 1);
-                self.graph.add_balanced_edge(r, self.sink, weight);
-                if let Some(old_r) = opt_old_r {
-                    self.graph.get_node_mut(old_r).set_failure(opt_r);
-                }
-                opt_old_r = opt_r;
-
-                let fstate = self.graph.get_node(state).get_failure().unwrap();
-                (state, start) = self.canonize(fstate, (start, end));
+            // 1) Create new edge from r to the sink state.
+            // The pseudo-code states the end destination as "e", but really it should be end of string. It's an edge to sink!
+            let weight = CdawgEdgeWeight::new(self.tokens[end], end, self.tokens.len());
+            self.graph.add_balanced_edge(r, self.sink, weight);
+            println!("\tInserted edge {} -> {} with weight {:?}", r.index(), self.sink.index(), weight.get_span());
+            
+            // 2) Set failure transition.
+            if let Some(old_r) = opt_old_r {
+                self.graph.get_node_mut(old_r).set_failure(Some(r));
             }
+            opt_old_r = Some(r);
+
+            // 3) Update state by canonizing the fstate.
+            let fstate = match self.graph.get_node(state).get_failure() {
+                Some(q) => q,
+                None => state,
+            };                
+            (state, start) = self.canonize(fstate, (start, end));
         }
 
         if let Some(old_r) = opt_old_r {
@@ -91,7 +110,7 @@ impl Cdawg {
         self.separate_node(state, (start, end))
     }
 
-    // This was called extension, but is just following a transition.
+    // This was called extension, but is just following a transition (doesn't eat up everything potentially)
     fn get_target(&self, state: NodeIndex, gamma: Span) -> NodeIndex {
         let (start, end) = gamma;
         if start >= end {
@@ -208,7 +227,8 @@ impl Cdawg {
             let search_weight = CdawgEdgeWeight::new_key(wk);
             let e = self.graph.get_edge_by_weight(state, search_weight).unwrap();
             let (found_start, _) = self.graph.get_edge(e).get_weight().get_span();
-            token == self.tokens[found_start + end - start]
+            // our end = p - 1
+            token == self.tokens[found_start + end + 1 - start]
         } else {
             let search_weight = CdawgEdgeWeight::new_key(token);
             let edge_idx = self.graph.get_edge_by_weight(state, search_weight);
@@ -353,5 +373,28 @@ mod tests {
 
     //     // FIXME: Not really sure how to test this?
     // }
+
+    #[test]
+    fn test_update_cocoa() {
+        let c = 0;
+        let o = 1;
+        let a = 2;
+        let mut cdawg = Cdawg::new(vec![c, o, c, o, a]);
+        let (mut state, mut start) = (cdawg.source, 0);
+
+        (state, start) = cdawg.update(state, start, 0);
+        let edge = cdawg.graph.get_edge(cdawg.graph.get_node(cdawg.source).get_first_edge());
+        let weight = edge.get_weight();
+        assert_eq!(edge.get_target().index(), cdawg.sink.index());
+        assert_eq!(weight.token, c);
+        assert_eq!(weight.get_span(), (0, 5));
+        assert_eq!(cdawg.get_target(cdawg.source, (0, 5)).index(), cdawg.sink.index());
+
+        println!("Starting second update in state={}, start={}", state.index(), start);
+        println!("Endpoint: {}", cdawg.check_end_point(state, (start, 1 - 1), cdawg.tokens[1]));
+        (state, start) = cdawg.update(state, start, 1);
+        assert_eq!(cdawg.get_target(cdawg.source, (0, 5)).index(), cdawg.sink.index());
+        assert_eq!(cdawg.get_target(cdawg.source, (1, 5)).index(), cdawg.sink.index());
+    }
 
 }
