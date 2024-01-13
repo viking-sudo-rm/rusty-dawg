@@ -70,12 +70,10 @@ impl Cdawg {
         while !self.check_end_point(opt_state, (start, end - 1), token) {
             // Within the loop, never possible for opt_state to be null.
             let state = opt_state.unwrap();
-            println!("\tUpdate with {:?}, ({}, {})", opt_state, start, end);
             if start <= end - 1 {
                 // Implicit case checks when an edge is active.
                 let cur_dest = self.extension(state, (start, end - 1));
                 if dest == Some(cur_dest) {
-                    println!("\tRedirecting edge");
                     self.redirect_edge(state, (start, end - 1), r);
                     let fstate = self.graph.get_node(state).get_failure();
                     (opt_state, start) = self.canonize(fstate, (start, end - 1));
@@ -83,18 +81,15 @@ impl Cdawg {
                 } else {
                     dest = Some(cur_dest);
                     r = self.split_edge(state, (start, end - 1));
-                    println!("\tSplit {} to get {}", state.index(), r.index());
                 }
             } else {
                 // Explicit case checks when a state is active.
-                println!("\tExplicit case: at a node!");
                 r = state;
             }
 
             // 1) Create new edge from r to sink with (end, *self.e)
             let weight = self._new_edge_weight(end, E);
             self.graph.add_balanced_edge(r, self.sink, weight);
-            println!("\tInserted edge {} -> {} with weight {:?}", r.index(), self.sink.index(), to_inenaga(weight.get_span()));
             
             // 2) Set failure transition.
             if let Some(old_r) = opt_old_r {
@@ -106,15 +101,11 @@ impl Cdawg {
             let old_start = start;
             let fstate = self.graph.get_node(state).get_failure();
             (opt_state, start) = self.canonize(fstate, (start, end - 1));
-            println!("\tCanonized {:?}, ({}, {}) to {:?}, ({}, {})", fstate, old_start, end, opt_state, start, end);
         }
-
-        println!("Exited loop!");
 
         if let Some(old_r) = opt_old_r {
             self.graph.get_node_mut(old_r).set_failure(opt_state);
         }
-        println!("Separating node...");
         self.separate_node(opt_state, (start, end))
     }
 
@@ -132,8 +123,6 @@ impl Cdawg {
     // Change the target of the edge coming out of state with path gamma.
     // Note: 1-indexed!
     pub fn redirect_edge(&mut self, state: NodeIndex, gamma: Span, target: NodeIndex) {
-        println!("==> Redirecting edge!");
-
         let (start, end) = gamma;
         let token = self.tokens[start - 1];
         let edge_idx = self.graph.get_edge_by_weight(state, CdawgEdgeWeight::new_key(token));
@@ -148,8 +137,6 @@ impl Cdawg {
 
     // Split the edge and leave failure transitions unedited.
     fn split_edge(&mut self, q: NodeIndex, gamma: Span) -> NodeIndex {
-        println!("==> Splitting edge!");
-
         // First, create a new node and set it's length.
         let v = self.graph.add_node(self.graph.get_node(q).get_weight());
         let q_length = self.graph.get_node(q).get_weight().get_length();
@@ -192,7 +179,6 @@ impl Cdawg {
         };
         let length1 = self.graph.get_node(state1).get_length() as i64;
         if length1 == length + (start + 1 - end) as i64 {
-            println!("\t=> Length return!");
             return (state1, start1);
         }
 
@@ -468,7 +454,7 @@ mod tests {
         let mut cdawg = Cdawg::new(vec![c, o, c, o, a, o]);
         let (mut state, mut start) = (cdawg.source, 1);
 
-        println!("=== Starting step 1 with {}, ({}, 1) ===", state.index(), start);
+        // Step 1: c
         cdawg.e += 1;
         (state, start) = cdawg.update(state, start, cdawg.e);
         let edge = cdawg.graph.get_edge(cdawg.graph.get_node(cdawg.source).get_first_edge());
@@ -480,7 +466,7 @@ mod tests {
         assert_eq!(cdawg.graph.get_node(cdawg.sink).get_failure().unwrap().index(), cdawg.source.index());
         assert_eq!(start, 2);
 
-        println!("=== Starting step 2 with {}, ({}, 2) ===", state.index(), start);
+        // Step 2: co
         cdawg.e += 1;
         (state, start) = cdawg.update(state, start, cdawg.e);
         // Correctly has "o" edge?
@@ -495,7 +481,7 @@ mod tests {
         assert_eq!(cdawg._get_span(co_edge.get_weight()), (1, 2));
         assert_eq!(start, 3);
 
-        println!("=== Starting step 3 with {}, ({}, 3) ===", state.index(), start);
+        // Step 3: coc
         cdawg.e += 1;
         (state, start) = cdawg.update(state, start, cdawg.e);
         assert_eq!(co_edge.get_weight().token, c);
@@ -504,7 +490,7 @@ mod tests {
         assert_eq!(cdawg._get_span(o_edge.get_weight()), (2, 3));
         assert_eq!(start, 3);  // (3, 3) represents "c"
 
-        println!("=== Starting step 4 with {}, ({}, 4) ===", state.index(), start);
+        // Step 4: coco
         cdawg.e += 1;
         (state, start) = cdawg.update(state, start, cdawg.e);
         assert_eq!(co_edge.get_weight().token, c);
@@ -513,7 +499,7 @@ mod tests {
         assert_eq!(cdawg._get_span(o_edge.get_weight()), (2, 4));
         assert_eq!(start, 3);  // (3, 4) represents "co"
 
-        println!("=== Starting step 5 with {}, ({}, 5) ===", state.index(), start);
+        // Step 5: cocoa
         cdawg.e += 1;
         (state, start) = cdawg.update(state, start, cdawg.e);
         // Verify three edges out of source have the right labels and targets.
@@ -536,7 +522,7 @@ mod tests {
         assert_eq!(cdawg._get_span(edge_coa.get_weight()), (3, 5));
         assert_eq!(cdawg._get_span(edge_a.get_weight()), (5, 5));
 
-        println!("=== Starting step 6 with {}, ({}, 6) ===", state.index(), start);
+        // Step 6: cocoao
         cdawg.e += 1;
         (state, start) = cdawg.update(state, start, cdawg.e);
         // Verify three edges out of source have the right labels and targets.
