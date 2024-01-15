@@ -17,7 +17,9 @@
 // # Notes on representing states
 // While building, astate is an Option<NodeIndex>. None means the failure of the initial state.
 
+use anyhow::Result;
 use std::convert::TryInto;
+use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use graph::{EdgeRef, NodeRef};
@@ -26,21 +28,21 @@ use graph::avl_graph::node::NodeMutRef;
 use graph::avl_graph::AvlGraph;
 use graph::indexing::{DefaultIx, NodeIndex, IndexType};
 use weight::{DefaultWeight, Weight};
-
+use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
-// TODO: Add Ix type
-// TODO: Span: (Ix, Ix)
-// TODO: Add Mb for graph
+// TODO: Method to create DiskVec
+// TODO: Test for DiskBacking
 // TODO: Add VecBacking for tokens
 
-pub struct Cdawg<W = DefaultWeight, Ix = DefaultIx>
+pub struct Cdawg<W = DefaultWeight, Ix = DefaultIx, Mb = RamBacking<W, CdawgEdgeWeight<Ix>, Ix>>
 where
     Ix: IndexType,
     W: Weight + Clone,
+    Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
 {
     tokens: Vec<u16>,
-    graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix>,
+    graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb>,
     source: NodeIndex<Ix>,
     sink: NodeIndex<Ix>,
     e: usize,
@@ -51,9 +53,40 @@ where
     Ix: IndexType,
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
 {
-
     pub fn new(tokens: Vec<u16>) -> Self {
-        let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix> = AvlGraph::new();
+        let mb: RamBacking<W, CdawgEdgeWeight<Ix>, Ix> = RamBacking::default();
+        Self::new_mb(tokens, mb)
+    }
+}
+
+impl<W, Ix> Cdawg<W, Ix, DiskBacking<W, CdawgEdgeWeight<Ix>, Ix>>
+where
+    Ix: IndexType + Serialize + for<'de> serde::Deserialize<'de>,
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    CdawgEdgeWeight<Ix>: Serialize + for<'de> Deserialize<'de>,
+{
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Vec<u16>, path: P, e: usize) -> Result<Self> {
+        let graph = AvlGraph::load(path)?;
+        Ok(Self {
+            tokens,
+            graph,
+            source: NodeIndex::new(0),  // Assumes source state was first created.
+            sink: NodeIndex::new(1),  // Assumes sink state was second created.
+            e,  // FIXME: Ideally read this from config file along with source and sink.
+        })
+    }
+}
+
+impl<W, Ix, Mb> Cdawg<W, Ix, Mb>
+where
+    Ix: IndexType,
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
+    Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
+    Mb::EdgeRef: Copy,
+{
+
+    pub fn new_mb(tokens: Vec<u16>, mb: Mb) -> Cdawg<W, Ix, Mb> {
+        let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
         let source_ = NodeIndex::new(source.index());  // FIXME: Weight type linked to Ix
         let sink = graph.add_node(W::new(tokens.len().try_into().unwrap(), Some(source_), 0));
@@ -141,9 +174,8 @@ where
         let (found_start, _) = self._get_span(edge_ref.get_weight());
 
         let weight = self._new_edge_weight(found_start, found_start + end - start);
-        let mut_ref = self.graph.get_edge_mut(edge_idx.unwrap());
-        mut_ref.set_weight(weight);
-        mut_ref.set_target(target);
+        self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(weight);
+        self.graph.get_edge_mut(edge_idx.unwrap()).set_target(target);
     }
 
     // Split the edge and leave failure transitions unedited.
@@ -163,9 +195,8 @@ where
         let target = edge.get_target();
 
         // Reroute this edge into v.
-        let edge_mut = self.graph.get_edge_mut(edge_idx.unwrap());
-        edge_mut.set_weight(self._new_edge_weight(start, start + gamma.1 - gamma.0));
-        edge_mut.set_target(v);
+        self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, start + gamma.1 - gamma.0));
+        self.graph.get_edge_mut(edge_idx.unwrap()).set_target(v);
 
         // Create a new edge from v to the original target.
         let new_weight = self._new_edge_weight(start + gamma.1 - gamma.0 + 1, end);
@@ -176,7 +207,7 @@ where
 
     fn separate_node(&mut self, mut state: Option<NodeIndex<Ix>>, gamma: (usize, usize)) -> (NodeIndex<Ix>, usize) {
         let (mut start, end) = gamma;
-        let (opt_state1, mut start1) = self.canonize(state, (start, end));
+        let (opt_state1, start1) = self.canonize(state, (start, end));
         let state1 = opt_state1.unwrap();
 
         // Implicit case: active point is along an edge.
@@ -219,7 +250,7 @@ where
     // Returns the last state passed through, and the beginning of the active edge out of it.
     // Assumes 1 indexing!! This is because gamma would have to encode negative values with 0 indexing.
     fn canonize(&self, mut state: Option<NodeIndex<Ix>>, gamma: (usize, usize)) -> (Option<NodeIndex<Ix>>, usize) {
-        let (mut start, mut end) = gamma;
+        let (mut start, end) = gamma;
         if start > end {
             // Means we are at a state.
             return (state, start);
@@ -306,9 +337,10 @@ where
     fn _set_start_end_target(&mut self, state: NodeIndex<Ix>, start: usize, end: usize, target: NodeIndex<Ix>) {
         let token = self.tokens[start - 1];  // Potential double retrieval of token here.
         let edge_idx = self.graph.get_edge_by_weight(state, CdawgEdgeWeight::new_key(token));
-        let mut_ref = self.graph.get_edge_mut(edge_idx.unwrap());
-        mut_ref.set_weight(self._new_edge_weight(start, end));
-        mut_ref.set_target(target);
+        // For some reason, cannot call both on some EdgeMutRef.
+        // TODO: Add a setter for weight and target together on EdgeMutRef.
+        self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, end));
+        self.graph.get_edge_mut(edge_idx.unwrap()).set_target(target);
     }
 
 }
@@ -335,7 +367,7 @@ mod tests {
     #[test]
     fn test_canonize() {
         // Test canonize, which uses 1-indexing!
-        let mut cdawg = Cdawg::new(vec![0, 1, 2]);
+        let mut cdawg: Cdawg = Cdawg::new(vec![0, 1, 2]);
         let q = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
         let weight1 = cdawg._new_edge_weight(1, 1);
         cdawg.graph.add_balanced_edge(cdawg.source, q, weight1);
@@ -429,7 +461,7 @@ mod tests {
 
     #[test]
     fn test_redirect_edge() {
-        let mut cdawg = Cdawg::new(vec![0, 1, 2]);
+        let mut cdawg: Cdawg = Cdawg::new(vec![0, 1, 2]);
         let weight = CdawgEdgeWeight::new(0, 0, 3);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         let target = cdawg.graph.add_node(DefaultWeight::new(0, None, 0));
@@ -444,7 +476,7 @@ mod tests {
 
     #[test]
     fn test_separate_node_null() {
-        let mut cdawg = Cdawg::new(vec![0, 1, 2]);
+        let mut cdawg: Cdawg = Cdawg::new(vec![0, 1, 2]);
         let c = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
         cdawg.graph.add_balanced_edge(cdawg.source, c, CdawgEdgeWeight::new(0, 0, 1));
 
