@@ -173,27 +173,29 @@ mod tests {
         assert_eq!(edge2.get_weight().get_span(), (1, 3));
     }
 
-    fn test_slow_find_source() {
-        let mut cdawg = Cdawg::new(vec![0, 0, 1]);
-        let weight = CdawgEdgeWeight::new(0, 0, 3);
-        cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
-        let (q, gamma, end) = cdawg.slow_find(1, cdawg.source);
-        assert_eq!(q.index(), cdawg.source.index());
-        assert_eq!(gamma, (0, 1));
-        assert_eq!(end, 1);
-    }
+    // #[test]
+    // fn test_slow_find_source() {
+    //     let mut cdawg = Cdawg::new(vec![0, 0, 1]);
+    //     let weight = CdawgEdgeWeight::new(0, 0, 3);
+    //     cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
+    //     let (q, gamma, end) = cdawg.slow_find(1, cdawg.source);
+    //     assert_eq!(q.index(), cdawg.source.index());
+    //     assert_eq!(gamma, (0, 1));
+    //     assert_eq!(end, 1);
+    // }
 
-    fn test_slow_find_node() {
-        let mut cdawg = Cdawg::new(vec![0, 0, 0]);
-        let v = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
-        cdawg.graph.get_node_mut(cdawg.sink).set_failure(Some(v));
-        cdawg.graph.add_balanced_edge(cdawg.source, v, CdawgEdgeWeight::new(0, 0, 1));
-        cdawg.graph.add_balanced_edge(v, cdawg.sink, CdawgEdgeWeight::new(0, 1, 3));
+    // #[test]
+    // fn test_slow_find_node() {
+    //     let mut cdawg = Cdawg::new(vec![0, 0, 0]);
+    //     let v = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
+    //     cdawg.graph.get_node_mut(cdawg.sink).set_failure(Some(v));
+    //     cdawg.graph.add_balanced_edge(cdawg.source, v, CdawgEdgeWeight::new(0, 0, 1));
+    //     cdawg.graph.add_balanced_edge(v, cdawg.sink, CdawgEdgeWeight::new(0, 1, 3));
 
-        let (q, gamma, end) = cdawg.slow_find(1, cdawg.source);
-        assert_eq!(q.index(), v.index());
-        assert_eq!(gamma, (1, 2));
-        assert_eq!(end, 2);
-    }
+    //     let (q, gamma, end) = cdawg.slow_find(1, cdawg.source);
+    //     assert_eq!(q.index(), v.index());
+    //     assert_eq!(gamma, (1, 2));
+    //     assert_eq!(end, 2);
+    // }
 
 }

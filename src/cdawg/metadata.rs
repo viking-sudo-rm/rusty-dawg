@@ -39,7 +39,7 @@ mod tests {
         let mut file = NamedTempFile::new().expect("Failed to create file");
         let path = file.path();
         let blob = CdawgMetadata {source: 42, sink: 35, n_nodes: 4};
-        blob.save_json(path);
+        blob.save_json(path).unwrap();
 
         let blob2 = CdawgMetadata::load_json(path).unwrap();
         assert_eq!(blob2.source, 42);
