@@ -30,6 +30,7 @@ use graph::indexing::{DefaultIx, NodeIndex, IndexType};
 use weight::{DefaultWeight, Weight};
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use cdawg::metadata::CdawgMetadata;
 
 // TODO: Method to create DiskVec
 // TODO: Test for DiskBacking
@@ -65,15 +66,32 @@ where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     CdawgEdgeWeight<Ix>: Serialize + for<'de> Deserialize<'de>,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Vec<u16>, path: P, e: usize) -> Result<Self> {
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Vec<u16>, path: P) -> Result<Self> {
+        let path2 = path.clone();
+        let mut config_path = path2.as_ref().to_path_buf();
+        config_path.push("metadata.json");
+        let config = CdawgMetadata::load_json(config_path)?;
+
         let graph = AvlGraph::load(path)?;
+
         Ok(Self {
             tokens,
             graph,
-            source: NodeIndex::new(0),  // Assumes source state was first created.
-            sink: NodeIndex::new(1),  // Assumes sink state was second created.
-            e,  // FIXME: Ideally read this from config file along with source and sink.
+            source: NodeIndex::new(config.source),
+            sink: NodeIndex::new(config.sink),
+            e: config.n_nodes,
         })
+    }
+
+    pub fn save<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {
+        let mut config_path = path.as_ref().to_path_buf();
+        config_path.push("metadata.json");
+        let config = CdawgMetadata {
+            source: self.source.index(),
+            sink: self.sink.index(),
+            n_nodes: self.e,
+        };
+        config.save_json(config_path)
     }
 }
 
@@ -350,6 +368,7 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     macro_rules! get_edge {
         // `()` indicates that the macro takes no argument.
@@ -595,6 +614,31 @@ mod tests {
         assert_eq!(cdawg._get_span(edge_o_coao.get_weight()), (3, 6));
         assert_eq!(edge_o_ao.get_target(), cdawg.sink);
         assert_eq!(edge_o_coao.get_target(), cdawg.sink);
+    }
+
+    type DiskW = DefaultWeight;
+    type DiskE = CdawgEdgeWeight<DefaultIx>;
+    type DiskCdawg = Cdawg<DiskW, DefaultIx, DiskBacking<DiskW, DiskE, DefaultIx>>;
+
+    #[test]
+    fn test_save_load_null() {
+        let tmp_dir = tempdir().unwrap();
+        let path = tmp_dir.path();
+
+        let tokens: Vec<u16> = vec![10, 11, 12];
+        let mb = DiskBacking::new(path);
+        let mut cdawg: DiskCdawg = Cdawg::new_mb(tokens, mb);
+        let weight = cdawg._new_edge_weight(1, 1);
+        cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
+        cdawg.save(path).unwrap();
+
+        // FIXME: We should really pass a pointer to a Vec/DiskVec.
+        let tokens2: Vec<u16> = vec![10, 11, 12];
+        let cdawg2: DiskCdawg = Cdawg::load(tokens2, path).unwrap();
+        assert_eq!(cdawg2.source, cdawg.source);
+        assert_eq!(cdawg2.sink, cdawg.sink);
+        assert_eq!(cdawg2.e, cdawg.e);
+        assert_eq!(get_edge!(cdawg2, cdawg2.source, 10).get_target(), cdawg.sink);
     }
 
 }

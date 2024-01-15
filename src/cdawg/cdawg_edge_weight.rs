@@ -1,12 +1,15 @@
+use serde::{Deserialize,Serialize};
 use std::cmp::{Eq, Ord, PartialEq, PartialOrd, Ordering};
 
 use graph::indexing::{DefaultIx, IndexType};
 
-#[derive(Eq, Ord, Copy, Clone, Default, Debug)]
-pub struct CdawgEdgeWeight<Ix = DefaultIx>
-where
-    Ix: IndexType,
+#[derive(Eq, Ord, Copy, Clone, Default, Debug, Deserialize, Serialize)]
+pub struct CdawgEdgeWeight<Ix: IndexType = DefaultIx>
 {
+    #[serde(bound(
+        serialize = "Ix: Serialize",
+        deserialize = "Ix: Deserialize<'de>",
+    ))]
     // Can remove token and just look it up dynamically as tokens[start], but LCDAWG needs it.
     pub token: u16,
     pub start: Ix,  

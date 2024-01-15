@@ -7,9 +7,9 @@ use std::path::Path;
 
 #[derive(Deserialize, Serialize)]
 pub struct CdawgMetadata {
-    source: usize,  // Index of source node.
-    sink: usize,  // Index of sink node.
-    e: usize,  // Number of nodes in graph.
+    pub source: usize,  // Index of source node.
+    pub sink: usize,  // Index of sink node.
+    pub n_nodes: usize,  // Number of nodes in graph.
 }
 
 impl CdawgMetadata {
@@ -38,12 +38,12 @@ mod tests {
     fn test_save_load_json() {
         let mut file = NamedTempFile::new().expect("Failed to create file");
         let path = file.path();
-        let blob = CdawgMetadata {source: 42, sink: 35, e: 4};
+        let blob = CdawgMetadata {source: 42, sink: 35, n_nodes: 4};
         blob.save_json(path);
 
         let blob2 = CdawgMetadata::load_json(path).unwrap();
         assert_eq!(blob2.source, 42);
         assert_eq!(blob2.sink, 35);
-        assert_eq!(blob2.e, 4);
+        assert_eq!(blob2.n_nodes, 4);
     }
 }
