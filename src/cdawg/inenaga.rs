@@ -21,6 +21,8 @@ use anyhow::Result;
 use std::convert::TryInto;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use graph::{EdgeRef, NodeRef};
 use graph::avl_graph::edge::EdgeMutRef;
@@ -41,7 +43,7 @@ where
     W: Weight + Clone,
     Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
 {
-    tokens: Box<dyn TokenBacking<u16>>,
+    tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
     graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb>,
     source: NodeIndex<Ix>,
     sink: NodeIndex<Ix>,
@@ -53,7 +55,7 @@ where
     Ix: IndexType,
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
 {
-    pub fn new(tokens: Box<dyn TokenBacking<u16>>) -> Self {
+    pub fn new(tokens: Rc<RefCell<dyn TokenBacking<u16>>>) -> Self {
         let mb: RamBacking<W, CdawgEdgeWeight<Ix>, Ix> = RamBacking::default();
         Self::new_mb(tokens, mb)
     }
@@ -65,7 +67,7 @@ where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     CdawgEdgeWeight<Ix>: Serialize + for<'de> Deserialize<'de>,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Box<dyn TokenBacking<u16>>, path: P) -> Result<Self> {
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, path: P) -> Result<Self> {
         let path2 = path.clone();
         let mut config_path = path2.as_ref().to_path_buf();
         config_path.push("metadata.json");
@@ -102,27 +104,42 @@ where
     Mb::EdgeRef: Copy,
 {
 
-    pub fn new_mb(tokens: Box<dyn TokenBacking<u16>>, mb: Mb) -> Cdawg<W, Ix, Mb> {
+    pub fn new_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, mb: Mb) -> Cdawg<W, Ix, Mb> {
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
         let source_ = NodeIndex::new(source.index());  // FIXME: Weight type linked to Ix
-        let sink = graph.add_node(W::new(tokens.len().try_into().unwrap(), Some(source_), 0));
+        let length = tokens.borrow().len();
+        let sink = graph.add_node(W::new(length.try_into().unwrap(), Some(source_), 0));
         Self {tokens, graph, source, sink, e: 0}
     }
 
+    pub fn with_capacity_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
+                            mb: Mb,
+                            n_nodes: usize,
+                            n_edges: usize,) -> Cdawg<W, Ix, Mb> {
+        let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
+        let source = graph.add_node(W::new(0, None, 0));
+        let source_ = NodeIndex::new(source.index());  // FIXME: Weight type linked to Ix
+        let length = tokens.borrow().len();
+        let sink = graph.add_node(W::new(length.try_into().unwrap(), Some(source_), 0));
+        Self {tokens, graph, source, sink, e: 0}
+    }
+
+    // Tokens needs to be fully populated for this to work!
     pub fn build(&mut self) {
         let (mut state, mut start) = (self.source, 1);
-        for idx in 1..self.tokens.len() + 1 {
-            self.e = idx;
+        let length = self.tokens.borrow().len();
+        for idx in 1..length + 1 {
             (state, start) = self.update(state, start, idx);
         }
     }
 
-    fn update(&mut self,
+    pub fn update(&mut self,
               in_state: NodeIndex<Ix>,  // Cannot be null.
               mut start: usize,
               end: usize,) -> (NodeIndex<Ix>, usize) {
-        let token = self.tokens.get(end - 1);  // Map p back to 0-indexing
+        self.e = end;
+        let token = self.tokens.borrow().get(end - 1);  // Map p back to 0-indexing
         let mut dest: Option<NodeIndex<Ix>> = None;
         let mut r = NodeIndex::end();
         let mut opt_state: Option<NodeIndex<Ix>> = Some(in_state);
@@ -177,7 +194,7 @@ where
         if start > end {
             return state;
         }
-        let (_, _, target) = self._get_start_end_target(state, self.tokens.get(start - 1));
+        let (_, _, target) = self._get_start_end_target(state, self.tokens.borrow().get(start - 1));
         target
     }
 
@@ -185,7 +202,7 @@ where
     // Note: 1-indexed!
     pub fn redirect_edge(&mut self, state: NodeIndex<Ix>, gamma: (usize, usize), target: NodeIndex<Ix>) {
         let (start, end) = gamma;
-        let token = self.tokens.get(start - 1);
+        let token = self.tokens.borrow().get(start - 1);
         let edge_idx = self.graph.get_edge_by_weight(state, CdawgEdgeWeight::new_key(token));
         let edge_ref = self.graph.get_edge(edge_idx.unwrap());
         let (found_start, _) = self._get_span(edge_ref.get_weight());
@@ -204,7 +221,7 @@ where
         self.graph.get_node_mut(v).set_length(q_length + gamma_length);
 
         // Next, get the existing edge we're going to split.
-        let token = self.tokens.get(gamma.0 - 1); // 0-indexed
+        let token = self.tokens.borrow().get(gamma.0 - 1); // 0-indexed
         let edge_idx = self.graph.get_edge_by_weight(q, CdawgEdgeWeight::new_key(token));
         let edge = self.graph.get_edge(edge_idx.unwrap());
         let (mut start, end) = edge.get_weight().get_span();
@@ -278,7 +295,7 @@ where
         let mut found_state: NodeIndex<Ix>;
         match state {
             Some(q) => {
-                let token = self.tokens.get(start - 1);
+                let token = self.tokens.borrow().get(start - 1);
                 (found_start, found_end, found_state) = self._get_start_end_target(q, token);
             },
             None => {
@@ -290,7 +307,7 @@ where
             start += found_end + 1 - found_start;  // Written this way to avoid overflow.
             state = Some(found_state);
             if start <= end {
-                let token = self.tokens.get(start - 1);
+                let token = self.tokens.borrow().get(start - 1);
                 (found_start, found_end, found_state) = self._get_start_end_target(found_state, token);
             }
         }
@@ -302,11 +319,11 @@ where
     fn check_end_point(&self, state: Option<NodeIndex<Ix>>, gamma: (usize, usize), token: u16) -> bool {
         let (start, end) = gamma;
         if start <= end {
-            let wk = self.tokens.get(start - 1);
+            let wk = self.tokens.borrow().get(start - 1);
             let search_weight = CdawgEdgeWeight::new_key(wk);
             let e = self.graph.get_edge_by_weight(state.unwrap(), search_weight).unwrap();
             let (found_start, _) = self._get_span(self.graph.get_edge(e).get_weight());
-            token == self.tokens.get(found_start + end - start)  // No +1 because 0-indexed.
+            token == self.tokens.borrow().get(found_start + end - start)  // No +1 because 0-indexed.
         } else {
             match state {
                 Some(phi) => {
@@ -327,7 +344,7 @@ where
     // Maybe make this a macro?
     fn _new_edge_weight(&mut self, start: usize, end: usize) -> CdawgEdgeWeight<Ix> {
         CdawgEdgeWeight::new(
-            self.tokens.get(start - 1),  // Map start to 0-indexed
+            self.tokens.borrow().get(start - 1),  // Map start to 0-indexed
             start - 1,  // Map start to 0-indexed
             end,  // Keep end as 1-indexed
         )
@@ -352,12 +369,36 @@ where
     }
 
     fn _set_start_end_target(&mut self, state: NodeIndex<Ix>, start: usize, end: usize, target: NodeIndex<Ix>) {
-        let token = self.tokens.get(start - 1);  // Potential double retrieval of token here.
+        let token = self.tokens.borrow().get(start - 1);  // Potential double retrieval of token here.
         let edge_idx = self.graph.get_edge_by_weight(state, CdawgEdgeWeight::new_key(token));
         // For some reason, cannot call both on some EdgeMutRef.
         // TODO: Add a setter for weight and target together on EdgeMutRef.
         self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, end));
         self.graph.get_edge_mut(edge_idx.unwrap()).set_target(target);
+    }
+
+    // Convenience methods.
+    pub fn get_source(&self) -> NodeIndex<Ix> {
+        self.source
+    }
+
+    pub fn node_count(&self) -> usize {
+        self.graph.node_count()
+    }
+
+    pub fn edge_count(&self) -> usize {
+        self.graph.edge_count()
+    }
+
+    pub fn balance_ratio(&self, n_states: usize) -> f64 {
+        let mut max_ratio = 1.;
+        for _state in 0..n_states {
+            let ratio = self.graph.balance_ratio(self.get_source());
+            if ratio > max_ratio {
+                max_ratio = ratio;
+            }
+        }
+        max_ratio
     }
 
 }
@@ -386,7 +427,7 @@ mod tests {
     #[test]
     fn test_canonize() {
         // Test canonize, which uses 1-indexing!
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![0, 1, 2]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let q = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
         let weight1 = cdawg._new_edge_weight(1, 1);
         cdawg.graph.add_balanced_edge(cdawg.source, q, weight1);
@@ -430,7 +471,7 @@ mod tests {
     #[test]
     fn test_check_end_point() {
         // This is 1-indexed!
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![0, 1, 2]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let weight = CdawgEdgeWeight::new(0, 0, 3);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         assert!(cdawg.check_end_point(Some(cdawg.source), to_inenaga((0, 0)), 0));
@@ -446,7 +487,7 @@ mod tests {
 
     #[test]
     fn test_extension() {
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![0, 1, 2]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let weight = CdawgEdgeWeight::new(0, 0, 3);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         let target = cdawg.extension(cdawg.source, to_inenaga((0, 3)));
@@ -455,7 +496,7 @@ mod tests {
 
     #[test]
     fn test_split_edge() {
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![0, 1, 2]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let weight = CdawgEdgeWeight::new(0, 0, 3);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         let v = cdawg.split_edge(cdawg.source, to_inenaga((0, 1)));
@@ -480,7 +521,7 @@ mod tests {
 
     #[test]
     fn test_redirect_edge() {
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![0, 1, 2]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let weight = CdawgEdgeWeight::new(0, 0, 3);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         let target = cdawg.graph.add_node(DefaultWeight::new(0, None, 0));
@@ -495,7 +536,7 @@ mod tests {
 
     #[test]
     fn test_separate_node_null() {
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![0, 1, 2]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let c = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
         cdawg.graph.add_balanced_edge(cdawg.source, c, CdawgEdgeWeight::new(0, 0, 1));
 
@@ -511,12 +552,11 @@ mod tests {
         let c = 0;
         let o = 1;
         let a = 2;
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(vec![c, o, c, o, a, o]));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![c, o, c, o, a, o])));
         let (mut state, mut start) = (cdawg.source, 1);
 
         // Step 1: c
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 1);
         let edge = cdawg.graph.get_edge(cdawg.graph.get_node(cdawg.source).get_first_edge());
         let weight = edge.get_weight();
         assert_eq!(edge.get_target().index(), cdawg.sink.index());
@@ -527,8 +567,7 @@ mod tests {
         assert_eq!(start, 2);
 
         // Step 2: co
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 2);
         // Correctly has "o" edge?
         let o_idx = cdawg.graph.get_edge_by_weight(cdawg.source, CdawgEdgeWeight::new_key(o));
         let o_edge = cdawg.graph.get_edge(o_idx.unwrap());
@@ -542,8 +581,7 @@ mod tests {
         assert_eq!(start, 3);
 
         // Step 3: coc
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 3);
         assert_eq!(co_edge.get_weight().token, c);
         assert_eq!(cdawg._get_span(co_edge.get_weight()), (1, 3));
         assert_eq!(o_edge.get_weight().token, o);
@@ -551,8 +589,7 @@ mod tests {
         assert_eq!(start, 3);  // (3, 3) represents "c"
 
         // Step 4: coco
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 4);
         assert_eq!(co_edge.get_weight().token, c);
         assert_eq!(cdawg._get_span(co_edge.get_weight()), (1, 4));
         assert_eq!(o_edge.get_weight().token, o);
@@ -560,8 +597,7 @@ mod tests {
         assert_eq!(start, 3);  // (3, 4) represents "co"
 
         // Step 5: cocoa
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 5);
         // Verify three edges out of source have the right labels and targets.
         let edge_co = get_edge!(cdawg, cdawg.source, c);
         let edge_o = get_edge!(cdawg, cdawg.source, o);
@@ -583,8 +619,7 @@ mod tests {
         assert_eq!(cdawg._get_span(edge_a.get_weight()), (5, 5));
 
         // Step 6: cocoao
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 6);
         // Verify three edges out of source have the right labels and targets.
         let edge_co = get_edge!(cdawg, cdawg.source, c);
         let edge_o = get_edge!(cdawg, cdawg.source, o);
@@ -627,13 +662,13 @@ mod tests {
 
         let tokens: Vec<u16> = vec![10, 11, 12];
         let mb = DiskBacking::new(path);
-        let mut cdawg: DiskCdawg = Cdawg::new_mb(Box::new(tokens), mb);
+        let mut cdawg: DiskCdawg = Cdawg::new_mb(Rc::new(RefCell::new(tokens)), mb);
         let weight = cdawg._new_edge_weight(1, 1);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         cdawg.save(path).unwrap();
 
         let tokens2: Vec<u16> = vec![10, 11, 12];
-        let cdawg2: DiskCdawg = Cdawg::load(Box::new(tokens2), path).unwrap();
+        let cdawg2: DiskCdawg = Cdawg::load(Rc::new(RefCell::new(tokens2)), path).unwrap();
         assert_eq!(cdawg2.source, cdawg.source);
         assert_eq!(cdawg2.sink, cdawg.sink);
         assert_eq!(cdawg2.e, cdawg.e);
@@ -647,12 +682,11 @@ mod tests {
 
         let vec: Vec<u16> = vec![0, 1, 2];
         let disk_vec = DiskVec::<u16>::from_vec(vec, tmp_dir.path().join("vec.bin")).unwrap();
-        let mut cdawg: Cdawg = Cdawg::new(Box::new(disk_vec));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(disk_vec)));
         let (mut state, mut start) = (cdawg.source, 1);
 
         // Step 1: c
-        cdawg.e += 1;
-        (state, start) = cdawg.update(state, start, cdawg.e);
+        (state, start) = cdawg.update(state, start, 1);
         let edge = cdawg.graph.get_edge(cdawg.graph.get_node(cdawg.source).get_first_edge());
         let weight = edge.get_weight();
         assert_eq!(edge.get_target().index(), cdawg.sink.index());

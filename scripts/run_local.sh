@@ -1,8 +1,11 @@
 #!/usr/bin/bash
+# ======================================================================
+# Example usage: DATA=data/wikitext-2-raw source scripts/run_local.sh
+# ======================================================================
 
 DATA_PATH="${DATA:-data}"
 
-./target/release/rusty-dawg \
+RUST_BACKTRACE=1 ./target/release/rusty-dawg \
     --train-path "$DATA_PATH/$1/wiki.train.raw" \
     --test-path "$DATA_PATH/$1/wiki.valid.raw" \
     --save-path "" \
@@ -10,8 +13,8 @@ DATA_PATH="${DATA:-data}"
     --n-eval 0 \
     --nodes-ratio 1.25 \
     --edges-ratio 2.20 \
-    --disk-path "/tmp/$1-dawg" \
     --tokenizer gpt2 \
     --utype u16
-
-    # --max-state-length
+    # --cdawg \
+    # --train-vec-path "/Users/willm/Desktop/train.vec"
+    # --disk-path "/tmp/$1-dawg" \

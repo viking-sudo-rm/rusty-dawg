@@ -21,6 +21,7 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
+mod build_cdawg;
 mod cdawg;
 mod dawg;
 mod evaluator;
@@ -46,6 +47,7 @@ use std::mem::size_of;
 
 use kdam::{tqdm, BarExt};
 
+use build_cdawg::build_cdawg;
 use dawg::Dawg;
 use evaluator::Evaluator;
 
@@ -56,6 +58,7 @@ use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
+use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;
@@ -65,7 +68,7 @@ type N = DefaultWeight;
 author = "William Merrill <willm@nyu.edu>",
 version, about, long_about = None,
 )]
-struct Args {
+pub struct Args {
     #[arg(long)]
     train_path: String,
     #[arg(long)]
@@ -106,10 +109,32 @@ struct Args {
     // Amount of input to read at a time while consuming file. Defaults to 10 GB.
     #[arg(long, default_value_t = 10000000000)]
     buf_size: usize,
+
+    // CDAWG args.
+    #[arg(long, short, action)]
+    cdawg: bool,
+    #[arg(long)]
+    train_vec_path: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    if args.cdawg {
+        println!("Building CDAWG instead of DAWG...");
+        return match args.disk_path.clone() {
+            Some(path) => {
+                type Mb = DiskBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                let mb = Mb::new(path);
+                Ok(build_cdawg::<Mb>(args, mb)?)
+            },
+            None => {
+                type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                let mb = Mb::default();
+                Ok(build_cdawg::<Mb>(args, mb)?)
+            },
+        };
+    }
 
     match args.disk_path.clone() {
         Some(path) => println!("DAWG on disk: {}", path),

@@ -5,6 +5,8 @@ use serde::de::DeserializeOwned;
 use std::error::Error;
 use std::fs;
 use weight::Weight;
+use cdawg::Cdawg;
+use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Eq;
@@ -39,5 +41,26 @@ where
     fn save(&self, _save_path: &str) -> Result<(), Box<dyn Error>> {
         // Everything is already saved with DiskBacking!
         Ok(())
+    }
+}
+
+impl<W> Save for Cdawg<W, DefaultIx, DiskBacking<W, CdawgEdgeWeight<DefaultIx>, DefaultIx>>
+where
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
+{
+    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+        Ok(self.save(save_path)?)
+    }
+}
+
+impl<W> Save for Cdawg<W, DefaultIx, RamBacking<W, CdawgEdgeWeight<DefaultIx>, DefaultIx>>
+where
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
+{
+    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+        unimplemented!("Can't yet save CDAWGs on RAM");
+        Ok(())  // TODO
     }
 }
