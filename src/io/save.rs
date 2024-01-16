@@ -61,6 +61,5 @@ where
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
         unimplemented!("Can't yet save CDAWGs on RAM");
-        Ok(())  // TODO
     }
 }

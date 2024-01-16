@@ -108,7 +108,7 @@ where
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
         let source_ = NodeIndex::new(source.index());  // FIXME: Weight type linked to Ix
-        let length = tokens.borrow().len();
+        let length = Ix::max_value().index();  // Needs to adapt.
         let sink = graph.add_node(W::new(length.try_into().unwrap(), Some(source_), 0));
         Self {tokens, graph, source, sink, e: 0}
     }
@@ -120,7 +120,7 @@ where
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let source = graph.add_node(W::new(0, None, 0));
         let source_ = NodeIndex::new(source.index());  // FIXME: Weight type linked to Ix
-        let length = tokens.borrow().len();
+        let length = Ix::max_value().index();
         let sink = graph.add_node(W::new(length.try_into().unwrap(), Some(source_), 0));
         Self {tokens, graph, source, sink, e: 0}
     }
@@ -176,7 +176,7 @@ where
             opt_old_r = Some(r);
 
             // 3) Update state by canonizing the fstate.
-            let old_start = start;
+            let old_start = start;  // TODO: remove after debug
             let fstate = self.graph.get_node(state).get_failure();
             (opt_state, start) = self.canonize(fstate, (start, end - 1));
         }
@@ -216,7 +216,7 @@ where
     fn split_edge(&mut self, q: NodeIndex<Ix>, gamma: (usize, usize)) -> NodeIndex<Ix> {
         // First, create a new node and set it's length.
         let v = self.graph.add_node(self.graph.get_node(q).get_weight());
-        let q_length = self.graph.get_node(q).get_weight().get_length();
+        let q_length = self._get_length(q);
         let gamma_length = <usize as TryInto<u64>>::try_into(gamma.1 - gamma.0 + 1).unwrap();
         self.graph.get_node_mut(v).set_length(q_length + gamma_length);
 
@@ -224,7 +224,7 @@ where
         let token = self.tokens.borrow().get(gamma.0 - 1); // 0-indexed
         let edge_idx = self.graph.get_edge_by_weight(q, CdawgEdgeWeight::new_key(token));
         let edge = self.graph.get_edge(edge_idx.unwrap());
-        let (mut start, end) = edge.get_weight().get_span();
+        let (mut start, end) = edge.get_weight().get_span();  // We DON'T call get_span because we want to keep end pointers.
         start += 1;  // Map back to Inenaga 1-indexed!
         let target = edge.get_target();
 
@@ -250,10 +250,10 @@ where
         }
 
         let length = match state {
-            Some(q) => self.graph.get_node(q).get_length() as i64,
+            Some(q) => self._get_length(q) as i64,
             None => -1,
         };
-        let length1 = self.graph.get_node(state1).get_length() as i64;
+        let length1 = self._get_length(state1) as i64;
         if length1 == length + (start + 1 - end) as i64 {
             return (state1, start1);
         }
@@ -377,6 +377,12 @@ where
         self.graph.get_edge_mut(edge_idx.unwrap()).set_target(target);
     }
 
+    fn _get_length(&self, q: NodeIndex<Ix>) -> u64 {
+        let length = self.graph.get_node(q).get_length();
+        // Handle sink length correctly. -1 because hasn't been updated yet
+        u64::min(length, (self.e - 1).try_into().unwrap())
+    }
+
     // Convenience methods.
     pub fn get_source(&self) -> NodeIndex<Ix> {
         self.source
@@ -498,6 +504,7 @@ mod tests {
     fn test_split_edge() {
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let weight = CdawgEdgeWeight::new(0, 0, 3);
+        cdawg.e += 1;
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         let v = cdawg.split_edge(cdawg.source, to_inenaga((0, 1)));
         
@@ -538,6 +545,7 @@ mod tests {
     fn test_separate_node_null() {
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         let c = cdawg.graph.add_node(DefaultWeight::new(1, Some(cdawg.source), 0));
+        cdawg.e += 1;
         cdawg.graph.add_balanced_edge(cdawg.source, c, CdawgEdgeWeight::new(0, 0, 1));
 
         // First step of cocoa should go back to initial state.
@@ -649,6 +657,144 @@ mod tests {
         assert_eq!(cdawg._get_span(edge_o_coao.get_weight()), (3, 6));
         assert_eq!(edge_o_ao.get_target(), cdawg.sink);
         assert_eq!(edge_o_coao.get_target(), cdawg.sink);
+    }
+
+    #[test]
+    fn test_update_aaa() {
+        // Randomly thought this might reveal an issue where there were too many edges.
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 0, 0])));
+        let (mut state, mut start) = (cdawg.source, 1);
+        (state, start) = cdawg.update(state, start, 1);
+        assert_eq!(get_edge!(cdawg, cdawg.source, 0).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, 0).get_weight()), (1, 1));
+        (state, start) = cdawg.update(state, start, 2);
+        assert_eq!(get_edge!(cdawg, cdawg.source, 0).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, 0).get_weight()), (1, 2));
+        (state, start) = cdawg.update(state, start, 3);
+        assert_eq!(get_edge!(cdawg, cdawg.source, 0).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, 0).get_weight()), (1, 3));
+
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 1);
+    }
+
+    #[test]
+    fn test_update_abcabcaba() {
+        // Taken from Figure 13 of Inenaga et al.
+        let (a, b, c) = (0, 1, 2);
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a])));
+        let (mut state, mut start) = (cdawg.source, 1);
+
+        // 1) a
+        (state, start) = cdawg.update(state, start, 1);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 1));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 1);
+
+        // 2) ab
+        (state, start) = cdawg.update(state, start, 2);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 2));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 2));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 2);
+
+        // 3) abc
+        (state, start) = cdawg.update(state, start, 3);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 3));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 3));
+        assert_eq!(get_edge!(cdawg, cdawg.source, c).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 3));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+
+        // 4) abca: does not need to split a node
+        (state, start) = cdawg.update(state, start, 4);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 4));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 4));
+        assert_eq!(get_edge!(cdawg, cdawg.source, c).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 4));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+
+        // 5) abcab: does not need to split a node
+        (state, start) = cdawg.update(state, start, 5);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 5));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 5));
+        assert_eq!(get_edge!(cdawg, cdawg.source, c).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 5));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+
+        // 6) abcabc: does not need to split a node
+        (state, start) = cdawg.update(state, start, 6);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 6));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 6));
+        assert_eq!(get_edge!(cdawg, cdawg.source, c).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 6));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+
+        // 7) abcabca: does not need to split a node
+        (state, start) = cdawg.update(state, start, 7);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 7));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 7));
+        assert_eq!(get_edge!(cdawg, cdawg.source, c).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 7));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+
+        // 8) abcabcab: does not need to split a node
+        (state, start) = cdawg.update(state, start, 8);
+        assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 8));
+        assert_eq!(get_edge!(cdawg, cdawg.source, b).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 8));
+        assert_eq!(get_edge!(cdawg, cdawg.source, c).get_target(), cdawg.sink);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 8));
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+        assert_eq!(start, 4);
+
+        // abcabcaba: where the magic happens! Shown in Figure 13
+        (state, start) = cdawg.update(state, start, 9);
+        assert_eq!(cdawg.graph.n_edges(cdawg.source), 3);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 2));
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, b).get_weight()), (2, 2));
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, c).get_weight()), (3, 5));
+        let mut qa = get_edge!(cdawg, cdawg.source, a).get_target();
+        let mut qb = get_edge!(cdawg, cdawg.source, b).get_target();
+        let mut qc = get_edge!(cdawg, cdawg.source, c).get_target();
+        assert_eq!(qa, qb);
+        assert!(qa != cdawg.source);
+        assert!(qc != cdawg.source);
+        assert!(qa != qc);
+        let q1 = qa;
+        let q2 = qc;
+        // Check q1 edges.
+        assert_eq!(cdawg.graph.n_edges(q1), 2);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, q1, a).get_weight()), (9, 9));
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, q1, c).get_weight()), (3, 5));
+        assert_eq!(get_edge!(cdawg, q1, a).get_target(), cdawg.sink);
+        assert_eq!(get_edge!(cdawg, q1, c).get_target(), q2);
+        // Check q2 edges.
+        assert_eq!(cdawg.graph.n_edges(q2), 2);
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, q1, a).get_weight()), (9, 9));
+        assert_eq!(cdawg._get_span(get_edge!(cdawg, q1, c).get_weight()), (3, 5));
+        assert_eq!(get_edge!(cdawg, q2, a).get_target(), cdawg.sink);
+        assert_eq!(get_edge!(cdawg, q2, c).get_target(), cdawg.sink);
+    }
+
+    #[test]
+    fn test_sink_length() {
+        let (a, b, c) = (0, 1, 2);
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a])));
+        let (mut state, mut start) = (cdawg.source, 1);
+        (state, start) = cdawg.update(state, start, 1);
+        assert_eq!(cdawg._get_length(cdawg.sink), 0);
     }
 
     type DiskW = DefaultWeight;
