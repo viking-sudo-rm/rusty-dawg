@@ -137,11 +137,6 @@ impl Cdawg {
         v
     }
 
-    fn get_edge_idx(&self, state: NodeIndex, token: u16) -> Option<EdgeIndex> {
-        let search_weight = CdawgEdgeWeight::new_key(token);
-        self.graph.get_edge_by_weight(state, search_weight)
-    }
-
     fn new_span(&self, start: usize, end: usize) -> CdawgEdgeWeight {
         CdawgEdgeWeight::new(self.tokens[start], start, end)
     }
@@ -156,20 +151,18 @@ mod tests {
     #[test]
     fn test_split_edge() {
         let mut cdawg = Cdawg::new(vec![0, 1, 2]);
-        let weight = CdawgEdgeWeight::new(0, 0, 3);
+        let weight = CdawgEdgeWeight::new(0, 3);
         cdawg.graph.add_balanced_edge(cdawg.source, cdawg.sink, weight);
         let v = cdawg.split_edge(cdawg.source, (0, 1));
         
         let idx1 = cdawg.graph.get_node(cdawg.source).get_first_edge();
         let edge1 = cdawg.graph.get_edge(idx1);
         assert_eq!(edge1.get_target().index(), v.index());
-        assert_eq!(edge1.get_weight().token, 0);
         assert_eq!(edge1.get_weight().get_span(), (0, 1));
 
         let idx2 = cdawg.graph.get_node(v).get_first_edge();
         let edge2 = cdawg.graph.get_edge(idx2);
         assert_eq!(edge2.get_target().index(), cdawg.sink.index());
-        assert_eq!(edge2.get_weight().token, 1);
         assert_eq!(edge2.get_weight().get_span(), (1, 3));
     }
 

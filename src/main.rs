@@ -11,6 +11,7 @@ extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
 extern crate clap;
+extern crate comparator;
 extern crate kdam;
 extern crate memmap2;
 extern crate rusty_dawg;

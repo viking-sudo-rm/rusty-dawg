@@ -1,6 +1,7 @@
 extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
+extern crate comparator;
 extern crate fslock;
 extern crate kdam;
 extern crate memmap2;
