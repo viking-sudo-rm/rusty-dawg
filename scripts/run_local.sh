@@ -15,6 +15,6 @@ RUST_BACKTRACE=1 ./target/release/rusty-dawg \
     --edges-ratio 2.20 \
     --tokenizer gpt2 \
     --utype u16 \
-    --cdawg \
-    --train-vec-path "/Users/willm/Desktop/train.vec"  # Doesn't do anything rn.
+    # --cdawg \
+    # --train-vec-path "/Users/willm/Desktop/train.vec"  # Doesn't do anything rn.
     # --disk-path "/tmp/$1-dawg" \

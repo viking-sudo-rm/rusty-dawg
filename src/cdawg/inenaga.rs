@@ -254,21 +254,24 @@ where
             None => -1,
         };
         let length1 = self._get_length(state1) as i64;
-        if length1 == length + (start + 1 - end) as i64 {
+        if length1 == length + (end - start + 1) as i64 {
             return (state1, start1);
         }
 
-        // Non-solid, explicit case: we are at a node and need to clone it.
+        // Non-solid, explicit case: clone node and set its length
         let mut weight = self.graph.get_node(state1).get_weight().clone();
         weight.set_length((length + (end - start + 1) as i64) as u64);
         let new_state = self.graph.add_node(weight);
         self.graph.clone_edges(state1, new_state);
+
+        // Update the failure transitions.
+        self.graph.get_node_mut(new_state).set_failure(self.graph.get_node(state1).get_failure());
         self.graph.get_node_mut(state1).set_failure(Some(new_state));
 
         // Replace edges from state to state1 with edges to new_state.
         // We know that state is non-null here.
         loop {
-            // Replace edge with (start, end) but change indexing!
+            // Reroute tokens[start-1] edge to new_state via (start, end)
             self._set_start_end_target(state.unwrap(), start, end, new_state);
             
             let fstate = self.graph.get_node(state.unwrap()).get_failure();
@@ -379,8 +382,8 @@ where
 
     fn _get_length(&self, q: NodeIndex<Ix>) -> u64 {
         let length = self.graph.get_node(q).get_length();
-        // Handle sink length correctly. -1 because hasn't been updated yet
-        u64::min(length, (self.e - 1).try_into().unwrap())
+        // Handle sink length correctly: paper says length(sink) = e
+        u64::min(length, self.e.try_into().unwrap())
     }
 
     // Convenience methods.
@@ -794,7 +797,9 @@ mod tests {
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a])));
         let (mut state, mut start) = (cdawg.source, 1);
         (state, start) = cdawg.update(state, start, 1);
-        assert_eq!(cdawg._get_length(cdawg.sink), 0);
+        assert_eq!(cdawg._get_length(cdawg.sink), 1);
+        (state, start) = cdawg.update(state, start, 2);
+        assert_eq!(cdawg._get_length(cdawg.sink), 2);
     }
 
     type DiskW = DefaultWeight;
