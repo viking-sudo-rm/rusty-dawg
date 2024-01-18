@@ -1,10 +1,7 @@
 // Building minimal AvlGraph from the ground up.
-// Minimize memory overhead.
 // Support finding an edge in log(|E|) time.
-// See https://timothy.hobbs.cz/rust-play/petgraph-internals.html
-// Can also implement a version with separate Node/Edge lists and Edge pointers forming AVL tree.
-
-// https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
+// Originally based on petgraph. See https://timothy.hobbs.cz/rust-play/petgraph-internals.html
+// Edges stored in AVL tree: // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
 use anyhow::Result;
 use comparator::Comparator;
@@ -107,7 +104,7 @@ where
 impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
-    E: Eq + Ord + Copy + Debug,
+    E: Copy + Debug,
     N: Weight,
     Ix: IndexType,
 {
@@ -204,45 +201,7 @@ where
         }
     }
 
-    // DONT USE THIS, here for legacy test reasons
-    fn add_edge(
-        &mut self,
-        a: NodeIndex<Ix>,
-        b: NodeIndex<Ix>,
-        weight: E,
-    ) -> Option<EdgeIndex<Ix>> {
-        let edge = Edge::new(weight, b);
-        let edge_idx = EdgeIndex::new(self.edges.len());
-
-        // look for root, simple case where no root handled
-        let first_edge = self.nodes.index(a.index()).get_first_edge();
-        if first_edge == EdgeIndex::end() {
-            self.nodes.index_mut(a.index()).set_first_edge(edge_idx);
-            self.edges.push(edge);
-            return Some(edge_idx);
-        }
-
-        // binary search to find pointer where we insert new edge (edge and parent pointers)
-        let (e, last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
-        if e != EdgeIndex::end() {
-            return None;
-        }
-        // weight of the parent
-        let add_weight = self.edges.index(last_e.index()).get_weight();
-        // weight less than parent, add left else right (the tree thing, no case where weights are equal)
-        if weight < add_weight {
-            self.edges.index_mut(last_e.index()).set_left(edge_idx);
-        } else {
-            self.edges.index_mut(last_e.index()).set_right(edge_idx);
-        }
-        // push this into the list of edges
-        self.edges.push(edge);
-        Some(edge_idx)
-        // FIXME: Implement recursive version!!!
-    }
-
     // add_balanced_edge but for CDAWGs, where weight doesn't actually contain the token
-    // TODO: Take in comparator instead of tokens.
     pub fn add_balanced_edge_cmp(
         &mut self,
         a: NodeIndex<Ix>,
@@ -255,30 +214,15 @@ where
         self.get_node_mut(a).set_first_edge(new_first_edge);
     }
 
-    pub fn add_balanced_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) {
-        // look for root, simple case where no root handled
-        let first_edge = self.nodes.index(a.index()).get_first_edge();
-
-        // recursive insert into AVL tree
-        let new_first_edge = self.avl_insert_edge(first_edge, weight, b, Box::new(DEFAULT_CMP));
-        self.nodes
-            .index_mut(a.index())
-            .set_first_edge(new_first_edge);
-    }
-
-    // Had to make this public so CDAWG could call it.
-    pub fn avl_insert_edge(
+    fn avl_insert_edge(
         &mut self,
         root_edge_idx: EdgeIndex<Ix>,
         weight: E,
         b: NodeIndex<Ix>,
         cmp: Box<dyn Comparator<E>>,
     ) -> EdgeIndex<Ix> {
-        println!("avl_insert_edge @ {}", root_edge_idx.index());
-
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
-            println!("\tfound end!");
             let edge = Edge::new(weight, b);
             self.edges.push(edge);
             return EdgeIndex::new(self.edges.len() - 1);
@@ -443,21 +387,7 @@ where
         self.rotate_from_left(node_ptr)
     }
 
-    pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
-        let first_edge = self.nodes.index(a.index()).get_first_edge();
-        if first_edge == EdgeIndex::end() {
-            return None;
-        }
-
-        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
-        if e == EdgeIndex::end() {
-            return None;
-        }
-        Some(self.edges.index(e.index()).get_target())
-    }
-
     // get_edge_by_weight by for CDAWGs.
-    // TODO: Change to take comparator.
     pub fn get_edge_by_weight_cmp(&self, a: NodeIndex<Ix>, weight: E, cmp: Box<dyn Comparator<E>>) -> Option<EdgeIndex<Ix>> {
         let first_edge = self.get_node(a).get_first_edge();
         if first_edge == EdgeIndex::end() {
@@ -468,33 +398,6 @@ where
             return None;
         }
         Some(e)
-    }
-
-    pub fn get_edge_by_weight(&self, a: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
-        let first_edge = self.nodes.index(a.index()).get_first_edge();
-        if first_edge == EdgeIndex::end() {
-            return None;
-        }
-
-        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
-        if e == EdgeIndex::end() {
-            return None;
-        }
-        Some(e)
-    }
-
-    pub fn reroute_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
-        let first_edge = self.nodes.index(a.index()).get_first_edge();
-        if first_edge == EdgeIndex::end() {
-            return false;
-        }
-
-        let (e, _) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
-        if e == EdgeIndex::end() {
-            return false;
-        }
-        self.edges.index_mut(e.index()).set_target(b);
-        true
     }
 
     pub fn n_edges(&self, a: NodeIndex<Ix>) -> usize {
@@ -543,6 +446,86 @@ where
 
     pub fn get_edge_mut(&mut self, edge: EdgeIndex<Ix>) -> Mb::EdgeMutRef {
         self.edges.index_mut(edge.index())
+    }
+}
+
+// When there is a Comparator implicitly defined by Eq + Ord.
+impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
+where
+    Mb: MemoryBacking<N, E, Ix>,
+    E: Eq + Ord + Copy + Debug,
+    N: Weight,
+    Ix: IndexType,
+{
+    pub fn add_balanced_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) {
+        self.add_balanced_edge_cmp(a, b, weight, Box::new(DEFAULT_CMP))
+    }
+
+    pub fn get_edge_by_weight(&self, a: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
+        self.get_edge_by_weight_cmp(a, weight, Box::new(DEFAULT_CMP))
+    }
+
+    pub fn reroute_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool {
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
+        if first_edge == EdgeIndex::end() {
+            return false;
+        }
+
+        let (e, _) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
+        if e == EdgeIndex::end() {
+            return false;
+        }
+        self.edges.index_mut(e.index()).set_target(b);
+        true
+    }
+
+    pub fn edge_target(&self, a: NodeIndex<Ix>, weight: E) -> Option<NodeIndex<Ix>> {
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
+        if first_edge == EdgeIndex::end() {
+            return None;
+        }
+
+        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
+        if e == EdgeIndex::end() {
+            return None;
+        }
+        Some(self.edges.index(e.index()).get_target())
+    }
+
+    // DONT USE THIS, here for legacy test reasons
+    fn add_edge(
+        &mut self,
+        a: NodeIndex<Ix>,
+        b: NodeIndex<Ix>,
+        weight: E,
+    ) -> Option<EdgeIndex<Ix>> {
+        let edge = Edge::new(weight, b);
+        let edge_idx = EdgeIndex::new(self.edges.len());
+
+        // look for root, simple case where no root handled
+        let first_edge = self.nodes.index(a.index()).get_first_edge();
+        if first_edge == EdgeIndex::end() {
+            self.nodes.index_mut(a.index()).set_first_edge(edge_idx);
+            self.edges.push(edge);
+            return Some(edge_idx);
+        }
+
+        // binary search to find pointer where we insert new edge (edge and parent pointers)
+        let (e, last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
+        if e != EdgeIndex::end() {
+            return None;
+        }
+        // weight of the parent
+        let add_weight = self.edges.index(last_e.index()).get_weight();
+        // weight less than parent, add left else right (the tree thing, no case where weights are equal)
+        if weight < add_weight {
+            self.edges.index_mut(last_e.index()).set_left(edge_idx);
+        } else {
+            self.edges.index_mut(last_e.index()).set_right(edge_idx);
+        }
+        // push this into the list of edges
+        self.edges.push(edge);
+        Some(edge_idx)
     }
 }
 

@@ -37,6 +37,7 @@ use graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 
 type N = super::N;
+type E = CdawgEdgeWeight<DefaultIx>;
 
 // Confusingly, E here is the token type.
 pub fn build_cdawg<Mb>(args: Args, mb: Mb) -> Result<()>
@@ -52,6 +53,13 @@ where
     } else {
         Box::new(PretrainedTokenizer::new(&args.tokenizer))
     };
+
+    println!("Sizes:");
+    println!("\tIx:\t{}B", size_of::<DefaultIx>());
+    println!("\tN:\t{}B", size_of::<N>());
+    println!("\tE:\t{}B", size_of::<E>());
+    println!("\tNode:\t{}B", size_of::<Node<N, DefaultIx>>());
+    println!("\tEdge:\t{}B", size_of::<Edge<E, DefaultIx>>());
 
     println!("Opening train file...");
     let train_file = fs::File::open(args.train_path.as_str())?;

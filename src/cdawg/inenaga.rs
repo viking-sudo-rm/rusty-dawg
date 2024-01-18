@@ -167,7 +167,6 @@ where
             }
 
             // 1) Create new edge from r to sink with (end, *self.e)
-            println!("Adding edge {} to {} via ({}, inf)", r.index(), self.sink.index(), end);
             self.add_balanced_edge(r, self.sink, (end, Ix::max_value().index()));
             
             // 2) Set failure transition.
@@ -208,6 +207,7 @@ where
         let edge_ref = self.graph.get_edge(edge_idx);
         let (found_start, _) = self._get_span(edge_ref.get_weight());
 
+        // Doesn't actually use graph.reroute_edge
         let weight = self._new_edge_weight(found_start, found_start + end - start);
         self.graph.get_edge_mut(edge_idx).set_weight(weight);
         self.graph.get_edge_mut(edge_idx).set_target(target);
@@ -321,18 +321,15 @@ where
     // 1-indexed!
     fn check_end_point(&self, state: Option<NodeIndex<Ix>>, gamma: (usize, usize), token: u16) -> bool {
         let (start, end) = gamma;
-        println!("Checking end point: ({}, {})", start, end);
         if start <= end {
             let wk = self.tokens.borrow().get(start - 1);
             let e = self.get_edge_by_token(state.unwrap(), wk).unwrap();
             let (found_start, _) = self._get_span(self.graph.get_edge(e).get_weight());
-            println!("\ton edge: {}", token == self.tokens.borrow().get(found_start + end - start));
             token == self.tokens.borrow().get(found_start + end - start)  // No +1 because 0-indexed.
         } else {
             match state {
                 Some(phi) => {
                     let edge_idx = self.get_edge_by_token(phi, token);
-                    println!("\ton state: {}", edge_idx.is_some());
                     edge_idx.is_some()
                 },
                 None => true,
@@ -692,9 +689,6 @@ mod tests {
         assert_eq!(cdawg.graph.n_edges(cdawg.source), 1);
 
         // 2) ab
-        println!("==============");
-        println!("Start ab");
-        println!("==============");
         (state, start) = cdawg.update(state, start, 2);
         assert_eq!(get_edge!(cdawg, cdawg.source, a).get_target(), cdawg.sink);
         assert_eq!(cdawg._get_span(get_edge!(cdawg, cdawg.source, a).get_weight()), (1, 2));
