@@ -4,6 +4,7 @@ mod inenaga;  // Algo from "On-line construction of compact directed acyclic wor
 mod metadata;
 mod token_backing;
 pub mod comparator;
+pub mod cdawg_state;
 
 // We will use the Inenaga implementation of the build algorithm.
 pub use self::inenaga::Cdawg;

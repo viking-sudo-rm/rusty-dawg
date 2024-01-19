@@ -35,6 +35,7 @@ use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use cdawg::metadata::CdawgMetadata;
 use cdawg::token_backing::TokenBacking;
 use cdawg::comparator::CdawgComparator;
+use cdawg::cdawg_state::CdawgState;
 
 // TODO: Add TokenBacking for tokens
 
@@ -406,8 +407,6 @@ where
         max_ratio
     }
 
-    // Inference methods.
-
     pub fn get_edge_by_token(&self, state: NodeIndex<Ix>, token: u16) -> Option<EdgeIndex<Ix>> {
         let weight = CdawgEdgeWeight::new(0, 0);  // Doesn't matter since comparator has token.
         let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
@@ -419,6 +418,112 @@ where
         let token = self.tokens.borrow().get(gamma.0 - 1);  // Map to 0-indexed
         let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
         self.graph.add_balanced_edge_cmp(state, target, weight, Box::new(cmp))
+    }
+
+    // Methods for inference with the CDAWG.
+    
+    // Get the source state and initial values for transition quantities.
+    pub fn get_initial(&self) -> CdawgState<Ix> {
+        CdawgState {
+            state: self.source,
+            token: 0,
+            start: 0,
+            idx: 0,
+            end: 0,
+            target: self.source,
+            length: 0,
+        }
+    }
+
+    // Transition and track length analogously to the DAWG.
+    pub fn transition_and_count(&self, mut cs: CdawgState<Ix>, token: u16) -> CdawgState<Ix> {
+        println!("transition and count at {}, ({}, {}) with target={}", cs.state.index(), cs.start, cs.end, cs.target.index());
+
+        if cs.idx == cs.end { 
+            // We are at a state. Analogous to DAWG case.
+            let e = self.get_edge_by_token(cs.target, token);
+            if let Some(e_val) = e {
+                println!("\tfound new edge!");
+                let edge = self.graph.get_edge(e_val);
+                let gamma = edge.get_weight().get_span();
+                return CdawgState {
+                    state: cs.target,
+                    token: token,
+                    start: gamma.0,
+                    idx: gamma.0 + 1,
+                    end: usize::min(gamma.1, self.e),
+                    target: edge.get_target(),
+                    length: cs.length + 1,
+                };
+            }
+
+            let fail_state = self.graph.get_node(cs.target).get_failure();
+            match fail_state {
+                Some(q) => {
+                    cs.target = q;
+                    cs.length = self.graph.get_node(q).get_length();
+                    self.transition_and_count(cs, token)
+                },
+                None => self.get_initial(),
+            }
+        } else {
+            // We are at an edge.
+            let cur_token = self.tokens.borrow().get(cs.idx);
+            if token == cur_token {
+                cs.idx += 1;
+                cs.length += 1;
+                return cs;
+            }
+
+            // Follow implicit failure transitions.
+            let fail_state = self.graph.get_node(cs.state).get_failure();
+            match fail_state {
+                Some(q) => {
+                    let q_length = self.graph.get_node(q).get_length();
+                    // e is the active edge from fail state corresponding to current edge.
+                    let e = self.get_edge_by_token(q, cs.token).unwrap();
+                    let edge = self.graph.get_edge(e);
+                    let (e_start, e_end) = edge.get_weight().get_span();
+                    let progress = cs.idx - cs.start;
+                    let new_cs = CdawgState {
+                        state: q,
+                        token: cs.token,  // Has to be same as e.
+                        start: e_start,
+                        idx: e_start + progress,
+                        end: e_end,
+                        target: edge.get_target(),
+                        length: q_length + progress as u64,
+                    };
+                    self.transition_and_count(new_cs, token)
+                },
+                None => {
+                    // We know that cs.state == self.source
+                    // Loop until we find a token that exists out of initial state.
+                    // In practice, will typically run once.
+                    for idx in cs.start + 1..cs.end {
+                        let new_token = self.tokens.borrow().get(cs.start + idx);
+                        if let Some(e) = self.get_edge_by_token(cs.state, new_token) {
+                            let edge = self.graph.get_edge(e);
+                            let gamma = edge.get_weight().get_span();
+                            let progress = cs.idx - cs.start;
+                            let new_cs = CdawgState {
+                                state: cs.state,
+                                token: new_token,
+                                start: gamma.0,
+                                idx: gamma.0 + progress - 1,
+                                end: gamma.1,
+                                target: edge.get_target(),
+                                length: (progress - 1) as u64,
+                            };
+                            return self.transition_and_count(new_cs, token);
+                        }
+                    }
+
+                    // Well, now we are matching nothing.
+                    self.get_initial()
+                },
+            }
+        }
     }
 
 }
@@ -839,6 +944,46 @@ mod tests {
         assert_eq!(cdawg.extension(cdawg.source, to_inenaga((0, 1))).index(), cdawg.sink.index());
         assert_eq!(cdawg.graph.get_node(cdawg.sink).get_failure().unwrap().index(), cdawg.source.index());
         assert_eq!(start, 2);
+    }
+
+    #[test]
+    fn test_transition_and_count_abcbca() {
+        let (a, b, c, d) = (0, 1, 2, 3);
+        let train = Rc::new(RefCell::new(vec![a, b, c, b, c, a]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
+        cdawg.build();
+
+        let mut lengths = Vec::new();
+        let mut cs = cdawg.get_initial();
+        for token in vec![a, b, c, a, d].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            lengths.push(cs.length);
+        }
+        assert_eq!(lengths, vec![1, 2, 3, 3, 0]);
+    }
+
+    #[test]
+    fn test_transition_and_count_cocoa() {
+        let (a, b, c) = (0, 1, 2);
+        let train = Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
+        cdawg.build();
+
+        let mut lengths = Vec::new();
+        let mut cs = cdawg.get_initial();
+        for token in vec![a, b, a].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            lengths.push(cs.length);
+        }
+        assert_eq!(lengths, vec![1, 2, 3]);
+
+        lengths = Vec::new();
+        cs = cdawg.get_initial();
+        for token in vec![a, b, b].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            lengths.push(cs.length);
+        }
+        assert_eq!(lengths, vec![1, 2, 1]);
     }
 
 }
