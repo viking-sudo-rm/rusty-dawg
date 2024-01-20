@@ -1495,6 +1495,7 @@ dependencies = [
 name = "py-rusty-dawg"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bincode",
  "pyo3",
  "rusty-dawg",
@@ -1506,6 +1507,7 @@ version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e681a6cfdc4adcc93b4d3cf993749a4552018ee0a9b65fc0ccfad74352c72a38"
 dependencies = [
+ "anyhow",
  "cfg-if",
  "indoc",
  "libc",

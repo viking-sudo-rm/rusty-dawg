@@ -1,14 +1,12 @@
 use pyo3::prelude::*;
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
-use rusty_dawg::graph::indexing::{NodeIndex, DefaultIx};
-use rusty_dawg::graph::{EdgeRef, NodeRef};
-use rusty_dawg::io::Load;
+use rusty_dawg::graph::indexing::DefaultIx;
 use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass(unsendable)]
@@ -32,14 +30,14 @@ impl Cdawg {
     }
 
     pub fn get_initial(&self) -> CdawgState {
-        CdawgState{ cs: self.cdawg.get_initial() }
+        CdawgState {
+            cs: self.cdawg.get_initial(),
+        }
     }
 
-    pub fn transition_and_count(
-        &self,
-        cs: CdawgState,
-        token: u16,
-    ) -> CdawgState {
-        CdawgState{ cs: self.cdawg.transition_and_count(cs.cs, token) }
+    pub fn transition_and_count(&self, cs: CdawgState, token: u16) -> CdawgState {
+        CdawgState {
+            cs: self.cdawg.transition_and_count(cs.cs, token),
+        }
     }
 }

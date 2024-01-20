@@ -21,15 +21,17 @@ impl CdawgState {
         target: usize,
         length: u64,
     ) -> Self {
-        Self {cs: cdawg_state::CdawgState {
-            state: NodeIndex::new(state),
-            token,
-            start,
-            idx,
-            end,
-            target: NodeIndex::new(target),
-            length,
-        }}
+        Self {
+            cs: cdawg_state::CdawgState {
+                state: NodeIndex::new(state),
+                token,
+                start,
+                idx,
+                end,
+                target: NodeIndex::new(target),
+                length,
+            },
+        }
     }
 
     pub fn get_length(&self) -> u64 {

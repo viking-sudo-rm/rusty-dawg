@@ -9,6 +9,7 @@ name = "rusty_dawg"
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0"
 bincode = "1.3.3"
-pyo3 = "0.19.0"
+pyo3 = { version = "0.19.0", features = ["anyhow"] }
 rusty-dawg = { path = "../../", version = "*" }
