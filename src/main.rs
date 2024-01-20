@@ -11,6 +11,7 @@ extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
 extern crate clap;
+extern crate flate2;
 extern crate comparator;
 extern crate kdam;
 extern crate memmap2;
@@ -22,6 +23,7 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
+mod data_reader;
 mod build_cdawg;
 mod cdawg;
 mod dawg;
@@ -38,7 +40,6 @@ use std::cmp::Ord;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Debug;
-use std::io::{BufReader, Read};
 
 use io::Save;
 
@@ -57,6 +58,8 @@ use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
+use data_reader::{DataReader, PileReader, TxtReader};
+
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
 use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
@@ -72,24 +75,26 @@ version, about, long_about = None,
 pub struct Args {
     #[arg(long)]
     train_path: String,
-    #[arg(long)]
+    #[arg(long, default_value = "")]
     test_path: String,
-    #[arg(long)]
+    #[arg(long, default_value = "")]
     save_path: String,
-    #[arg(long)]
+    #[arg(long, default_value = "")]
     results_path: String,
 
     // This value can take on the following values:
     // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
-    #[arg(long)]
+    #[arg(long, default_value = "gpt2")]
     tokenizer: String,
+    #[arg(long, default_value = "txt")]
+    data_reader: String,
 
     #[arg(long, default_value = "u32")]
     utype: String,
 
-    #[arg(long, default_value_t = 10000)]
+    #[arg(long, default_value_t = 0)]
     truncate_test: usize,
-    #[arg(long, default_value_t = 20)]
+    #[arg(long, default_value_t = 0)]
     n_eval: usize,
     #[arg(long, default_value_t = 10)]
     max_length: u64,
@@ -99,17 +104,23 @@ pub struct Args {
 
     #[arg(long)]
     disk_path: Option<String>,
+    #[arg(long)]
+    split_token: Option<String>,
 
     #[arg(long, default_value_t = 2.)]
     nodes_ratio: f64,
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
-    #[arg(long, default_value_t = 0.33)]
-    tokens_per_byte: f64,
+    // Estimate of the number of tokens, used to allocate DAWG.
+    #[arg(long, default_value_t = 200000000)]
+    n_tokens: usize,
 
     // Amount of input to read at a time while consuming file. Defaults to 10 GB.
     #[arg(long, default_value_t = 10000000000)]
     buf_size: usize,
+
+    #[arg(long, short, action)]
+    single_string: bool,  // Don't end document between documents.
 
     // CDAWG args.
     #[arg(long, short, action)]
@@ -204,7 +215,9 @@ where
         + TryInto<u32>
         + TryFrom<u32>,
     usize: TryFrom<E>,
+    u64: TryFrom<E>,
     Mb: MemoryBacking<N, E, DefaultIx>,
+    <E as TryFrom<usize>>::Error: Debug,
     Dawg<E, N, DefaultIx, Mb>: io::Save,
 {
     println!("sizeof(Ix) {}B", size_of::<DefaultIx>());
@@ -223,18 +236,30 @@ where
 
     let train_file = fs::File::open(args.train_path.as_str())?;
     let n_bytes = train_file.metadata().unwrap().len();
-    let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
     let eval_threshold = if args.n_eval == 0 {
         0
     } else {
-        est_n_tokens / args.n_eval
+        args.n_tokens / args.n_eval
     };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
+    let reader: Box<DataReader> = if args.data_reader == "pile" {
+        Box::new(PileReader::new(args.train_path).unwrap())
+    } else {
+        Box::new(TxtReader::new(
+            train_file,
+            buf_size,
+            args.split_token.clone(),
+        ))
+    };
 
-    let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
+    let test_raw: String = if args.test_path.is_empty() {
+        "".to_string()
+    } else {
+        fs::read_to_string(args.test_path.as_str()).expect("Error loading test")
+    };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
+    let doc_id_token = E::try_from(index.get_count()).unwrap(); // The token used to store document IDs.
     let mut test: Vec<E> = index.tokenize(&test_raw);
-    // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
     let old_test_len = test.len();
     if args.truncate_test > 0 {
         test = test[0..args.truncate_test].to_vec();
@@ -242,8 +267,8 @@ where
     let mut evaluator = Evaluator::new(&test, args.max_length);
     println!("#(test): {}/{}", test.len(), old_test_len);
 
-    let n_nodes = (args.nodes_ratio * (est_n_tokens as f64)).ceil() as usize;
-    let n_edges = (args.edges_ratio * (est_n_tokens as f64)).ceil() as usize;
+    let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
+    let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
     let max_length: Option<u64> = if !args.max_state_length.is_negative() {
         Some(args.max_state_length.try_into().unwrap())
     } else {
@@ -256,19 +281,13 @@ where
     let mut idx = 0;
     let mut last = dawg.get_initial();
     let mut length = 0;
-    let mut pbar = tqdm!(total = est_n_tokens);
-    let mut train_reader = BufReader::with_capacity(buf_size, train_file);
-    let mut buffer = vec![0; buf_size];
-    loop {
-        let n_bytes_read = train_reader.read(&mut buffer).unwrap();
-        if n_bytes_read == 0 {
-            break;
-        }
-        let text = std::str::from_utf8(&buffer);
-        let tokens = index.tokenize(text.unwrap());
+    let mut pbar = tqdm!(total = args.n_tokens);
+    for (doc_id, doc) in reader {
+        let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
             (last, length) = dawg.extend(*token, last, length);
             if eval_threshold != 0 && idx % eval_threshold == 0 && idx != 0 {
+                println!("Evaluating...");
                 evaluator.evaluate(&dawg, idx);
                 if !args.results_path.is_empty() {
                     evaluator.to_json(&args.results_path)?;
@@ -277,6 +296,7 @@ where
             idx += 1;
             pbar.update(1);
         }
+        (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
     }
 
     eprintln!();

@@ -1,0 +1,31 @@
+version: v2
+description: Build DAWG on the Pile split {{.Env.INPUT_PATH}}
+tasks:
+  - name: build-dawg
+    image:
+      beaker: willm/rusty-dawg-ssh-debug
+    command: [scripts/run_pile_beaker.sh]
+    envVars:
+      - name: N_TOKENS
+        value: {{.Env.N_TOKENS}}
+      - name: INPUT_PATH
+        value: {{.Env.INPUT_PATH}}
+      - name: OUTPUT_PATH
+        value: {{.Env.OUTPUT_PATH}}
+      - name: GCLOUD_KEY
+        value: /gcloud_key.json
+    datasets:
+      - mountPath: /gcloud_key.json
+        source:
+          secret: WILLM_GCLOUD_KEY
+    result:
+      path: /output
+    context:
+      priority: normal
+    resources:
+      memory: 150 GB
+      cpuCount: 1
+    constraints:
+      cluster: [ "ai2/rusty-dawg" ]
+      # hostname: [{{.Env.HOST}}]
+      # cluster: [ ai2/general-cirrascale ]

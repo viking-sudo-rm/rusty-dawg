@@ -64,11 +64,10 @@ where
     println!("Opening train file...");
     let train_file = fs::File::open(args.train_path.as_str())?;
     let n_bytes = train_file.metadata().unwrap().len();
-    let est_n_tokens = (args.tokens_per_byte * (n_bytes as f64)).round() as usize;
     let eval_threshold = if args.n_eval == 0 {
         0
     } else {
-        est_n_tokens / args.n_eval
+        args.n_tokens / args.n_eval
     };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
 
@@ -83,8 +82,8 @@ where
     let mut evaluator = Evaluator::new(&test, args.max_length);
     println!("#(test): {}/{}", test.len(), old_test_len);
 
-    let n_nodes = (args.nodes_ratio * (est_n_tokens as f64)).ceil() as usize;
-    let n_edges = (args.edges_ratio * (est_n_tokens as f64)).ceil() as usize;
+    let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
+    let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
     let max_length: Option<u64> = if !args.max_state_length.is_negative() {
         Some(args.max_state_length.try_into().unwrap())
     } else {
@@ -95,10 +94,10 @@ where
     if args.train_vec_path.is_none() {
         panic!("CDAWG requires train-vec-path");
     }
-    println!("# tokens: {}", est_n_tokens);
+    println!("# tokens: {}", args.n_tokens);
     println!("Opening train vector...");
-    let train_vec: Vec<u16> = Vec::with_capacity(est_n_tokens);
-    // let train_vec: DiskVec<u16> = DiskVec::new(&args.train_vec_path.unwrap(), est_n_tokens)?;
+    let train_vec: Vec<u16> = Vec::with_capacity(args.n_tokens);
+    // let train_vec: DiskVec<u16> = DiskVec::new(&args.train_vec_path.unwrap(), args.n_tokens)?;
     let train_vec_rc = Rc::new(RefCell::new(train_vec));
 
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
@@ -107,7 +106,7 @@ where
     let mut state = cdawg.get_source();
     let mut start: usize = 1;
     let mut idx: usize = 0;
-    let mut pbar = tqdm!(total = est_n_tokens);
+    let mut pbar = tqdm!(total = args.n_tokens);
     let mut train_reader = BufReader::with_capacity(buf_size, train_file);
     let mut buffer = vec![0; buf_size];
     loop {

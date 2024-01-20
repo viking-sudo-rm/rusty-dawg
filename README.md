@@ -2,7 +2,14 @@
 
 A library for building suffix automata for string indexing and searching in Rust.
 
-Contains Python bindings that should address most basic use cases.
+The key features are:
+1. Built a DAWG on a corpus with a one-liner. The DAWG can be saved in two formats: a graph stored in RAM and a graph stored on disk.
+2. Use Python bindings to load a saved DAWG for doing fast n-gram search (you can also load it in Rust, but we recommend working with the Python API).
+3. A web demo for visualizing n-gram search results over a pre-built DAWG.
+
+### Authors
+
+This library was started by Will Merrill and Yanai Elazar as part of an internship project at AI2. Ananya Jha, Rodney Kinney, David Wadden, Pete Walsh have all since contributed core engineering features. We've also appreciated the support of Michal Guerquin, Johann Dahm, and other members of the Beaker team at AI2 for getting the library to run at very large scale.
 
 # Getting Started
 
@@ -37,10 +44,15 @@ pip install maturin
 Then `cd` into the Python bindings directory (`bindings/python`) and run:
 
 ```
-make release
+make install
 ```
-This will generate a Python wheel file `bindings/python/target/wheels/` which you can then install with `pip install target/wheels/*.whl`.
-Alternatively you can just run `make install` to combine those two steps.
+
+If, for some reason, you cannot run make files, you can alternatively run the following in two steps:
+
+```
+python -m maturin build --release
+pip install target/wheels/*.whl
+```
 
 ## Running Benchmarking Script
 
@@ -76,10 +88,7 @@ The most relevant modules are the following:
 
 ### Graph Implementation: `src/graph`
 
-Implements graph types for representing the DAWG. The two key ones are:
-
-1. **src/graph/avl_graph**: A memory-efficient representation of a graph by a single list of nodes and a single list of edges. The list of edges associated with a node are stored by a balanced binary tree. This type is very memory efficient, but currently balancing is not fully implemented, so **it is not (yet) used!**
-2. **src/graph/vec_graph**: Represent the edges out of each node by a sorted list of edges. This takes a lot of memory overhead because a vector needs to be allocated and reallocated for each node in the graph.
+Implements graph types for representing the DAWG. The only one currently supported is `AvlGraph`: a memory-efficient representation of a graph by a single list of nodes and a single list of edges. The list of edges associated with a node are stored by a balanced binary tree. This follows a similar API to the petgraph `Graph` class, but transitions are much more efficient with a large branching factor (`O(b)` -> `O(log b)`).
 
 ### DAWG Construction Algorithm: `src/dawg`
 
@@ -101,10 +110,6 @@ By default, main.rs will use `NullTokenIndex`, but you can pass `--tokenize` to 
 
 Much of the other modules are for n-gram language modeling and can be ignored for our purposes. `src/lms` implements various types of n-gram language models on top of a DAWG. `src/evaluator` implements logic to evaluate these n-gram language models on a test set. `src/stat_utils` implements a library of basic statistical functions for n-gram language modeling.
 
-# Contributions
-
-Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty DAWG more efficient and scalable. Get in contact if you want to help out!
-
 # Publishing new releases
 
 Follow these steps to create a new release of Rusty DAWG.
@@ -121,3 +126,7 @@ git tag -l | xargs git tag -d && git fetch -t
 ```
 
 Then repeat the steps above.
+
+# Contributions
+
+Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty DAWG more efficient and scalable. Get in contact if you want to help out!

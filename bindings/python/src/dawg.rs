@@ -9,7 +9,7 @@ use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass]
 pub struct Dawg {
-    dawg: dawg::Dawg<usize, DefaultWeight>,
+    dawg: dawg::Dawg<u16, DefaultWeight>,
 }
 
 // Wrap the normal Dawg class with a Python interface.
@@ -26,11 +26,11 @@ impl Dawg {
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
         // let file = fs::OpenOptions::new().read(true).open(&path)?;
         let wrapped_dawg =
-            <dawg::Dawg<usize, DefaultWeight> as Load>::load(&path).expect("Failed to deserialize");
+            <dawg::Dawg<u16, DefaultWeight> as Load>::load(&path).expect("Failed to deserialize");
         Ok(Self { dawg: wrapped_dawg })
     }
 
-    pub fn build(&mut self, text: Vec<usize>) {
+    pub fn build(&mut self, text: Vec<u16>) {
         self.dawg.build(&text);
     }
 
@@ -38,7 +38,7 @@ impl Dawg {
         self.dawg.get_initial().index()
     }
 
-    pub fn transition(&self, state: usize, token: usize, use_failures: bool) -> Option<usize> {
+    pub fn transition(&self, state: usize, token: u16, use_failures: bool) -> Option<usize> {
         let state_index = NodeIndex::new(state);
         match self.dawg.transition(state_index, token, use_failures) {
             Some(q) => Some(q.index()),
@@ -49,7 +49,7 @@ impl Dawg {
     pub fn transition_and_count(
         &self,
         state: usize,
-        token: usize,
+        token: u16,
         length: u64,
     ) -> (Option<usize>, u64) {
         let state_index = NodeIndex::new(state);
@@ -66,7 +66,7 @@ impl Dawg {
     }
 
     // Returns (State, TokenId)
-    pub fn get_edges(&self, state: usize) -> Vec<(usize, usize)> {
+    pub fn get_edges(&self, state: usize) -> Vec<(usize, u16)> {
         let state_index = NodeIndex::new(state);
         let graph = self.dawg.get_graph();
         graph
@@ -86,10 +86,23 @@ impl Dawg {
     pub fn edge_count(&self) -> usize {
         self.dawg.edge_count()
     }
+
+    pub fn get_failure(&self, state: usize) -> Option<usize> {
+        let state_node = NodeIndex::new(state);
+        match self.dawg.get_node(state_node).get_failure() {
+            Some(phi) => Some(phi.index()),
+            None => None,
+        }
+    }
+
+    pub fn get_length(&self, state: usize) -> u64 {
+        let state_node = NodeIndex::new(state);
+        self.dawg.get_node(state_node).get_length()
+    }
 }
 
 impl Dawg {
-    pub fn get_dawg(&self) -> &dawg::Dawg<usize, DefaultWeight> {
+    pub fn get_dawg(&self) -> &dawg::Dawg<u16, DefaultWeight> {
         &self.dawg
     }
 }

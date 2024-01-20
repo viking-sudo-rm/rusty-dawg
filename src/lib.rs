@@ -1,6 +1,7 @@
 extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
+extern crate flate2;
 extern crate comparator;
 extern crate fslock;
 extern crate kdam;
@@ -15,6 +16,7 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
+pub mod data_reader;
 pub mod cdawg;
 pub mod dawg;
 pub mod evaluator;

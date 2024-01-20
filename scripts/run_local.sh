@@ -7,10 +7,7 @@ DATA_PATH="${DATA:-data}"
 
 RUST_BACKTRACE=1 ./target/release/rusty-dawg \
     --train-path "$DATA_PATH/$1/wiki.train.raw" \
-    --test-path "$DATA_PATH/$1/wiki.valid.raw" \
-    --save-path "" \
-    --results-path "" \
-    --n-eval 0 \
+    --n-tokens 2417786 \
     --nodes-ratio 1.25 \
     --edges-ratio 2.20 \
     --tokenizer gpt2 \
