@@ -4,7 +4,7 @@
 
 use graph::indexing::{IndexType, NodeIndex};
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct CdawgState<Ix>
 where
     Ix: IndexType,

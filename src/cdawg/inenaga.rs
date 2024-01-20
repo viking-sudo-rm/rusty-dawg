@@ -437,13 +437,10 @@ where
 
     // Transition and track length analogously to the DAWG.
     pub fn transition_and_count(&self, mut cs: CdawgState<Ix>, token: u16) -> CdawgState<Ix> {
-        println!("transition and count at {}, ({}, {}) with target={}", cs.state.index(), cs.start, cs.end, cs.target.index());
-
         if cs.idx == cs.end { 
             // We are at a state. Analogous to DAWG case.
             let e = self.get_edge_by_token(cs.target, token);
             if let Some(e_val) = e {
-                println!("\tfound new edge!");
                 let edge = self.graph.get_edge(e_val);
                 let gamma = edge.get_weight().get_span();
                 return CdawgState {
