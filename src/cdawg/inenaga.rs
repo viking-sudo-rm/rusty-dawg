@@ -195,8 +195,9 @@ where
         if start > end {
             return state;
         }
-        let (_, _, target) = self.get_start_end_target(state, self.tokens.borrow().get(start - 1));
-        target
+        let token = self.tokens.borrow().get(start - 1);
+        let e = self.get_edge_by_token(state, token);
+        self.graph.get_edge(e.unwrap()).get_target()
     }
 
     // Change the target of the edge coming out of state with path gamma.
@@ -303,7 +304,8 @@ where
         match state {
             Some(q) => {
                 let token = self.tokens.borrow().get(start - 1);
-                (found_start, found_end, found_state) = self.get_start_end_target(q, token);
+                let edge_idx = self.get_edge_by_token(q, token).unwrap();
+                (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             },
             None => {
                 (found_start, found_end, found_state) = (0, 0, self.source);
@@ -315,7 +317,8 @@ where
             state = Some(found_state);
             if start <= end {
                 let token = self.tokens.borrow().get(start - 1);
-                (found_start, found_end, found_state) = self.get_start_end_target(found_state, token);
+                let edge_idx = self.get_edge_by_token(found_state, token).unwrap();
+                (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             }
         }
         (state, start)
@@ -362,22 +365,24 @@ where
         (start + 1, usize::min(end, self.e))
     }
 
-    pub fn get_start_end_target(&self, state: NodeIndex<Ix>, token: u16) -> (usize, usize, NodeIndex<Ix>) {
-        let edge_idx = self.get_edge_by_token(state, token);
-        let edge_ref = self.graph.get_edge(edge_idx.unwrap());
-        let (start, end) = edge_ref.get_weight().get_span();
-        let target = edge_ref.get_target();
-        // Shift to 1-indexed and retrieve value of end pointer.
-        (start + 1, usize::min(end, self.e), target)
-    }
-
     fn _get_length(&self, q: NodeIndex<Ix>) -> u64 {
         let length = self.graph.get_node(q).get_length();
         // Handle sink length correctly: paper says length(sink) = e
         u64::min(length, self.e.try_into().unwrap())
     }
 
+    // Get start, end, target associated with an edge.
+    // This is 1-indexed for legacy reasons!
+    pub fn get_start_end_target(&self, edge_idx: EdgeIndex<Ix>) -> (usize, usize, NodeIndex<Ix>) {
+        let edge_ref = self.graph.get_edge(edge_idx);
+        let span = self._get_span(edge_ref.get_weight());
+        let target = edge_ref.get_target();
+        // Shift to 1-indexed and retrieve value of end pointer.
+        (span.0, span.1, target)
+    }
+
     // Convenience methods.
+
     pub fn get_source(&self) -> NodeIndex<Ix> {
         self.source
     }
@@ -478,7 +483,8 @@ where
         match state {
             Some(q) => {
                 let token = self.tokens.borrow().get(start - 1);
-                (found_start, found_end, found_state) = self.get_start_end_target(q, token);
+                let edge_idx = self.get_edge_by_token(q, token).unwrap();
+                (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             },
             None => {
                 (found_start, found_end, found_state) = (0, 0, self.source);
@@ -490,11 +496,12 @@ where
             state = Some(found_state);
             if start <= end {
                 let token = self.tokens.borrow().get(start - 1);
-                (found_start, found_end, found_state) = self.get_start_end_target(found_state, token);
+                let edge_idx = self.get_edge_by_token(found_state, token).unwrap();
+                (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             }
         }
         // Map found_start to 1-indexed when we return it.
-        (state, start, Some(found_state), found_start + 1, found_end)
+        (state, start, Some(found_state), found_start, found_end)
     }
 
     // Generalizes failure transition for when we have state + gamma.

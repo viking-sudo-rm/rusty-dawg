@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
-use rusty_dawg::graph::indexing::DefaultIx;
+use rusty_dawg::graph::indexing::{EdgeIndex, NodeIndex, DefaultIx};
 use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass(unsendable)]
@@ -39,5 +39,20 @@ impl Cdawg {
         CdawgState {
             cs: self.cdawg.transition_and_count(cs.cs, token),
         }
+    }
+
+    pub fn get_edge_by_token(&self, state: usize, token: u16) -> Option<usize> {
+        let node_idx = NodeIndex::new(state);
+        let edge_idx = self.cdawg.get_edge_by_token(node_idx, token);
+        match edge_idx {
+            Some(e) => Some(e.index()),
+            None => None,
+        }
+    }
+
+    pub fn get_start_end_target(&self, edge_idx: usize) -> (usize, usize, usize) {
+        let (start, end, target) = self.cdawg.get_start_end_target(EdgeIndex::new(edge_idx));
+        // Adjust back to 0-indexed start for inference time.
+        (start - 1, end, target.index())
     }
 }
