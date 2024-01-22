@@ -195,7 +195,7 @@ where
         if start > end {
             return state;
         }
-        let (_, _, target) = self._get_start_end_target(state, self.tokens.borrow().get(start - 1));
+        let (_, _, target) = self.get_start_end_target(state, self.tokens.borrow().get(start - 1));
         target
     }
 
@@ -273,7 +273,10 @@ where
         // We know that state is non-null here.
         loop {
             // Reroute tokens[start-1] edge to new_state via (start, end)
-            self._set_start_end_target(state.unwrap(), start, end, new_state);
+            let token = self.tokens.borrow().get(start - 1);
+            let edge_idx = self.get_edge_by_token(state.unwrap(), token);
+            self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, end));
+            self.graph.get_edge_mut(edge_idx.unwrap()).set_target(new_state);
             
             let fstate = self.graph.get_node(state.unwrap()).get_failure();
             (state, start) = self.canonize(fstate, (start, end - 1));
@@ -300,7 +303,7 @@ where
         match state {
             Some(q) => {
                 let token = self.tokens.borrow().get(start - 1);
-                (found_start, found_end, found_state) = self._get_start_end_target(q, token);
+                (found_start, found_end, found_state) = self.get_start_end_target(q, token);
             },
             None => {
                 (found_start, found_end, found_state) = (0, 0, self.source);
@@ -312,7 +315,7 @@ where
             state = Some(found_state);
             if start <= end {
                 let token = self.tokens.borrow().get(start - 1);
-                (found_start, found_end, found_state) = self._get_start_end_target(found_state, token);
+                (found_start, found_end, found_state) = self.get_start_end_target(found_state, token);
             }
         }
         (state, start)
@@ -359,22 +362,13 @@ where
         (start + 1, usize::min(end, self.e))
     }
 
-    fn _get_start_end_target(&self, state: NodeIndex<Ix>, token: u16) -> (usize, usize, NodeIndex<Ix>) {
+    pub fn get_start_end_target(&self, state: NodeIndex<Ix>, token: u16) -> (usize, usize, NodeIndex<Ix>) {
         let edge_idx = self.get_edge_by_token(state, token);
         let edge_ref = self.graph.get_edge(edge_idx.unwrap());
         let (start, end) = edge_ref.get_weight().get_span();
         let target = edge_ref.get_target();
         // Shift to 1-indexed and retrieve value of end pointer.
         (start + 1, usize::min(end, self.e), target)
-    }
-
-    fn _set_start_end_target(&mut self, state: NodeIndex<Ix>, start: usize, end: usize, target: NodeIndex<Ix>) {
-        let token = self.tokens.borrow().get(start - 1);  // Potential double retrieval of token here.
-        let edge_idx = self.get_edge_by_token(state, token);
-        // For some reason, cannot call both on some EdgeMutRef.
-        // TODO: Add a setter for weight and target together on EdgeMutRef.
-        self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, end));
-        self.graph.get_edge_mut(edge_idx.unwrap()).set_target(target);
     }
 
     fn _get_length(&self, q: NodeIndex<Ix>) -> u64 {
@@ -426,101 +420,129 @@ where
     pub fn get_initial(&self) -> CdawgState<Ix> {
         CdawgState {
             state: self.source,
-            token: 0,
+            edge_start: 0,
             start: 0,
-            idx: 0,
             end: 0,
-            target: self.source,
+            target: Some(self.source),
             length: 0,
         }
     }
 
     // Transition and track length analogously to the DAWG.
-    pub fn transition_and_count(&self, mut cs: CdawgState<Ix>, token: u16) -> CdawgState<Ix> {
-        if cs.idx == cs.end { 
+    pub fn transition_and_count(&self, mut cs: CdawgState<Ix>, token: u16) -> CdawgState<Ix> {        
+        if cs.target.is_none() {
+            // Corresponds to the case where we are in the null state after failing.
+            self.get_initial()
+        } else if cs.start == cs.end { 
             // We are at a state. Analogous to DAWG case.
-            let e = self.get_edge_by_token(cs.target, token);
+            let e = self.get_edge_by_token(cs.target.unwrap(), token);
             if let Some(e_val) = e {
                 let edge = self.graph.get_edge(e_val);
                 let gamma = edge.get_weight().get_span();
                 return CdawgState {
-                    state: cs.target,
-                    token: token,
-                    start: gamma.0,
-                    idx: gamma.0 + 1,
+                    state: cs.target.unwrap(),
+                    edge_start: gamma.0,
+                    start: gamma.0 + 1,
                     end: usize::min(gamma.1, self.e),
-                    target: edge.get_target(),
+                    target: Some(edge.get_target()),
                     length: cs.length + 1,
                 };
             }
-
-            let fail_state = self.graph.get_node(cs.target).get_failure();
-            match fail_state {
-                Some(q) => {
-                    cs.target = q;
-                    cs.length = self.graph.get_node(q).get_length();
-                    self.transition_and_count(cs, token)
-                },
-                None => self.get_initial(),
-            }
+            let fail_cs = self.implicitly_fail(cs.target.unwrap(), (cs.end, cs.end));
+            self.transition_and_count(fail_cs, token)
         } else {
-            // We are at an edge.
-            let cur_token = self.tokens.borrow().get(cs.idx);
+            // We are on an edge.
+            let cur_token = self.tokens.borrow().get(cs.start);
             if token == cur_token {
-                cs.idx += 1;
+                cs.start += 1;
                 cs.length += 1;
                 return cs;
             }
+            let fail_cs = self.implicitly_fail(cs.state, (cs.edge_start, cs.start));
+            self.transition_and_count(fail_cs, token)
+        }
+    }
 
-            // Follow implicit failure transitions.
-            let fail_state = self.graph.get_node(cs.state).get_failure();
-            match fail_state {
-                Some(q) => {
-                    let q_length = self.graph.get_node(q).get_length();
-                    // e is the active edge from fail state corresponding to current edge.
-                    let e = self.get_edge_by_token(q, cs.token).unwrap();
-                    let edge = self.graph.get_edge(e);
-                    let (e_start, e_end) = edge.get_weight().get_span();
-                    let progress = cs.idx - cs.start;
-                    let new_cs = CdawgState {
-                        state: q,
-                        token: cs.token,  // Has to be same as e.
-                        start: e_start,
-                        idx: e_start + progress,
-                        end: e_end,
-                        target: edge.get_target(),
-                        length: q_length + progress as u64,
-                    };
-                    self.transition_and_count(new_cs, token)
-                },
-                None => {
-                    // We know that cs.state == self.source
-                    // Loop until we find a token that exists out of initial state.
-                    // In practice, will typically run once.
-                    for idx in cs.start + 1..cs.end {
-                        let new_token = self.tokens.borrow().get(cs.start + idx);
-                        if let Some(e) = self.get_edge_by_token(cs.state, new_token) {
-                            let edge = self.graph.get_edge(e);
-                            let gamma = edge.get_weight().get_span();
-                            let progress = cs.idx - cs.start;
-                            let new_cs = CdawgState {
-                                state: cs.state,
-                                token: new_token,
-                                start: gamma.0,
-                                idx: gamma.0 + progress - 1,
-                                end: gamma.1,
-                                target: edge.get_target(),
-                                length: (progress - 1) as u64,
-                            };
-                            return self.transition_and_count(new_cs, token);
-                        }
-                    }
+    // Inference-time version of canonize. Crucially:
+    //   1. returns target state.
+    fn inference_canonize(&self, mut state: Option<NodeIndex<Ix>>, gamma: (usize, usize)) -> (Option<NodeIndex<Ix>>, usize, Option<NodeIndex<Ix>>, usize, usize) {
+        let (mut start, end) = gamma;
+        if start > end {
+            // Means we are at a state.
+            return (state, start, state, start, end);
+        }
 
-                    // Well, now we are matching nothing.
-                    self.get_initial()
-                },
+        let mut found_start: usize;
+        let mut found_end: usize;
+        let mut found_state: NodeIndex<Ix>;
+        match state {
+            Some(q) => {
+                let token = self.tokens.borrow().get(start - 1);
+                (found_start, found_end, found_state) = self.get_start_end_target(q, token);
+            },
+            None => {
+                (found_start, found_end, found_state) = (0, 0, self.source);
             }
         }
+        
+        while found_end + start <= end + found_start {  // Written this way to avoid overflow.
+            start += found_end + 1 - found_start;  // Written this way to avoid overflow.
+            state = Some(found_state);
+            if start <= end {
+                let token = self.tokens.borrow().get(start - 1);
+                (found_start, found_end, found_state) = self.get_start_end_target(found_state, token);
+            }
+        }
+        // Map found_start to 1-indexed when we return it.
+        (state, start, Some(found_state), found_start + 1, found_end)
+    }
+
+    // Generalizes failure transition for when we have state + gamma.
+    // This is 0-indexed since we use it at inference time.
+    // Gamma represents a path of tokens we want to follow from fstate.
+    fn implicitly_fail(&self, state: NodeIndex<Ix>, gamma: (usize, usize)) -> CdawgState<Ix> {
+        let (start, end) = gamma;
+        let fstate = self.graph.get_node(state).get_failure();
+
+        // Is it cleaner to just rewrite this manually?
+        let (opt_state, mut new_start, opt_target, mut found_start, found_end) = self.inference_canonize(fstate, (start + 1, end));
+        new_start -= 1;
+        found_start -= 1;
+        match opt_state {
+            Some(q) => {
+                // Canonize has gotten to a state.
+                if new_start == end {
+                    CdawgState {
+                        state: q,
+                        edge_start: found_start,
+                        start: found_end,
+                        end: found_end,
+                        target: opt_state,
+                        length: self.graph.get_node(q).get_length(),
+                    }
+                } else {
+                    let progress = end - new_start;
+                    CdawgState {
+                        state: q,
+                        edge_start: found_start,
+                        start: found_start + progress,
+                        end: found_end,
+                        target: opt_target,
+                        // FIXME: Why do we potentially get overflow here?
+                        length: self.graph.get_node(q).get_length() + progress as u64,
+                    }
+                }
+            },
+            // We failed from initial state.
+            None => CdawgState {
+                state: self.source,
+                edge_start: 0,
+                start: 0,
+                end: 0,
+                target: None,
+                length: 0,  // Actually -1 but unsigned.
+            },
+        }        
     }
 
 }
@@ -953,6 +975,7 @@ mod tests {
         let mut lengths = Vec::new();
         let mut cs = cdawg.get_initial();
         for token in vec![a, b, c, a, d].iter() {
+            println!("=== {} ===", token);
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
         }
@@ -981,6 +1004,23 @@ mod tests {
             lengths.push(cs.length);
         }
         assert_eq!(lengths, vec![1, 2, 1]);
+    }
+
+    #[test]
+    fn test_transition_and_count_abcbd() {
+        // Should test the case where we implicitly fail from a state but canonize not required.
+        let (a, b, c, d) = (0, 1, 2, 3);
+        let train = Rc::new(RefCell::new(vec![a, b, c, b, d]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
+        cdawg.build();
+
+        let mut lengths = Vec::new();
+        let mut cs = cdawg.get_initial();
+        for token in vec![a, b, d].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            lengths.push(cs.length);
+        }
+        assert_eq!(lengths, vec![1, 2, 2]);
     }
 
 }

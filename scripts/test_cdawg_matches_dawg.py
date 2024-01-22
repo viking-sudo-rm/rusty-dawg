@@ -9,7 +9,7 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--train", type=str, default="data/wikitext-2-raw/wiki.train.raw")
     parser.add_argument("--valid", type=str, default="data/wikitext-2-raw/wiki.valid.raw")
-    parser.add_argument("--n_valid", type=int, default=100)
+    parser.add_argument("--n_valid", type=int, default=None)
     return parser.parse_args()
 
 def get_tokens(tokenizer, path):
@@ -24,6 +24,8 @@ if __name__ == "__main__":
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     train = get_tokens(tokenizer, args.train)
     valid = get_tokens(tokenizer, args.valid)
+    if args.n_valid is not None:
+        valid = valid[:args.n_valid]
 
     print("Building DAWG...")
     dawg = Dawg()
@@ -39,8 +41,7 @@ if __name__ == "__main__":
     dlengths = []
     clengths = []
 
-    # FIXME: Why do we get out of bounds eventually?
-    for idx, token in enumerate(valid[:args.n_valid]):
+    for idx, token in enumerate(valid):
         ds, length = dawg.transition_and_count(ds, token, length)
         cs = cdawg.transition_and_count(cs, token)
         dlengths.append(length)
@@ -48,9 +49,6 @@ if __name__ == "__main__":
 
     mismatched, = np.nonzero(np.array(clengths) != np.array(dlengths))
     print("Mismatched indices:", mismatched)
-    train_set = set(train)
-    min_idx = min(idx for idx in mismatched)
-    print(f"{min_idx} in train:", valid[min_idx] in train_set)
 
     import matplotlib.pyplot as plt
     plt.figure()
