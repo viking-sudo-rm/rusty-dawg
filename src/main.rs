@@ -255,7 +255,8 @@ where
     let test_raw: String = if args.test_path.is_empty() {
         "".to_string()
     } else {
-        fs::read_to_string(args.test_path.as_str()).expect("Error loading test")
+        let path = args.test_path.as_str();
+        fs::read_to_string(path).unwrap_or_else(|_| panic!("Could not load test from {}", path))
     };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
     let doc_id_token = E::try_from(index.get_count()).unwrap(); // The token used to store document IDs.

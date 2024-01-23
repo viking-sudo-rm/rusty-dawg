@@ -70,8 +70,14 @@ where
         args.n_tokens / args.n_eval
     };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
+    println!("Buffer size: {}B", args.buf_size);
 
-    let test_raw: String = fs::read_to_string(args.test_path.as_str()).expect("Error loading test");
+    let test_raw: String = if args.test_path.is_empty() {
+        "".to_string()
+    } else {
+        let path = args.test_path.as_str();
+        fs::read_to_string(path).unwrap_or_else(|_| panic!("Could not load test from {}", path))
+    };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
     let mut test: Vec<_> = index.tokenize(&test_raw);
     // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
@@ -91,15 +97,13 @@ where
     };
 
     // Maintain a DiskVec that we update incrementally (whenever we read a token, set it).
-    if args.train_vec_path.is_none() {
-        panic!("CDAWG requires train-vec-path");
-    }
     println!("# tokens: {}", args.n_tokens);
-    println!("Opening train vector...");
+    println!("Creating train vector...");
     let train_vec: Vec<u16> = Vec::with_capacity(args.n_tokens);
     // let train_vec: DiskVec<u16> = DiskVec::new(&args.train_vec_path.unwrap(), args.n_tokens)?;
     let train_vec_rc = Rc::new(RefCell::new(train_vec));
 
+    println!("Allocating CDAWG...");
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
         Cdawg::with_capacity_mb(train_vec_rc.clone(), mb, n_nodes, n_edges);
 
@@ -115,7 +119,9 @@ where
             break;
         }
         let text = std::str::from_utf8(&buffer);
+        println!("Tokenizing text...");
         let tokens = index.tokenize(text.unwrap());
+        println!("Tokenized!");
         for token in &tokens {
             // *token for Vec, token for DiskVec
             let _ = train_vec_rc.borrow_mut().push(*token);
