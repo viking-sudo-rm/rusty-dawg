@@ -31,9 +31,17 @@ where
     fn compare(&self, e1: &CdawgEdgeWeight<Ix>, e2: &CdawgEdgeWeight<Ix>) -> Ordering {
         let token1 = match self.token1 {
             Some(tok) => tok,
-            None => self.tokens.borrow().get(e1.start.index()),
+            None => if e1.start != Ix::max_value() {
+                self.tokens.borrow().get(e1.start.index())
+            } else {
+                u16::MAX
+            },
         };
-        let token2 = self.tokens.borrow().get(e2.start.index());
+        let token2 = if e2.start != Ix::max_value() {
+            self.tokens.borrow().get(e2.start.index())
+        } else {
+            u16::MAX
+        };
 
         if token1 == token2 {
             Ordering::Equal

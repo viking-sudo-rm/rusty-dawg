@@ -15,7 +15,6 @@ use std::cell::RefCell;
 
 use io::Save;
 
-use clap::Parser;
 use std::fs;
 use std::mem::size_of;
 
@@ -23,6 +22,8 @@ use kdam::{tqdm, BarExt};
 
 use io;
 use super::Args;
+
+use data_reader::{DataReader, PileReader, TxtReader};
 
 use cdawg::Cdawg;
 use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
@@ -72,6 +73,16 @@ where
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
     println!("Buffer size: {}B", args.buf_size);
 
+    let reader: Box<DataReader> = if args.data_reader == "pile" {
+        Box::new(PileReader::new(args.train_path).unwrap())
+    } else {
+        Box::new(TxtReader::new(
+            train_file,
+            buf_size,
+            args.split_token.clone(),
+        ))
+    };
+
     let test_raw: String = if args.test_path.is_empty() {
         "".to_string()
     } else {
@@ -111,17 +122,9 @@ where
     let mut start: usize = 1;
     let mut idx: usize = 0;
     let mut pbar = tqdm!(total = args.n_tokens);
-    let mut train_reader = BufReader::with_capacity(buf_size, train_file);
-    let mut buffer = vec![0; buf_size];
-    loop {
-        let n_bytes_read = train_reader.read(&mut buffer).unwrap();
-        if n_bytes_read == 0 {
-            break;
-        }
-        let text = std::str::from_utf8(&buffer);
-        println!("Tokenizing text...");
-        let tokens = index.tokenize(text.unwrap());
-        println!("Tokenized!");
+    for (doc_id, doc) in reader {
+        (state, start) = cdawg.new_document(idx + 1, Some(doc_id.try_into().unwrap()));
+        let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
             // *token for Vec, token for DiskVec
             let _ = train_vec_rc.borrow_mut().push(*token);
