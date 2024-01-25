@@ -69,19 +69,19 @@ where
     CdawgEdgeWeight<Ix>: Serialize + for<'de> Deserialize<'de>,
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, path: P) -> Result<Self> {
+        // Load source/sink from config file if it exists.
         let path2 = path.clone();
         let mut config_path = path2.as_ref().to_path_buf();
         config_path.push("metadata.json");
-        let config = CdawgMetadata::load_json(config_path)?;
+        let (source, sink) = if config_path.exists() {
+            let config = CdawgMetadata::load_json(config_path)?;
+            (NodeIndex::new(config.source), NodeIndex::new(config.sink))
+        } else {
+            (NodeIndex::new(0), NodeIndex::end())
+        };
 
         let graph = AvlGraph::load(path)?;
-
-        Ok(Self {
-            tokens,
-            graph,
-            source: NodeIndex::new(config.source),
-            sink: NodeIndex::new(config.sink),
-        })
+        Ok(Self {tokens, graph, source, sink})
     }
 
     pub fn save<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {

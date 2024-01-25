@@ -114,8 +114,8 @@ where
     // Maintain a DiskVec that we update incrementally (whenever we read a token, set it).
     println!("# tokens: {}", args.n_tokens);
     println!("Creating train vector...");
-    let train_vec: Vec<u16> = Vec::with_capacity(args.n_tokens);
-    // let train_vec: DiskVec<u16> = DiskVec::new(&args.train_vec_path.unwrap(), args.n_tokens)?;
+    // let train_vec: Vec<u16> = Vec::with_capacity(args.n_tokens);
+    let train_vec: DiskVec<u16> = DiskVec::new(&args.train_vec_path.unwrap(), args.n_tokens)?;
     let train_vec_rc = Rc::new(RefCell::new(train_vec));
 
     println!("Allocating CDAWG...");
@@ -131,7 +131,8 @@ where
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
             // *token for Vec, token for DiskVec
-            let _ = train_vec_rc.borrow_mut().push(*token);
+            let _ = train_vec_rc.borrow_mut().push(token);
+            // let _ = train_vec_rc.borrow_mut().push(*token);
             idx += 1;
             (state, start) = cdawg.update(state, start, idx);
             pbar.update(1);
@@ -150,8 +151,12 @@ where
         }
     }
 
-    let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
+    // All this does is generate the metadata file.
+    if let Some(disk_path) = args.disk_path {
+        let _ = cdawg.save(disk_path.as_str());
+    }
 
+    let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
     eprintln!();
     println!("");
     println!("==========");

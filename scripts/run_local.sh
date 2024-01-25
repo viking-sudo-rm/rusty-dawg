@@ -19,6 +19,6 @@ RUST_BACKTRACE=1 ./target/release/rusty-dawg \
     --buf-size 1000000000 \
     --cdawg \
     --stats-threshold 100000 \
-    --stats-path "/Users/willm/Desktop/stats.jsonl"
-    # --train-vec-path "/Users/willm/Desktop/train.vec"  \ # Doesn't do anything rn.
-    # --disk-path "/tmp/$1-dawg" \
+    --stats-path "/Users/willm/Desktop/run-local/stats.jsonl" \
+    --train-vec-path "/Users/willm/Desktop/run-local/train.vec" \
+    --disk-path "/Users/willm/Desktop/run-local/cdawg"
