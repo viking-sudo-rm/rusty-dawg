@@ -34,6 +34,7 @@ use graph::avl_graph::node::Node;
 use graph::indexing::DefaultIx;
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use build_stats::BuildStats;
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 
@@ -55,12 +56,15 @@ where
         Box::new(PretrainedTokenizer::new(&args.tokenizer))
     };
 
-    println!("Sizes:");
-    println!("\tIx:\t{}B", size_of::<DefaultIx>());
-    println!("\tN:\t{}B", size_of::<N>());
-    println!("\tE:\t{}B", size_of::<E>());
-    println!("\tNode:\t{}B", size_of::<Node<N, DefaultIx>>());
-    println!("\tEdge:\t{}B", size_of::<Edge<E, DefaultIx>>());
+    println!("==========");
+    println!("Sizes");
+    println!("==========");
+    println!("  Ix: {}B", size_of::<DefaultIx>());
+    println!("  N: {}B", size_of::<N>());
+    println!("  E: {}B", size_of::<E>());
+    println!("  Node: {}B", size_of::<Node<N, DefaultIx>>());
+    println!("  Edge: {}B", size_of::<Edge<E, DefaultIx>>());
+    println!("");
 
     println!("Opening train file...");
     let train_file = fs::File::open(args.train_path.as_str())?;
@@ -131,27 +135,36 @@ where
             idx += 1;
             (state, start) = cdawg.update(state, start, idx);
             pbar.update(1);
+
+            if let Some(stats_threshold) = args.stats_threshold {
+                if (idx + 1) % stats_threshold == 0 {
+                    let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
+                    let npt = stats.get_nodes_per_token();
+                    let ept = stats.get_edges_per_token();
+                    pbar.set_description(format!("n/t: {:.2}, e/t: {:.2}", npt, ept));
+                    if let Some(ref stats_path) = args.stats_path {
+                        stats.append_to_jsonl(stats_path)?;
+                    }
+                }
+            }
         }
     }
 
+    let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
+
     eprintln!();
+    println!("");
+    println!("==========");
     println!("Completed!");
-    println!(
-        "  token/byte: {:.2} (tokens={})",
-        (idx as f64) / (n_bytes as f64),
-        idx
-    );
-    println!(
-        "  node/token: {:.2} (nodes={})",
-        (cdawg.node_count() as f64) / (idx as f64),
-        cdawg.node_count()
-    );
-    println!(
-        "  edge/token: {:.2} (edges={})",
-        (cdawg.edge_count() as f64) / (idx as f64),
-        cdawg.edge_count()
-    );
-    println!("  Balance ratio: {}", cdawg.balance_ratio(1));
+    println!("==========");
+    println!("  # tokens: {}", idx);
+    println!("  # nodes: {}", stats.n_nodes);
+    println!("  # edges: {}", stats.n_edges);
+    println!("  tokens/byte: {:.2}", stats.get_tokens_per_byte());
+    println!("  nodes/token: {:.2}", stats.get_nodes_per_token());
+    println!("  edge/token: {:.2}", stats.get_edges_per_token());
+    println!("  balance ratio: {:.2}", stats.balance_ratio);
+    println!("");
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");

@@ -106,9 +106,7 @@ where
     pub fn new_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, mb: Mb) -> Cdawg<W, Ix, Mb> {
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
-        let source_ = NodeIndex::new(source.index());  // FIXME: Weight type linked to Ix
-        let length = Ix::max_value().index();  // Needs to adapt.
-        let sink = graph.add_node(W::new(length.try_into().unwrap(), Some(source_), 0));
+        let sink = NodeIndex::end();  // Initialized by build.
         Self {tokens, graph, source, sink}
     }
 
@@ -139,7 +137,8 @@ where
     ) -> (NodeIndex<Ix>, usize) {
         // FIXME: NodeIndex type weirdness.
         let source = NodeIndex::new(self.source.index());
-        self.sink = self.graph.add_node(W::new(0, Some(source), 0));
+        // Sink is only ever matched once: for full string.
+        self.sink = self.graph.add_node(W::new(0, Some(source), 1));
         if let Some(id) = doc_id {
             // Add a special node that encodes doc_id.
             let doc_node = self.graph.add_node(W::new(id, None, 0));
@@ -166,6 +165,7 @@ where
         while !self.check_end_point(opt_state, (start, end - 1), token) {
             // Within the loop, never possible for opt_state to be null.
             let state = opt_state.unwrap();
+
             if start <= end - 1 {
                 // Implicit case checks when an edge is active.
                 let cur_dest = self.extension(state, (start, end - 1));
@@ -173,6 +173,7 @@ where
                     self.redirect_edge(state, (start, end - 1), r);
                     let fstate = self.graph.get_node(state).get_failure();
                     (opt_state, start) = self.canonize(fstate, (start, end - 1));
+                    // TODO: probably want to update count here?
                     continue;
                 } else {
                     dest = Some(cur_dest);
@@ -231,7 +232,7 @@ where
         self.graph.get_edge_mut(edge_idx).set_target(target);
     }
 
-    // Split the edge and leave failure transitions unedited.
+    // Split the edge, copying counts, and leave failure transitions unedited.
     fn split_edge(&mut self, q: NodeIndex<Ix>, gamma: (usize, usize)) -> NodeIndex<Ix> {
         // First, create a new node and set it's length.
         let v = self.graph.add_node(self.graph.get_node(q).get_weight());
@@ -510,7 +511,8 @@ where
                 (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             },
             None => {
-                (found_start, found_end, found_state) = (0, 0, self.source);
+                // Changed these to (1, 1) to avoid subtraction overflow issue.
+                (found_start, found_end, found_state) = (1, 1, self.source);
             }
         }
         
@@ -574,6 +576,12 @@ where
             },
         }        
     }
+
+    // // Takes a CdawgState with a non-null target.
+    // pub fn get_count(&self, cs: CdawgState<Ix>) -> u64 {
+    //     let target = cs.target.unwrap();
+    //     self.graph.get_node(target).get_count()
+    // }
 
 }
 
@@ -1073,7 +1081,7 @@ mod tests {
         assert!(cdawg.get_edge_by_token(cdawg.sink, u16::MAX).is_some());
 
         // Check that doc IDs are correctly stored after everything.
-        let sink1 = NodeIndex::new(2);
+        let sink1 = NodeIndex::new(1);
         let doc_edge1 = cdawg.get_edge_by_token(sink1, u16::MAX).unwrap();
         let doc1 = cdawg.graph.get_edge(doc_edge1).get_target();
         assert_eq!(cdawg.graph.get_node(doc1).get_length(), 0);
@@ -1128,5 +1136,46 @@ mod tests {
         let edge = cdawg.get_edge_by_token(cdawg.sink, u16::MAX);
         assert!(edge.is_some());
     }
+
+    // #[test]
+    // fn test_get_count_cocoa() {
+    //     // Test counts incrementally.
+    //     let (c, o, a) = (0, 1, 2);
+    //     let train = Rc::new(RefCell::new(vec![c, o, c, o, a]));
+    //     let mut cdawg: Cdawg = Cdawg::new(train);
+        
+    //     let (mut state, mut start) = cdawg.new_document(1, None);
+
+    //     // Step 1: compare counts against "c"
+    //     (state, start) = cdawg.update(state, start, 1);
+    //     let mut counts = Vec::new();
+    //     let mut cs = cdawg.get_initial();
+    //     for token in vec![o, c, o, a].iter() {
+    //         cs = cdawg.transition_and_count(cs, *token);
+    //         counts.push(cdawg.get_count(cs));
+    //     }
+    //     // The empty string is matched everywhere. Should it be +1?
+    //     assert_eq!(counts, vec![1, 1, 1, 1]);
+
+    //     // Step 2: compare counts against "co"
+    //     (state, start) = cdawg.update(state, start, 2);
+    //     let mut counts = Vec::new();
+    //     let mut cs = cdawg.get_initial();
+    //     for token in vec![o, c, o, a].iter() {
+    //         cs = cdawg.transition_and_count(cs, *token);
+    //         counts.push(cdawg.get_count(cs));
+    //     }
+    //     assert_eq!(counts, vec![1, 1, 1, 2]);
+
+    //     // Step 2: compare counts against "coc"
+    //     (state, start) = cdawg.update(state, start, 3);
+    //     let mut counts = Vec::new();
+    //     let mut cs = cdawg.get_initial();
+    //     for token in vec![o, c, o, a].iter() {
+    //         cs = cdawg.transition_and_count(cs, *token);
+    //         counts.push(cdawg.get_count(cs));
+    //     }
+    //     assert_eq!(counts, vec![1, 2, 1, 3]);
+    // }
 
 }

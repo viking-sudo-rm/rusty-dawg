@@ -23,8 +23,9 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
-mod data_reader;
+mod build_stats;
 mod build_cdawg;
+mod data_reader;
 mod cdawg;
 mod dawg;
 mod evaluator;
@@ -127,6 +128,10 @@ pub struct Args {
     cdawg: bool,
     #[arg(long)]
     train_vec_path: Option<String>,
+    #[arg(long)]
+    stats_threshold: Option<usize>,
+    #[arg(long)]
+    stats_path: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

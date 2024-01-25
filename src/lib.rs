@@ -16,6 +16,7 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
+pub mod build_stats;
 pub mod data_reader;
 pub mod cdawg;
 pub mod dawg;
