@@ -9,6 +9,8 @@ use graph::indexing::IndexType;
 use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use cdawg::token_backing::TokenBacking;
 
+const END: u16 = u16::MAX;
+
 pub struct CdawgComparator {
     tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
     token1: Option<u16>,  // If token is provided, it is assumed to be the token for e1.
@@ -31,19 +33,14 @@ where
     fn compare(&self, e1: &CdawgEdgeWeight<Ix>, e2: &CdawgEdgeWeight<Ix>) -> Ordering {
         let token1 = match self.token1 {
             Some(tok) => tok,
-            None => if e1.start != Ix::max_value() {
-                self.tokens.borrow().get(e1.start.index())
-            } else {
-                u16::MAX
-            },
+            None => self.tokens.borrow().get(e1.start.index()),
         };
-        let token2 = if e2.start != Ix::max_value() {
-            self.tokens.borrow().get(e2.start.index())
-        } else {
-            u16::MAX
-        };
+        let token2 = self.tokens.borrow().get(e2.start.index());
 
-        if token1 == token2 {
+        if token1 == END && token2 == END {
+            // The start index of an open node represents doc_id
+            e1.start.cmp(&e2.start)
+        } else if token1 == token2 {
             Ordering::Equal
         } else if token1 < token2 {
             Ordering::Less
@@ -64,12 +61,17 @@ mod tests {
 
     #[test]
     fn test_compare_no_token() {
-        let tokens = Rc::new(RefCell::new(vec![2, 1, 0, 1, 2]));
+        let tokens = Rc::new(RefCell::new(vec![2, 1, 0, 1, 2, END, END]));
         let cmp = CdawgComparator::new(tokens);
 
         assert_eq!(cmp.compare(&E::new(0, 5), &E::new(4, 5)), Ordering::Equal);
         assert_eq!(cmp.compare(&E::new(0, 5), &E::new(1, 5)), Ordering::Greater);
         assert_eq!(cmp.compare(&E::new(1, 5), &E::new(0, 5)), Ordering::Less);
+
+        // Now with end-of-text weights.
+        assert_eq!(cmp.compare(&E::new(5, 6), &E::new(5, 7)), Ordering::Equal);
+        assert_eq!(cmp.compare(&E::new(5, 6), &E::new(6, 7)), Ordering::Less);
+        assert_eq!(cmp.compare(&E::new(5, 6), &E::new(0, 3)), Ordering::Greater);
     }
 
     #[test]
@@ -80,6 +82,16 @@ mod tests {
         assert_eq!(cmp.compare(&E::new(0, 5), &E::new(0, 5)), Ordering::Less);
         assert_eq!(cmp.compare(&E::new(0, 5), &E::new(1, 5)), Ordering::Equal);
         assert_eq!(cmp.compare(&E::new(1, 5), &E::new(2, 5)), Ordering::Greater);
+    }
+
+    #[test]
+    fn test_compare_end() {
+        let tokens = Rc::new(RefCell::new(vec![2, 1, END, 1, END]));
+        let cmp = CdawgComparator::new_with_token(tokens, END);
+
+        assert_eq!(cmp.compare(&E::new(2, 3), &E::new(4, 5)), Ordering::Less);
+        assert_eq!(cmp.compare(&E::new(4, 5), &E::new(4, 5)), Ordering::Equal);
+        assert_eq!(cmp.compare(&E::new(2, 3), &E::new(0, 5)), Ordering::Greater);
     }
 
 

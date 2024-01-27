@@ -45,7 +45,7 @@ where
 
 impl<N, E, Ix> AvlGraph<N, E, Ix>
 where
-    E: Eq + Ord + Copy + Debug,
+    E: Copy + Debug,
     Ix: IndexType,
     N: Weight + Clone,
 {
@@ -57,7 +57,7 @@ where
 
 impl<N, E, Ix> AvlGraph<N, E, Ix, DiskBacking<N, E, Ix>>
 where
-    E: Eq + Ord + Copy + Debug + Serialize + DeserializeOwned + Default,
+    E: Copy + Debug + Serialize + DeserializeOwned + Default,
     N: Weight + Clone + Serialize + DeserializeOwned + Default,
     Ix: IndexType + Serialize + DeserializeOwned,
 {
@@ -77,7 +77,7 @@ where
 impl<N, E, Ix, Mb> AvlGraph<N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
-    E: Eq + Ord + Copy + Debug,
+    E: Copy + Debug,
     Ix: IndexType,
 {
     pub fn new_mb(mb: Mb) -> Self {

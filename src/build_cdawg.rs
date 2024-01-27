@@ -31,7 +31,7 @@ use evaluator::Evaluator;
 
 use graph::avl_graph::edge::Edge;
 use graph::avl_graph::node::Node;
-use graph::indexing::DefaultIx;
+use graph::indexing::{DefaultIx, NodeIndex};
 use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use build_stats::BuildStats;
@@ -53,7 +53,9 @@ where
     } else if args.tokenizer == "null" {
         Box::new(NullTokenIndex::new())
     } else {
-        Box::new(PretrainedTokenizer::new(&args.tokenizer))
+        let mut pt = PretrainedTokenizer::new(&args.tokenizer);
+        pt.add_eos = true;
+        Box::new(pt)
     };
 
     println!("==========");
@@ -122,12 +124,13 @@ where
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
         Cdawg::with_capacity_mb(train_vec_rc.clone(), mb, n_nodes, n_edges);
 
-    let mut state = cdawg.get_source();
-    let mut start: usize = 1;
+    let mut state: NodeIndex<DefaultIx>;
+    let mut start: usize;
     let mut idx: usize = 0;
+    let mut doc_idx = 0;
     let mut pbar = tqdm!(total = args.n_tokens);
     for (doc_id, doc) in reader {
-        (state, start) = cdawg.new_document(idx + 1, Some(doc_id.try_into().unwrap()));
+        (state, start) = (cdawg.get_source(), 1);
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
             // *token for Vec, token for DiskVec
@@ -135,6 +138,10 @@ where
             // let _ = train_vec_rc.borrow_mut().push(*token);
             idx += 1;
             (state, start) = cdawg.update(state, start, idx);
+            if *token == u16::MAX {
+                cdawg.end_document(idx, doc_idx);
+                doc_idx += 1;
+            }
             pbar.update(1);
 
             if let Some(stats_threshold) = args.stats_threshold {

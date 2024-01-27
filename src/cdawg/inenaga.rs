@@ -49,6 +49,7 @@ where
     graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb>,
     source: NodeIndex<Ix>,
     sink: NodeIndex<Ix>,
+    end_position: usize,  // End position of current document.
 }
 
 impl<W, Ix> Cdawg<W, Ix>
@@ -71,17 +72,28 @@ where
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, path: P) -> Result<Self> {
         // Load source/sink from config file if it exists.
         let path2 = path.clone();
+        let graph = AvlGraph::load(path)?;
+
         let mut config_path = path2.as_ref().to_path_buf();
         config_path.push("metadata.json");
-        let (source, sink) = if config_path.exists() {
+        if config_path.exists() {
             let config = CdawgMetadata::load_json(config_path)?;
-            (NodeIndex::new(config.source), NodeIndex::new(config.sink))
+            Ok(Self {
+                tokens,
+                graph,
+                source: NodeIndex::new(config.source),
+                sink: NodeIndex::new(config.sink),
+                end_position: config.end_position,
+            })
         } else {
-            (NodeIndex::new(0), NodeIndex::end())
-        };
-
-        let graph = AvlGraph::load(path)?;
-        Ok(Self {tokens, graph, source, sink})
+            Ok(Self {
+                tokens,
+                graph,
+                source: NodeIndex::new(0),
+                sink: NodeIndex::new(1),
+                end_position: 0,
+            })
+        }
     }
 
     pub fn save<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {
@@ -90,6 +102,7 @@ where
         let config = CdawgMetadata {
             source: self.source.index(),
             sink: self.sink.index(),
+            end_position: self.end_position,
         };
         config.save_json(config_path)
     }
@@ -106,8 +119,9 @@ where
     pub fn new_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, mb: Mb) -> Cdawg<W, Ix, Mb> {
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
-        let sink = NodeIndex::end();  // Initialized by build.
-        Self {tokens, graph, source, sink}
+        // FIXME: Hacky type conversion for sink failure.
+        let sink = graph.add_node(W::new(0, Some(NodeIndex::new(source.index())), 1));
+        Self {tokens, graph, source, sink, end_position: 0}
     }
 
     pub fn with_capacity_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
@@ -116,55 +130,42 @@ where
                             n_edges: usize,) -> Cdawg<W, Ix, Mb> {
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
         let source = graph.add_node(W::new(0, None, 0));
-        let sink = NodeIndex::end();  // Initialized by build.
-        Self {tokens, graph, source, sink}
+        // FIXME: Hacky type conversion for sink failure.
+        let sink = graph.add_node(W::new(0, Some(NodeIndex::new(source.index())), 1));
+        Self {tokens, graph, source, sink, end_position: 0}
     }
 
-    // Tokens needs to be fully populated for this to work!
+    // Tokens needs to be fully populated and contain end-of-document tokens for this to work.
     pub fn build(&mut self) {
-        let (mut state, mut start) = self.new_document(1, None);
+        let (mut state, mut start) = (self.source, 1);
         let length = self.tokens.borrow().len();
         for idx in 1..length + 1 {
             (state, start) = self.update(state, start, idx);
+            if self.tokens.borrow().get(idx - 1) == u16::MAX {
+                self.end_document(idx, idx);
+            }
         }
-    }
-
-    // Update the sink node, return new (state, start), and potentially add a doc_id node.
-    pub fn new_document(
-        &mut self,
-        idx: usize,  // Next token index.
-        doc_id: Option<u64>,
-    ) -> (NodeIndex<Ix>, usize) {
-        // FIXME: NodeIndex type weirdness.
-        let source = NodeIndex::new(self.source.index());
-        // Sink is only ever matched once: for full string.
-        self.sink = self.graph.add_node(W::new(0, Some(source), 1));
-        if let Some(id) = doc_id {
-            // Add a special node that encodes doc_id.
-            let doc_node = self.graph.add_node(W::new(id, None, 0));
-            self.add_doc_id_edge(self.sink, doc_node);
-        }
-        (self.source, idx)
     }
 
     pub fn update(&mut self,
               in_state: NodeIndex<Ix>,  // Cannot be null.
               mut start: usize,
               end: usize,) -> (NodeIndex<Ix>, usize) {
-
-        // First step is to increment e, which is stored as sink length.
+        // Update self.e, which is also the length of the current sink.
+        self.end_position += 1;
         let sink_length = self.graph.get_node(self.sink).get_length();
         self.graph.get_node_mut(self.sink).set_length(sink_length + 1);
 
-        let token = self.tokens.borrow().get(end - 1);  // Map p back to 0-indexing
         let mut dest: Option<NodeIndex<Ix>> = None;
         let mut r = NodeIndex::end();
         let mut opt_state: Option<NodeIndex<Ix>> = Some(in_state);
         let mut opt_r: Option<NodeIndex<Ix>> = None;
         let mut opt_old_r: Option<NodeIndex<Ix>> = None;
+        let token = self.tokens.borrow().get(end - 1);  // Map p back to 0-indexing
         while !self.check_end_point(opt_state, (start, end - 1), token) {
             // Within the loop, never possible for opt_state to be null.
             let state = opt_state.unwrap();
+            self.graph.get_node_mut(state).increment_count();
 
             if start <= end - 1 {
                 // Implicit case checks when an edge is active.
@@ -184,8 +185,10 @@ where
                 r = state;
             }
 
-            // 1) Create new edge from r to sink with (end, *sink.length).
+            // 1) Add a new OPEN edge from r to sink (that can grow via pointer).
+            // Should work correctly when tokens[end - 1] is u16::MAX.
             self.add_balanced_edge(r, self.sink, (end, Ix::max_value().index()));
+            
             
             // 2) Set failure transition.
             if let Some(old_r) = opt_old_r {
@@ -205,6 +208,23 @@ where
         self.separate_node(opt_state, (start, end))
     }
 
+    // Update the document_id, add a sink node, and return new (state, start).
+    pub fn end_document(
+        &mut self,
+        idx: usize,  // Index of end-of-document token in CURRENT document.
+        doc_id: usize,  // Canonical doc ID for CURRENT document.
+    ) -> (NodeIndex<Ix>, usize) {
+        // Add a looped edge on the sink node encoding 
+        // We do this after the document is done so it never gets cloned.
+        // At this point, idx == self.end_position.
+        let weight = (idx, doc_id);  // doc_id is basically a label for node
+        self.add_balanced_edge(self.sink, self.sink, weight);
+
+        let source = NodeIndex::new(self.source.index());
+        self.sink = self.graph.add_node(W::new(0, Some(source), 1));
+        (self.source, idx + 1)
+    }
+
     // This is just following a transition (doesn't eat up everything potentially)
     // Note: 1-indexed!
     fn extension(&self, state: NodeIndex<Ix>, gamma: (usize, usize)) -> NodeIndex<Ix> {
@@ -212,8 +232,9 @@ where
         if start > end {
             return state;
         }
-        let token = self.tokens.borrow().get(start - 1);
-        let e = self.get_edge_by_token(state, token);
+        // let token = self.tokens.borrow().get(start - 1);
+        // let e = self.get_edge_by_token(state, token);
+        let e = self.get_edge_by_token_index(state, start - 1);
         self.graph.get_edge(e.unwrap()).get_target()
     }
 
@@ -221,8 +242,9 @@ where
     // Note: 1-indexed!
     pub fn redirect_edge(&mut self, state: NodeIndex<Ix>, gamma: (usize, usize), target: NodeIndex<Ix>) {
         let (start, end) = gamma;
-        let token = self.tokens.borrow().get(start - 1);
-        let edge_idx = self.get_edge_by_token(state, token).unwrap();
+        // let token = self.tokens.borrow().get(start - 1);
+        // let edge_idx = self.get_edge_by_token(state, token).unwrap();
+        let edge_idx = self.get_edge_by_token_index(state, start - 1).unwrap();
         let edge_ref = self.graph.get_edge(edge_idx);
         let (found_start, _) = self.get_span(edge_ref.get_weight(), edge_ref.get_target());
 
@@ -241,8 +263,9 @@ where
         self.graph.get_node_mut(v).set_length(q_length + gamma_length);
 
         // Next, get the existing edge we're going to split.
-        let token = self.tokens.borrow().get(gamma.0 - 1); // 0-indexed
-        let edge_idx = self.get_edge_by_token(q, token);
+        // let token = self.tokens.borrow().get(gamma.0 - 1); // 0-indexed
+        // let edge_idx = self.get_edge_by_token(q, token);
+        let edge_idx = self.get_edge_by_token_index(q, gamma.0 - 1);
         let edge = self.graph.get_edge(edge_idx.unwrap());
         let (mut start, end) = edge.get_weight().get_span();  // We DON'T call get_span because we want to keep end pointers.
         start += 1;  // Map back to Inenaga 1-indexed!
@@ -291,8 +314,9 @@ where
         // We know that state is non-null here.
         loop {
             // Reroute tokens[start-1] edge to new_state via (start, end)
-            let token = self.tokens.borrow().get(start - 1);
-            let edge_idx = self.get_edge_by_token(state.unwrap(), token);
+            // let token = self.tokens.borrow().get(start - 1);
+            // let edge_idx = self.get_edge_by_token(state.unwrap(), token);
+            let edge_idx = self.get_edge_by_token_index(state.unwrap(), start - 1);
             self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, end));
             self.graph.get_edge_mut(edge_idx.unwrap()).set_target(new_state);
             
@@ -320,8 +344,9 @@ where
         let mut found_state: NodeIndex<Ix>;
         match state {
             Some(q) => {
-                let token = self.tokens.borrow().get(start - 1);
-                let edge_idx = self.get_edge_by_token(q, token).unwrap();
+                // let token = self.tokens.borrow().get(start - 1);
+                // let edge_idx = self.get_edge_by_token(q, token).unwrap();
+                let edge_idx = self.get_edge_by_token_index(q, start - 1).unwrap();
                 (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             },
             None => {
@@ -333,8 +358,9 @@ where
             start += found_end + 1 - found_start;  // Written this way to avoid overflow.
             state = Some(found_state);
             if start <= end {
-                let token = self.tokens.borrow().get(start - 1);
-                let edge_idx = self.get_edge_by_token(found_state, token).unwrap();
+                // let token = self.tokens.borrow().get(start - 1);
+                // let edge_idx = self.get_edge_by_token(found_state, token).unwrap();
+                let edge_idx = self.get_edge_by_token_index(found_state, start - 1).unwrap();
                 (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
             }
         }
@@ -346,15 +372,34 @@ where
     fn check_end_point(&self, state: Option<NodeIndex<Ix>>, gamma: (usize, usize), token: u16) -> bool {
         let (start, end) = gamma;
         if start <= end {
-            let wk = self.tokens.borrow().get(start - 1);
-            let e = self.get_edge_by_token(state.unwrap(), wk).unwrap();
+            // let wk = self.tokens.borrow().get(start - 1);
+            // let e = self.get_edge_by_token(state.unwrap(), wk).unwrap();
+            let e = self.get_edge_by_token_index(state.unwrap(), start - 1).unwrap();
             let edge = self.graph.get_edge(e);
-            let (found_start, _) = self.get_span(edge.get_weight(), edge.get_target());
-            token == self.tokens.borrow().get(found_start + end - start)  // No +1 because 0-indexed.
+            let (found_start, found_end) = self.get_span(edge.get_weight(), edge.get_target());
+            if found_end - found_start < end - start {
+                return false;
+            }
+
+            // No +1 because 0-indexed.
+            let existing_token = self.tokens.borrow().get(found_start + end - start);
+            if token != u16::MAX || existing_token != u16::MAX {                
+                token == existing_token
+            } else {
+                // Compare based on whether these are the same end-of-text tokens.
+                end == found_start + end - start
+            }
         } else {
             match state {
                 Some(phi) => {
-                    let edge_idx = self.get_edge_by_token(phi, token);
+                    // token == tokens[end]
+                    // let edge_idx = self.get_edge_by_token(phi, token);
+                    let edge_idx = if token != u16::MAX {
+                        self.get_edge_by_token(phi, token)
+                    } else {
+                        self.get_edge_by_token_index(phi, end)
+                    };
+                    
                     edge_idx.is_some()
                 },
                 None => true,
@@ -383,8 +428,18 @@ where
         if end < Ix::max_value().index() {
             (start + 1, end)
         } else {
-            let e = self.graph.get_node(target).get_length();
-            (start + 1, e.try_into().unwrap())
+            // If there is a self-loop, we are at a different document.
+            let edge_idx = self.graph.get_node(target).get_first_edge();
+            if edge_idx == EdgeIndex::end() {
+                // We are in the active document.
+                (start + 1, self.end_position)
+            } else {
+                // We are at the sink for a different document.
+                let (e, _) = self.graph.get_edge(edge_idx).get_weight().get_span();
+                (start + 1, e + 1)  // Adjust both to be 1-indexed.
+            }
+            // let e = self.graph.get_node(target).get_length();
+            // (start + 1, e.try_into().unwrap())
         }
     }
 
@@ -423,23 +478,30 @@ where
         max_ratio
     }
 
+    // Only well-defined when token is not end-of-text.
     pub fn get_edge_by_token(&self, state: NodeIndex<Ix>, token: u16) -> Option<EdgeIndex<Ix>> {
-        let weight = CdawgEdgeWeight::new(0, 0);  // Doesn't matter since comparator has token.
+        if token != u16::MAX {
+            let weight = CdawgEdgeWeight::new(0, 0);  // Doesn't matter.
+            let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
+            self.graph.get_edge_by_weight_cmp(state, weight, Box::new(cmp))
+        } else {
+            None
+        }
+    }
+
+    // Handle end-of-text tokens correctly.
+    pub fn get_edge_by_token_index(&self, state: NodeIndex<Ix>, token_idx: usize) -> Option<EdgeIndex<Ix>> {
+        let weight = CdawgEdgeWeight::new(token_idx, token_idx + 1);
+        let token = self.tokens.borrow().get(token_idx);
         let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
         self.graph.get_edge_by_weight_cmp(state, weight, Box::new(cmp))
     }
 
     pub fn add_balanced_edge(&mut self, state: NodeIndex<Ix>, target: NodeIndex<Ix>, gamma: (usize, usize)) {
+        // We should have gamma.0 <= gamma.1
         let weight = self._new_edge_weight(gamma.0, gamma.1);
         let token = self.tokens.borrow().get(gamma.0 - 1);  // Map to 0-indexed
         let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
-        self.graph.add_balanced_edge_cmp(state, target, weight, Box::new(cmp))
-    }
-
-    // Add an edge that should never be crossable by a token.
-    fn add_doc_id_edge(&mut self, state: NodeIndex<Ix>, target: NodeIndex<Ix>) {
-        let weight = CdawgEdgeWeight::max_value();
-        let cmp = CdawgComparator::new_with_token(self.tokens.clone(), u16::MAX);
         self.graph.add_balanced_edge_cmp(state, target, weight, Box::new(cmp))
     }
 
@@ -656,8 +718,8 @@ mod tests {
     #[test]
     fn test_check_end_point() {
         // This is 1-indexed!
-        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
-        cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (1, 3));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2, u16::MAX, 2, u16::MAX])));
+        cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (1, 4));
         assert!(cdawg.check_end_point(Some(cdawg.source), to_inenaga((0, 0)), 0));
         assert!(!cdawg.check_end_point(Some(cdawg.source), to_inenaga((0, 0)), 1));
         assert!(cdawg.check_end_point(Some(cdawg.source), to_inenaga((0, 1)), 1));
@@ -667,6 +729,17 @@ mod tests {
         assert!(cdawg.check_end_point(None, to_inenaga((0, 0)), 0));
         assert!(cdawg.check_end_point(None, to_inenaga((0, 0)), 1));
         assert!(cdawg.check_end_point(None, to_inenaga((0, 0)), 2));
+
+        // Check with end-of-text tokens on edge.
+        assert!(cdawg.check_end_point(Some(cdawg.source), (1, 3), u16::MAX));
+        // Has not been inserted yet.
+        assert!(!cdawg.check_end_point(Some(cdawg.source), (1, 5), u16::MAX));
+
+        // Check with end-of-text tokens at state.
+        // here, end must be the token index (when 0-indexed)
+        cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (4, 4));
+        assert!(cdawg.check_end_point(Some(cdawg.source), (4, 3), u16::MAX));
+        assert!(!cdawg.check_end_point(Some(cdawg.source), (6, 5), u16::MAX));
     }
 
     #[test]
@@ -680,7 +753,6 @@ mod tests {
     #[test]
     fn test_split_edge() {
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
-        let _ = cdawg.new_document(1, None);
 
         cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (1, 3));
         let v = cdawg.split_edge(cdawg.source, to_inenaga((0, 1)));
@@ -733,7 +805,7 @@ mod tests {
         let o = 1;
         let a = 2;
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![c, o, c, o, a, o])));
-        let (mut state, mut start) = cdawg.new_document(1, None);
+        let (mut state, mut start) = (cdawg.source, 1);
 
         // Step 1: c
         (state, start) = cdawg.update(state, start, 1);
@@ -827,7 +899,7 @@ mod tests {
     fn test_update_aaa() {
         // Randomly thought this might reveal an issue where there were too many edges.
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 0, 0])));
-        let (mut state, mut start) = cdawg.new_document(1, None);
+        let (mut state, mut start) = (cdawg.source, 1);
 
         (state, start) = cdawg.update(state, start, 1);
         assert_eq!(get_edge!(cdawg, cdawg.source, 0).get_target(), cdawg.sink);
@@ -847,7 +919,7 @@ mod tests {
         // Taken from Figure 13 of Inenaga et al.
         let (a, b, c) = (0, 1, 2);
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a])));
-        let (mut state, mut start) = cdawg.new_document(1, None);
+        let (mut state, mut start) = (cdawg.source, 1);
 
         // 1) a
         (state, start) = cdawg.update(state, start, 1);
@@ -957,7 +1029,8 @@ mod tests {
     fn test_sink_length() {
         let (a, b, c) = (0, 1, 2);
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a])));
-        let (mut state, mut start) = cdawg.new_document(1, None);
+        let (mut state, mut start) = (cdawg.source, 1);
+
         (state, start) = cdawg.update(state, start, 1);
         assert_eq!(cdawg.graph.get_node(cdawg.sink).get_length(), 1);
         (state, start) = cdawg.update(state, start, 2);
@@ -994,7 +1067,7 @@ mod tests {
         let vec: Vec<u16> = vec![0, 1, 2];
         let disk_vec = DiskVec::<u16>::from_vec(vec, tmp_dir.path().join("vec.bin")).unwrap();
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(disk_vec)));
-        let (mut state, mut start) = cdawg.new_document(1, None);
+        let (mut state, mut start) = (cdawg.source, 1);
 
         // Step 1: c
         (state, start) = cdawg.update(state, start, 1);
@@ -1066,29 +1139,25 @@ mod tests {
     #[test]
     fn test_multidoc_abc_bcd() {
         let (a, b, c, d) = (0, 1, 2, 3);
-        let train = Rc::new(RefCell::new(vec![a, b, c, b, c, d]));
-        let mut cdawg: Cdawg = Cdawg::new(train);
+        let train = Rc::new(RefCell::new(vec![a, b, c, u16::MAX, b, c, d, u16::MAX]));
+        let mut cdawg: Cdawg = Cdawg::new(train.clone());
 
-        let (mut state, mut start) = cdawg.new_document(1, Some(0));
-        for idx in 1..4 {
+        let (mut state, mut start) = (cdawg.source, 1);
+        let length = train.borrow().len();
+        for idx in 1..length + 1 {
             (state, start) = cdawg.update(state, start, idx);
+            if train.borrow().get(idx - 1) == u16::MAX {
+                cdawg.end_document(idx, idx);
+            }
         }
-        assert!(cdawg.get_edge_by_token(cdawg.sink, u16::MAX).is_some());
-        (state, start) = cdawg.new_document(4, Some(1));
-        for idx in 4..7 {
-            (state, start) = cdawg.update(state, start, idx);
-        }
-        assert!(cdawg.get_edge_by_token(cdawg.sink, u16::MAX).is_some());
 
-        // Check that doc IDs are correctly stored after everything.
-        let sink1 = NodeIndex::new(1);
-        let doc_edge1 = cdawg.get_edge_by_token(sink1, u16::MAX).unwrap();
-        let doc1 = cdawg.graph.get_edge(doc_edge1).get_target();
-        assert_eq!(cdawg.graph.get_node(doc1).get_length(), 0);
-        let sink2 = cdawg.sink;
-        let doc_edge2 = cdawg.get_edge_by_token(sink2, u16::MAX).unwrap();
-        let doc2 = cdawg.graph.get_edge(doc_edge2).get_target();
-        assert_eq!(cdawg.graph.get_node(doc2).get_length(), 1);
+        // Check that the documents are encoded correctly with edges from source to their sink node.
+        let cmp0 = CdawgComparator::new(train.clone());
+        let doc0 = cdawg.graph.get_edge_by_weight_cmp(cdawg.source, CdawgEdgeWeight::new(3, 0), Box::new(cmp0));
+        assert_eq!(cdawg.graph.get_edge(doc0.unwrap()).get_target().index(), 1);
+        let cmp1 = CdawgComparator::new(train.clone());
+        let doc1 = cdawg.graph.get_edge_by_weight_cmp(cdawg.source, CdawgEdgeWeight::new(7, 0), Box::new(cmp1));
+        assert_eq!(cdawg.graph.get_edge(doc1.unwrap()).get_target().index(), 2);
 
         // Check that the suffix overlaps are returned correctly.
         let mut lengths = Vec::new();
@@ -1103,20 +1172,19 @@ mod tests {
     #[test]
     fn test_multidoc_cocoa_cola() {
         // Taken from Figure 19 in the paper.
+        let end = u16::MAX;
         let (c, o, a, l) = (0, 1, 2, 3);
-        let train = Rc::new(RefCell::new(vec![c, o, c, o, a, c, o, l, a]));
-        let mut cdawg: Cdawg = Cdawg::new(train);
+        let train = Rc::new(RefCell::new(vec![c, o, c, o, a, end, c, o, l, a]));
+        let mut cdawg: Cdawg = Cdawg::new(train.clone());
 
-        let (mut state, mut start) = cdawg.new_document(1, Some(0));
-        for idx in 1..6 {
+        let (mut state, mut start) = (cdawg.source, 1);
+        let length = train.borrow().len();
+        for idx in 1..length + 1 {
             (state, start) = cdawg.update(state, start, idx);
+            if train.borrow().get(idx - 1) == u16::MAX {
+                cdawg.end_document(idx, idx);
+            }
         }
-        assert!(cdawg.get_edge_by_token(cdawg.sink, u16::MAX).is_some());
-        (state, start) = cdawg.new_document(6, Some(1));
-        for idx in 6..10 {
-            (state, start) = cdawg.update(state, start, idx);
-        }
-        assert!(cdawg.get_edge_by_token(cdawg.sink, u16::MAX).is_some());
 
         let mut lengths = Vec::new();
         let mut cs = cdawg.get_initial();
@@ -1128,13 +1196,26 @@ mod tests {
     }
 
     #[test]
-    fn test_get_edge_by_token_max() {
-        let (c, o, a, l) = (0, 1, 2, 3);
-        let train = Rc::new(RefCell::new(vec![c, o, c, o, a, c, o, l, a]));
-        let mut cdawg: Cdawg = Cdawg::new(train);
-        let (mut state, mut start) = cdawg.new_document(1, Some(0));
-        let edge = cdawg.get_edge_by_token(cdawg.sink, u16::MAX);
-        assert!(edge.is_some());
+    fn test_build_a_end_b_end() {
+        let train = Rc::new(RefCell::new(vec![0, u16::MAX, 1, u16::MAX]));
+        let mut cdawg: Cdawg = Cdawg::new(train.clone());
+        cdawg.build();
+
+        // Test the normal edges.
+        let edge_a = get_edge!(cdawg, cdawg.source, 0);
+        assert_eq!(edge_a.get_target().index(), 1);
+        assert_eq!(cdawg.get_span(edge_a.get_weight(), edge_a.get_target()), (1, 2));  // 1-indexed
+        let edge_b = get_edge!(cdawg, cdawg.source, 1);
+        assert_eq!(edge_b.get_target().index(), 2);
+        assert_eq!(cdawg.get_span(edge_b.get_weight(), edge_b.get_target()), (3, 4));  // 1-indexed
+
+        // Test the sink edges.
+        let cmp0 = CdawgComparator::new(train.clone());
+        let doc0 = cdawg.graph.get_edge_by_weight_cmp(cdawg.source, CdawgEdgeWeight::new(1, 2), Box::new(cmp0));
+        assert_eq!(cdawg.graph.get_edge(doc0.unwrap()).get_target(), NodeIndex::new(1));
+        let cmp1 = CdawgComparator::new(train.clone());
+        let doc1 = cdawg.graph.get_edge_by_weight_cmp(cdawg.source, CdawgEdgeWeight::new(3, 4), Box::new(cmp1));
+        assert_eq!(cdawg.graph.get_edge(doc1.unwrap()).get_target(), NodeIndex::new(2));
     }
 
     // #[test]
@@ -1144,7 +1225,7 @@ mod tests {
     //     let train = Rc::new(RefCell::new(vec![c, o, c, o, a]));
     //     let mut cdawg: Cdawg = Cdawg::new(train);
         
-    //     let (mut state, mut start) = cdawg.new_document(1, None);
+    //     let (mut state, mut start) = (cdawg.source, 1);
 
     //     // Step 1: compare counts against "c"
     //     (state, start) = cdawg.update(state, start, 1);

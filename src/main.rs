@@ -218,7 +218,8 @@ where
         + TryFrom<usize>
         + 'static
         + TryInto<u32>
-        + TryFrom<u32>,
+        + TryFrom<u32>
+        + tokenize::end::End,
     usize: TryFrom<E>,
     u64: TryFrom<E>,
     Mb: MemoryBacking<N, E, DefaultIx>,
