@@ -53,6 +53,13 @@ where
         let _ = disk_vec.set(self.index, &node);
     }
 
+    fn set_count(self, count: u16) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut node = disk_vec.get(self.index).unwrap();
+        node.weight.set_count(count);
+        let _ = disk_vec.set(self.index, &node);
+    }
+
     fn set_first_edge(self, first_edge: EdgeIndex<Ix>) {
         let mut disk_vec = self.disk_vec.borrow_mut();
         let mut node = disk_vec.get(self.index).unwrap();

@@ -129,6 +129,7 @@ pub trait NodeMutRef<Ix> {
     fn set_length(self, length: u64);
     fn set_failure(self, state: Option<NodeIndex<Ix>>);
     fn increment_count(self);
+    fn set_count(self, count: u16);
     fn set_first_edge(self, first_edge: EdgeIndex<Ix>);
 }
 
@@ -159,6 +160,13 @@ where
     fn increment_count(self) {
         unsafe {
             (*self).weight.increment_count();
+        }
+    }
+
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    fn set_count(self, count: u16) {
+        unsafe {
+            (*self).weight.set_count(count);
         }
     }
 

@@ -77,6 +77,10 @@ impl Weight for Weight40 {
     fn get_count(&self) -> u16 {
         self.count
     }
+
+    fn set_count(&mut self, count: u16) {
+        self.count = count;
+    }
 }
 
 impl Weight for WeightMinimal {
@@ -120,6 +124,10 @@ impl Weight for WeightMinimal {
 
     fn get_count(&self) -> u16 {
         self.count
+    }
+
+    fn set_count(&mut self, count: u16) {
+        self.count = count;
     }
 }
 

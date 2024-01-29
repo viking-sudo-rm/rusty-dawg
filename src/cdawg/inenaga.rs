@@ -165,20 +165,22 @@ where
         while !self.check_end_point(opt_state, (start, end - 1), token) {
             // Within the loop, never possible for opt_state to be null.
             let state = opt_state.unwrap();
-            self.graph.get_node_mut(state).increment_count();
 
             if start <= end - 1 {
                 // Implicit case checks when an edge is active.
                 let cur_dest = self.extension(state, (start, end - 1));
                 if dest == Some(cur_dest) {
+                    println!("Redirecting edge");
+                    // This call updates the count appropriately.
                     self.redirect_edge(state, (start, end - 1), r);
                     let fstate = self.graph.get_node(state).get_failure();
                     (opt_state, start) = self.canonize(fstate, (start, end - 1));
-                    // TODO: probably want to update count here?
                     continue;
                 } else {
                     dest = Some(cur_dest);
                     r = self.split_edge(state, (start, end - 1));
+                    // Increment the old node as well as the new one we add by splitting.
+                    self.graph.get_node_mut(state).increment_count();
                 }
             } else {
                 // Explicit case checks when a state is active.
@@ -188,7 +190,7 @@ where
             // 1) Add a new OPEN edge from r to sink (that can grow via pointer).
             // Should work correctly when tokens[end - 1] is u16::MAX.
             self.add_balanced_edge(r, self.sink, (end, Ix::max_value().index()));
-            
+            self.graph.get_node_mut(r).increment_count();
             
             // 2) Set failure transition.
             if let Some(old_r) = opt_old_r {
@@ -239,6 +241,7 @@ where
     }
 
     // Change the target of the edge coming out of state with path gamma.
+    // Updates the counts to reflect the new graph structure.
     // Note: 1-indexed!
     pub fn redirect_edge(&mut self, state: NodeIndex<Ix>, gamma: (usize, usize), target: NodeIndex<Ix>) {
         let (start, end) = gamma;
@@ -246,12 +249,20 @@ where
         // let edge_idx = self.get_edge_by_token(state, token).unwrap();
         let edge_idx = self.get_edge_by_token_index(state, start - 1).unwrap();
         let edge_ref = self.graph.get_edge(edge_idx);
-        let (found_start, _) = self.get_span(edge_ref.get_weight(), edge_ref.get_target());
+        let old_target = edge_ref.get_target();
+        let (found_start, _) = self.get_span(edge_ref.get_weight(), old_target);
 
         // Doesn't actually use graph.reroute_edge
         let weight = self._new_edge_weight(found_start, found_start + end - start);
         self.graph.get_edge_mut(edge_idx).set_weight(weight);
         self.graph.get_edge_mut(edge_idx).set_target(target);
+
+        // Update count of the node.
+        let count = self.get_count(state);
+        let old_target_count = self.get_count(old_target);
+        let target_count = self.get_count(target);
+        let new_count = count - old_target_count + target_count;
+        self.graph.get_node_mut(state).set_count(new_count.try_into().unwrap());
     }
 
     // Split the edge, copying counts, and leave failure transitions unedited.
@@ -270,6 +281,8 @@ where
         let (mut start, end) = edge.get_weight().get_span();  // We DON'T call get_span because we want to keep end pointers.
         start += 1;  // Map back to Inenaga 1-indexed!
         let target = edge.get_target();
+        // Count is # paths to sink, so use target.
+        self.graph.get_node_mut(v).set_count(self.get_count(target).try_into().unwrap());
 
         // Reroute this edge into v.
         self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, start + gamma.1 - gamma.0));
@@ -639,11 +652,9 @@ where
         }        
     }
 
-    // // Takes a CdawgState with a non-null target.
-    // pub fn get_count(&self, cs: CdawgState<Ix>) -> u64 {
-    //     let target = cs.target.unwrap();
-    //     self.graph.get_node(target).get_count()
-    // }
+    pub fn get_count(&self, state: NodeIndex<Ix>) -> u64 {
+        self.graph.get_node(state).get_count()
+    }
 
 }
 
@@ -777,13 +788,16 @@ mod tests {
     fn test_redirect_edge() {
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (1, 3));
-        let target = cdawg.graph.add_node(DefaultWeight::new(0, None, 0));
+        let target = cdawg.graph.add_node(DefaultWeight::new(0, None, 2));
+        let q0 = NodeIndex::new(0);
+        cdawg.graph.get_node_mut(q0).set_count(3);
         cdawg.redirect_edge(cdawg.source, to_inenaga((0, 2)), target);  // Arguments are 1-indexed
 
         let idx = cdawg.graph.get_node(cdawg.source).get_first_edge();
         let edge: *const crate::graph::avl_graph::Edge<CdawgEdgeWeight> = cdawg.graph.get_edge(idx);
         assert_eq!(edge.get_target().index(), target.index());
         assert_eq!(edge.get_weight().get_span(), (0, 2));  // Graph is 0-indexed
+        assert_eq!(cdawg.get_count(q0), 3 - 1 + 2);
     }
 
     #[test]
@@ -1218,45 +1232,53 @@ mod tests {
         assert_eq!(cdawg.graph.get_edge(doc1.unwrap()).get_target(), NodeIndex::new(2));
     }
 
-    // #[test]
-    // fn test_get_count_cocoa() {
-    //     // Test counts incrementally.
-    //     let (c, o, a) = (0, 1, 2);
-    //     let train = Rc::new(RefCell::new(vec![c, o, c, o, a]));
-    //     let mut cdawg: Cdawg = Cdawg::new(train);
-        
-    //     let (mut state, mut start) = (cdawg.source, 1);
+    #[test]
+    fn test_get_count_cocoa() {
+        // Test counts incrementally.
+        let (c, o, a) = (0, 1, 2);
+        let train = Rc::new(RefCell::new(vec![c, o, c, o, a, u16::MAX]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
 
-    //     // Step 1: compare counts against "c"
-    //     (state, start) = cdawg.update(state, start, 1);
-    //     let mut counts = Vec::new();
-    //     let mut cs = cdawg.get_initial();
-    //     for token in vec![o, c, o, a].iter() {
-    //         cs = cdawg.transition_and_count(cs, *token);
-    //         counts.push(cdawg.get_count(cs));
-    //     }
-    //     // The empty string is matched everywhere. Should it be +1?
-    //     assert_eq!(counts, vec![1, 1, 1, 1]);
+        let q0 = NodeIndex::new(0);
+        let q1 = NodeIndex::new(1);
+        let q2 = NodeIndex::new(2);
 
-    //     // Step 2: compare counts against "co"
-    //     (state, start) = cdawg.update(state, start, 2);
-    //     let mut counts = Vec::new();
-    //     let mut cs = cdawg.get_initial();
-    //     for token in vec![o, c, o, a].iter() {
-    //         cs = cdawg.transition_and_count(cs, *token);
-    //         counts.push(cdawg.get_count(cs));
-    //     }
-    //     assert_eq!(counts, vec![1, 1, 1, 2]);
+        // Step 0: check counts in empty CDAWG'
+        let (mut state, mut start) = (cdawg.source, 1);
+        assert_eq!(cdawg.get_count(q0), 0);
+        assert_eq!(cdawg.get_count(q1), 1);
 
-    //     // Step 2: compare counts against "coc"
-    //     (state, start) = cdawg.update(state, start, 3);
-    //     let mut counts = Vec::new();
-    //     let mut cs = cdawg.get_initial();
-    //     for token in vec![o, c, o, a].iter() {
-    //         cs = cdawg.transition_and_count(cs, *token);
-    //         counts.push(cdawg.get_count(cs));
-    //     }
-    //     assert_eq!(counts, vec![1, 2, 1, 3]);
-    // }
+        // Step 1: compare counts against "c"
+        (state, start) = cdawg.update(state, start, 1);
+        assert_eq!(cdawg.get_count(q0), 1);
+        assert_eq!(cdawg.get_count(q1), 1);
+
+        // Step 2: compare counts against "co"
+        (state, start) = cdawg.update(state, start, 2);
+        assert_eq!(cdawg.get_count(q0), 2);
+        assert_eq!(cdawg.get_count(q1), 1);
+
+        // Step 3: compare counts against "coc"
+        (state, start) = cdawg.update(state, start, 3);
+        assert_eq!(cdawg.get_count(q0), 2);
+        assert_eq!(cdawg.get_count(q1), 1);
+
+        // Step 4: compare counts against "coco"
+        (state, start) = cdawg.update(state, start, 4);
+        assert_eq!(cdawg.get_count(q0), 2);
+        assert_eq!(cdawg.get_count(q1), 1);
+
+        // Step 5: compare counts against "cocoa". Where the magic happens!!
+        (state, start) = cdawg.update(state, start, 5);
+        assert_eq!(cdawg.get_count(q0), 5);
+        assert_eq!(cdawg.get_count(q1), 1);
+        assert_eq!(cdawg.get_count(q2), 2);
+
+        // Step 6: compare counts against "cocoa$".
+        (state, start) = cdawg.update(state, start, 6);
+        assert_eq!(cdawg.get_count(q0), 6);
+        assert_eq!(cdawg.get_count(q1), 1);
+        assert_eq!(cdawg.get_count(q2), 2);
+    }
 
 }
