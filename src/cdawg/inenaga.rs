@@ -170,7 +170,6 @@ where
                 // Implicit case checks when an edge is active.
                 let cur_dest = self.extension(state, (start, end - 1));
                 if dest == Some(cur_dest) {
-                    println!("Redirecting edge");
                     // This call updates the count appropriately.
                     self.redirect_edge(state, (start, end - 1), r);
                     let fstate = self.graph.get_node(state).get_failure();
@@ -656,6 +655,11 @@ where
         self.graph.get_node(state).get_count()
     }
 
+    // Get the count of the suffix matched by a CdawgState.
+    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> u64 {
+        self.get_count(cs.target.unwrap())
+    }
+
 }
 
 #[cfg(test)]
@@ -1110,7 +1114,7 @@ mod tests {
     }
 
     #[test]
-    fn test_transition_and_count_cocoa() {
+    fn test_transition_and_count_abcabcaba() {
         let (a, b, c) = (0, 1, 2);
         let train = Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a]));
         let mut cdawg: Cdawg = Cdawg::new(train);
@@ -1201,12 +1205,15 @@ mod tests {
         }
 
         let mut lengths = Vec::new();
+        let mut counts = Vec::new();
         let mut cs = cdawg.get_initial();
         for token in vec![c, o, a, c, o, l].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
+            counts.push(cdawg.get_suffix_count(cs));
         }
         assert_eq!(lengths, vec![1, 2, 3, 1, 2, 3]);
+        assert_eq!(counts, vec![3, 3, 1, 3, 3, 1]);
     }
 
     #[test]
@@ -1214,6 +1221,8 @@ mod tests {
         let train = Rc::new(RefCell::new(vec![0, u16::MAX, 1, u16::MAX]));
         let mut cdawg: Cdawg = Cdawg::new(train.clone());
         cdawg.build();
+
+        assert_eq!(cdawg.node_count(), 4);  // 3 real nodes + new sink
 
         // Test the normal edges.
         let edge_a = get_edge!(cdawg, cdawg.source, 0);
@@ -1230,6 +1239,10 @@ mod tests {
         let cmp1 = CdawgComparator::new(train.clone());
         let doc1 = cdawg.graph.get_edge_by_weight_cmp(cdawg.source, CdawgEdgeWeight::new(3, 4), Box::new(cmp1));
         assert_eq!(cdawg.graph.get_edge(doc1.unwrap()).get_target(), NodeIndex::new(2));
+    
+        assert_eq!(cdawg.get_count(NodeIndex::new(0)), 4);  // Includes two EOT edges
+        assert_eq!(cdawg.get_count(NodeIndex::new(1)), 1);
+        assert_eq!(cdawg.get_count(NodeIndex::new(2)), 1);
     }
 
     #[test]
@@ -1279,6 +1292,51 @@ mod tests {
         assert_eq!(cdawg.get_count(q0), 6);
         assert_eq!(cdawg.get_count(q1), 1);
         assert_eq!(cdawg.get_count(q2), 2);
+
+        let mut counts = Vec::new();
+        let mut cs = cdawg.get_initial();
+        for token in vec![a, c, o, a].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            counts.push(cdawg.get_suffix_count(cs));
+        }
+        assert_eq!(counts, vec![1, 2, 2, 1]);
+    }
+
+    #[test]
+    fn test_get_count_abcabcaba() {
+        // Test counts incrementally.
+        let (a, b, c) = (0, 1, 2);
+        let train = Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a, u16::MAX]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
+
+        let q0 = NodeIndex::new(0);
+        let q1 = NodeIndex::new(1);
+        let q2 = NodeIndex::new(2);
+        let q3 = NodeIndex::new(3);
+        let q4 = NodeIndex::new(4);
+
+        // abcabcab
+        let (mut state, mut start) = (cdawg.source, 1);
+        for idx in 1..9 {
+            (state, start) = cdawg.update(state, start, idx);
+        }
+        assert_eq!(cdawg.get_count(q0), 3);
+        assert_eq!(cdawg.get_count(q1), 1);
+
+        // Adding "a" triggers a complex series of updates.
+        (state, start) = cdawg.update(state, start, 9);
+        assert_eq!(cdawg.get_count(q0), 8);
+        assert_eq!(cdawg.get_count(q1), 1);
+        assert_eq!(cdawg.get_count(q2), 2);
+        assert_eq!(cdawg.get_count(q3), 3);
+
+        // Add a "$"
+        (state, start) = cdawg.update(state, start, 10);
+        assert_eq!(cdawg.get_count(q0), 10);
+        assert_eq!(cdawg.get_count(q1), 1);
+        assert_eq!(cdawg.get_count(q2), 2);
+        assert_eq!(cdawg.get_count(q3), 3);
+        assert_eq!(cdawg.get_count(q4), 4);
     }
 
 }
