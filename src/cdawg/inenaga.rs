@@ -41,6 +41,7 @@ use cdawg::metadata::CdawgMetadata;
 use cdawg::token_backing::TokenBacking;
 use cdawg::comparator::CdawgComparator;
 use cdawg::cdawg_state::CdawgState;
+use cdawg::queue::Queue;
 
 // TODO: Add TokenBacking for tokens
 
@@ -461,6 +462,10 @@ where
     }
 
     // Convenience methods.
+
+    pub fn get_graph(&self) -> &AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> {
+        &self.graph
+    }
 
     pub fn get_source(&self) -> NodeIndex<Ix> {
         self.source

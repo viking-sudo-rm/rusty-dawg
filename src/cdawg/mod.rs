@@ -1,5 +1,7 @@
 pub mod cdawg_edge_weight;  // Refered to in higher level types.
+mod topological_counter;  // Traverses a built CDAWG to add counts to the states.
 // mod crochemore;  // Algo from "On Compact Directed Acyclic Word Graphs"
+mod queue;
 mod inenaga;  // Algo from "On-line construction of compact directed acyclic word graphs"
 mod metadata;
 mod token_backing;

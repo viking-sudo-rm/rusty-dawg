@@ -9,6 +9,8 @@ pub trait TokenBacking<T> {
     fn len(&self) -> usize;
 
     fn get(&self, index: usize) -> T;
+
+    fn push(&mut self, value: T);
 }
 
 impl<T> TokenBacking<T> for Vec<T>
@@ -20,6 +22,10 @@ where T: Copy
 
     fn get(&self, index: usize) -> T {
         self[index]
+    }
+
+    fn push(&mut self, value: T) {
+        Vec::push(self, value);
     }
 }
 
@@ -33,5 +39,9 @@ where
 
     fn get(&self, index: usize) -> T {
         DiskVec::get(self, index).unwrap()
+    }
+
+    fn push(&mut self, value: T) {
+        let _ = DiskVec::push(self, &value);
     }
 }
