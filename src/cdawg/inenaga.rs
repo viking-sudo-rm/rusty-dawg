@@ -16,6 +16,11 @@
 // 
 // # Notes on representing states
 // While building, astate is an Option<NodeIndex>. None means the failure of the initial state.
+// 
+// # Notes on counts
+// This code sets the count of each sink node to 1 and every other node to 0. This is because the
+// counts can only be computed efficiently after building has finished, and this is the format that
+// the second step expects.
 
 use anyhow::Result;
 use std::convert::TryInto;
@@ -178,8 +183,6 @@ where
                 } else {
                     dest = Some(cur_dest);
                     r = self.split_edge(state, (start, end - 1));
-                    // Increment the old node as well as the new one we add by splitting.
-                    self.graph.get_node_mut(state).increment_count();
                 }
             } else {
                 // Explicit case checks when a state is active.
@@ -189,7 +192,6 @@ where
             // 1) Add a new OPEN edge from r to sink (that can grow via pointer).
             // Should work correctly when tokens[end - 1] is u16::MAX.
             self.add_balanced_edge(r, self.sink, (end, Ix::max_value().index()));
-            self.graph.get_node_mut(r).increment_count();
             
             // 2) Set failure transition.
             if let Some(old_r) = opt_old_r {
@@ -255,13 +257,6 @@ where
         let weight = self._new_edge_weight(found_start, found_start + end - start);
         self.graph.get_edge_mut(edge_idx).set_weight(weight);
         self.graph.get_edge_mut(edge_idx).set_target(target);
-
-        // Update count of the node.
-        let count = self.get_count(state);
-        let old_target_count = self.get_count(old_target);
-        let target_count = self.get_count(target);
-        let new_count = count - old_target_count + target_count;
-        self.graph.get_node_mut(state).set_count(new_count.try_into().unwrap());
     }
 
     // Split the edge, copying counts, and leave failure transitions unedited.
@@ -271,6 +266,7 @@ where
         let q_length = self.graph.get_node(q).get_length();
         let gamma_length = <usize as TryInto<u64>>::try_into(gamma.1 - gamma.0 + 1).unwrap();
         self.graph.get_node_mut(v).set_length(q_length + gamma_length);
+        self.graph.get_node_mut(v).set_count(0);  // 0 for non-sink node.
 
         // Next, get the existing edge we're going to split.
         // let token = self.tokens.borrow().get(gamma.0 - 1); // 0-indexed
@@ -280,8 +276,6 @@ where
         let (mut start, end) = edge.get_weight().get_span();  // We DON'T call get_span because we want to keep end pointers.
         start += 1;  // Map back to Inenaga 1-indexed!
         let target = edge.get_target();
-        // Count is # paths to sink, so use target.
-        self.graph.get_node_mut(v).set_count(self.get_count(target).try_into().unwrap());
 
         // Reroute this edge into v.
         self.graph.get_edge_mut(edge_idx.unwrap()).set_weight(self._new_edge_weight(start, start + gamma.1 - gamma.0));
@@ -316,6 +310,7 @@ where
         let mut weight = self.graph.get_node(state1).get_weight().clone();
         weight.set_length((length + (end - start + 1) as i64) as u64);
         let new_state = self.graph.add_node(weight);
+        self.graph.get_node_mut(new_state).set_count(0);  // 0 for non-sink.
         self.graph.clone_edges(state1, new_state);
 
         // Update the failure transitions.
@@ -793,15 +788,12 @@ mod tests {
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![0, 1, 2])));
         cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (1, 3));
         let target = cdawg.graph.add_node(DefaultWeight::new(0, None, 2));
-        let q0 = NodeIndex::new(0);
-        cdawg.graph.get_node_mut(q0).set_count(3);
         cdawg.redirect_edge(cdawg.source, to_inenaga((0, 2)), target);  // Arguments are 1-indexed
 
         let idx = cdawg.graph.get_node(cdawg.source).get_first_edge();
         let edge: *const crate::graph::avl_graph::Edge<CdawgEdgeWeight> = cdawg.graph.get_edge(idx);
         assert_eq!(edge.get_target().index(), target.index());
         assert_eq!(edge.get_weight().get_span(), (0, 2));  // Graph is 0-indexed
-        assert_eq!(cdawg.get_count(q0), 3 - 1 + 2);
     }
 
     #[test]
@@ -1213,7 +1205,7 @@ mod tests {
             counts.push(cdawg.get_suffix_count(cs));
         }
         assert_eq!(lengths, vec![1, 2, 3, 1, 2, 3]);
-        assert_eq!(counts, vec![3, 3, 1, 3, 3, 1]);
+        assert_eq!(counts, vec![0, 0, 1, 0, 0, 1]);  // 1 means sink
     }
 
     #[test]
@@ -1240,7 +1232,8 @@ mod tests {
         let doc1 = cdawg.graph.get_edge_by_weight_cmp(cdawg.source, CdawgEdgeWeight::new(3, 4), Box::new(cmp1));
         assert_eq!(cdawg.graph.get_edge(doc1.unwrap()).get_target(), NodeIndex::new(2));
     
-        assert_eq!(cdawg.get_count(NodeIndex::new(0)), 4);  // Includes two EOT edges
+        // Counts just reflect whether a state is sink at this point.
+        assert_eq!(cdawg.get_count(NodeIndex::new(0)), 0);
         assert_eq!(cdawg.get_count(NodeIndex::new(1)), 1);
         assert_eq!(cdawg.get_count(NodeIndex::new(2)), 1);
     }
@@ -1263,43 +1256,35 @@ mod tests {
 
         // Step 1: compare counts against "c"
         (state, start) = cdawg.update(state, start, 1);
-        assert_eq!(cdawg.get_count(q0), 1);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
 
         // Step 2: compare counts against "co"
         (state, start) = cdawg.update(state, start, 2);
-        assert_eq!(cdawg.get_count(q0), 2);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
 
         // Step 3: compare counts against "coc"
         (state, start) = cdawg.update(state, start, 3);
-        assert_eq!(cdawg.get_count(q0), 2);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
 
         // Step 4: compare counts against "coco"
         (state, start) = cdawg.update(state, start, 4);
-        assert_eq!(cdawg.get_count(q0), 2);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
 
         // Step 5: compare counts against "cocoa". Where the magic happens!!
         (state, start) = cdawg.update(state, start, 5);
-        assert_eq!(cdawg.get_count(q0), 5);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
-        assert_eq!(cdawg.get_count(q2), 2);
+        assert_eq!(cdawg.get_count(q2), 0);
 
         // Step 6: compare counts against "cocoa$".
         (state, start) = cdawg.update(state, start, 6);
-        assert_eq!(cdawg.get_count(q0), 6);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
-        assert_eq!(cdawg.get_count(q2), 2);
-
-        let mut counts = Vec::new();
-        let mut cs = cdawg.get_initial();
-        for token in vec![a, c, o, a].iter() {
-            cs = cdawg.transition_and_count(cs, *token);
-            counts.push(cdawg.get_suffix_count(cs));
-        }
-        assert_eq!(counts, vec![1, 2, 2, 1]);
+        assert_eq!(cdawg.get_count(q2), 0);
     }
 
     #[test]
@@ -1320,23 +1305,23 @@ mod tests {
         for idx in 1..9 {
             (state, start) = cdawg.update(state, start, idx);
         }
-        assert_eq!(cdawg.get_count(q0), 3);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
 
         // Adding "a" triggers a complex series of updates.
         (state, start) = cdawg.update(state, start, 9);
-        assert_eq!(cdawg.get_count(q0), 8);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
-        assert_eq!(cdawg.get_count(q2), 2);
-        assert_eq!(cdawg.get_count(q3), 3);
+        assert_eq!(cdawg.get_count(q2), 0);
+        assert_eq!(cdawg.get_count(q3), 0);
 
         // Add a "$"
         (state, start) = cdawg.update(state, start, 10);
-        assert_eq!(cdawg.get_count(q0), 10);
+        assert_eq!(cdawg.get_count(q0), 0);
         assert_eq!(cdawg.get_count(q1), 1);
-        assert_eq!(cdawg.get_count(q2), 2);
-        assert_eq!(cdawg.get_count(q3), 3);
-        assert_eq!(cdawg.get_count(q4), 4);
+        assert_eq!(cdawg.get_count(q2), 0);
+        assert_eq!(cdawg.get_count(q3), 0);
+        assert_eq!(cdawg.get_count(q4), 0);
     }
 
 }
