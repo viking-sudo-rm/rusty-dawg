@@ -41,7 +41,6 @@ use cdawg::metadata::CdawgMetadata;
 use cdawg::token_backing::TokenBacking;
 use cdawg::comparator::CdawgComparator;
 use cdawg::cdawg_state::CdawgState;
-use cdawg::queue::Queue;
 
 // TODO: Add TokenBacking for tokens
 
@@ -165,7 +164,6 @@ where
         let mut dest: Option<NodeIndex<Ix>> = None;
         let mut r = NodeIndex::end();
         let mut opt_state: Option<NodeIndex<Ix>> = Some(in_state);
-        let mut opt_r: Option<NodeIndex<Ix>> = None;
         let mut opt_old_r: Option<NodeIndex<Ix>> = None;
         let token = self.tokens.borrow().get(end - 1);  // Map p back to 0-indexing
         while !self.check_end_point(opt_state, (start, end - 1), token) {
@@ -201,7 +199,6 @@ where
             opt_old_r = Some(r);
 
             // 3) Update state by canonizing the fstate.
-            let old_start = start;  // TODO: remove after debug
             let fstate = self.graph.get_node(state).get_failure();
             (opt_state, start) = self.canonize(fstate, (start, end - 1));
         }
@@ -655,6 +652,10 @@ where
         self.graph.get_node(state).get_count()
     }
 
+    pub fn set_count(&mut self, state: NodeIndex<Ix>, count: u16) {
+        self.graph.get_node_mut(state).set_count(count);
+    }
+
     // Get the count of the suffix matched by a CdawgState.
     pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> u64 {
         self.get_count(cs.target.unwrap())
@@ -1017,9 +1018,9 @@ mod tests {
         assert_eq!(get_span!(cdawg, get_edge!(cdawg, cdawg.source, a)), (1, 2));
         assert_eq!(get_span!(cdawg, get_edge!(cdawg, cdawg.source, b)), (2, 2));
         assert_eq!(get_span!(cdawg, get_edge!(cdawg, cdawg.source, c)), (3, 5));
-        let mut qa = get_edge!(cdawg, cdawg.source, a).get_target();
-        let mut qb = get_edge!(cdawg, cdawg.source, b).get_target();
-        let mut qc = get_edge!(cdawg, cdawg.source, c).get_target();
+        let qa = get_edge!(cdawg, cdawg.source, a).get_target();
+        let qb = get_edge!(cdawg, cdawg.source, b).get_target();
+        let qc = get_edge!(cdawg, cdawg.source, c).get_target();
         assert_eq!(qa, qb);
         assert!(qa != cdawg.source);
         assert!(qc != cdawg.source);
