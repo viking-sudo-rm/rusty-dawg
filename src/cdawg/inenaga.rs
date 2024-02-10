@@ -648,16 +648,16 @@ where
         }        
     }
 
-    pub fn get_count(&self, state: NodeIndex<Ix>) -> u64 {
+    pub fn get_count(&self, state: NodeIndex<Ix>) -> usize {
         self.graph.get_node(state).get_count()
     }
 
-    pub fn set_count(&mut self, state: NodeIndex<Ix>, count: u16) {
+    pub fn set_count(&mut self, state: NodeIndex<Ix>, count: usize) {
         self.graph.get_node_mut(state).set_count(count);
     }
 
     // Get the count of the suffix matched by a CdawgState.
-    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> u64 {
+    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> usize {
         self.get_count(cs.target.unwrap())
     }
 

@@ -57,7 +57,7 @@ impl DiskDawg {
         }
     }
 
-    pub fn get_count(&self, state: usize) -> u64 {
+    pub fn get_count(&self, state: usize) -> usize {
         let state_index = NodeIndex::new(state);
         self.dawg.get_node(state_index).get_count()
     }

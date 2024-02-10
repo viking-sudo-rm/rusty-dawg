@@ -12,8 +12,6 @@ use graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use graph::indexing::{NodeIndex, IndexType};
 use weight::Weight;
 
-const MAX_COUNT: u16 = u16::MAX;
-
 /// An state on the stack, that should either be opened or closed.
 #[derive(Default, Deserialize, Serialize)]
 pub struct StackOp<Ix> {
@@ -83,8 +81,7 @@ impl<Sb> TopologicalCounter<Sb> {
                 for next_state in neighbors {
                     count += cdawg.get_count(next_state);
                 }
-                count = u64::min(count, MAX_COUNT.into());
-                cdawg.set_count(op.state, count.try_into().unwrap());
+                cdawg.set_count(op.state, count);
             }
         }
     }

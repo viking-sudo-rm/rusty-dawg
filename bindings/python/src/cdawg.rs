@@ -61,7 +61,7 @@ impl Cdawg {
         (start - 1, end, target.index())
     }
 
-    pub fn get_suffix_count(&self, cs: CdawgState) -> u64 {
+    pub fn get_suffix_count(&self, cs: CdawgState) -> usize {
         self.cdawg.get_suffix_count(cs.cs)
     }
 }

@@ -46,7 +46,7 @@ pub trait NodeRef<N, Ix> {
         N: Clone;
     fn get_length(self) -> u64;
     fn get_failure(self) -> Option<NodeIndex<Ix>>;
-    fn get_count(self) -> u64;
+    fn get_count(self) -> usize;
     fn get_first_edge(self) -> EdgeIndex<Ix>;
 }
 
@@ -74,9 +74,9 @@ where
             .map(|phi| NodeIndex::new(phi.index()))
     }
 
-    fn get_count(self) -> u64 {
+    fn get_count(self) -> usize {
         // FIXME: The count is actually stored in u16.
-        self.weight.get_count().into()
+        self.weight.get_count()
     }
 
     fn get_first_edge(self) -> EdgeIndex<Ix> {
@@ -115,8 +115,8 @@ where
     }
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    fn get_count(self) -> u64 {
-        unsafe { (*self).weight.get_count().into() }
+    fn get_count(self) -> usize {
+        unsafe { (*self).weight.get_count() }
     }
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -129,7 +129,7 @@ pub trait NodeMutRef<Ix> {
     fn set_length(self, length: u64);
     fn set_failure(self, state: Option<NodeIndex<Ix>>);
     fn increment_count(self);
-    fn set_count(self, count: u16);
+    fn set_count(self, count: usize);
     fn set_first_edge(self, first_edge: EdgeIndex<Ix>);
 }
 
@@ -164,7 +164,7 @@ where
     }
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    fn set_count(self, count: u16) {
+    fn set_count(self, count: usize) {
         unsafe {
             (*self).weight.set_count(count);
         }

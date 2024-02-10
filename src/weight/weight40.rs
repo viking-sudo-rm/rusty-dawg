@@ -7,84 +7,14 @@ use graph::indexing::{DefaultIx, IndexType, NodeIndex};
 pub type DefaultWeight = WeightMinimal;
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
-pub struct Weight40 {
-    length1: u8,
-    length2: u32,
-    failure1: u8,
-    failure2: u32,
-    count: u16,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
 pub struct WeightMinimal {
     length: DefaultIx,
     failure: DefaultIx,
-    count: u16,
-}
-
-#[allow(arithmetic_overflow)]
-impl Weight for Weight40 {
-    fn new(length: u64, failure: Option<NodeIndex>, count: u16) -> Self {
-        Self {
-            length1: (length >> 32) as u8,
-            length2: length as u32,
-            failure1: match failure {
-                Some(f) => (f.index() >> 32) as u8,
-                None => u8::MAX,
-            },
-            failure2: match failure {
-                Some(f) => f.index() as u32,
-                None => u32::MAX,
-            },
-            count,
-        }
-    }
-
-    fn get_length(&self) -> u64 {
-        u64::from(self.length1) << 32 | u64::from(self.length2)
-    }
-
-    fn set_length(&mut self, length: u64) {
-        self.length1 = (length >> 32) as u8;
-        self.length2 = length as u32;
-    }
-
-    fn get_failure(&self) -> Option<NodeIndex> {
-        if self.failure1 == u8::MAX && self.failure2 == u32::MAX {
-            return None;
-        }
-        let idx = u64::from(self.failure1) << 32 | u64::from(self.failure2);
-        Some(NodeIndex::new(idx as usize))
-    }
-
-    fn set_failure(&mut self, failure: Option<NodeIndex>) {
-        match failure {
-            Some(f) => {
-                self.failure1 = (f.index() >> 32) as u8;
-                self.failure2 = f.index() as u32;
-            }
-            None => {
-                self.failure1 = u8::MAX;
-                self.failure2 = u32::MAX;
-            }
-        }
-    }
-
-    fn increment_count(&mut self) {
-        self.count += 1;
-    }
-
-    fn get_count(&self) -> u16 {
-        self.count
-    }
-
-    fn set_count(&mut self, count: u16) {
-        self.count = count;
-    }
+    count: DefaultIx,
 }
 
 impl Weight for WeightMinimal {
-    fn new(length: u64, failure: Option<NodeIndex>, count: u16) -> Self {
+    fn new(length: u64, failure: Option<NodeIndex>, count: usize) -> Self {
         Self {
             length: DefaultIx::new(length as usize),
             //length: length as DefaultIx,
@@ -92,7 +22,7 @@ impl Weight for WeightMinimal {
                 Some(f) => DefaultIx::new(f.index()),
                 None => DefaultIx::max_value(),
             },
-            count,
+            count: DefaultIx::new(count),
         }
     }
 
@@ -119,33 +49,31 @@ impl Weight for WeightMinimal {
     }
 
     fn increment_count(&mut self) {
-        self.count += 1;
+        self.count = DefaultIx::new(self.count.index() + 1);
     }
 
-    fn get_count(&self) -> u16 {
-        self.count
+    fn get_count(&self) -> usize {
+        self.count.index().into()
     }
 
-    fn set_count(&mut self, count: u16) {
-        self.count = count;
+    fn set_count(&mut self, count: usize) {
+        self.count = DefaultIx::new(count);
     }
 }
 
 #[cfg(test)]
 mod tests {
-
-    use weight::weight40::Weight40;
-    use weight::Weight;
+    use super::*;
 
     #[test]
     fn test_length_weight40() {
-        let weight = Weight40::new(53, None, 0);
+        let weight = WeightMinimal::new(53, None, 0);
         assert_eq!(weight.get_length(), 53);
     }
 
     #[test]
     fn test_length_overflow_weight40() {
-        let weight = Weight40::new(1 << 35, None, 0);
+        let weight = WeightMinimal::new(1 << 35, None, 0);
         assert_eq!(weight.get_length(), 1 << 35);
     }
 }

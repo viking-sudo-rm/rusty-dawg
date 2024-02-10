@@ -626,7 +626,7 @@ mod tests {
     use graph::avl_graph::AvlGraph;
     use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
     use std::convert::TryInto;
-    use weight::{Weight, Weight40};
+    use weight::{Weight, DefaultWeight};
     use cdawg::comparator::CdawgComparator;
     use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
     use std::rc::Rc;
@@ -636,16 +636,16 @@ mod tests {
 
     #[test]
     fn test_create_graph() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         assert_eq!(graph.add_node(weight).index(), 0);
         assert_eq!(graph.add_node(weight).index(), 1);
     }
 
     #[test]
     fn test_rotate_from_right() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
 
@@ -677,8 +677,8 @@ mod tests {
 
     #[test]
     fn test_rotate_from_left() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
 
@@ -712,8 +712,8 @@ mod tests {
     fn test_add_balanced_edge_cdawg_cmp() {
         let tokens = Rc::new(RefCell::new(vec![10, 11]));
 
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, CdawgEdgeWeight<DefaultIx>> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, CdawgEdgeWeight<DefaultIx>> = AvlGraph::new();
         let source = graph.add_node(weight);
         let sink = graph.add_node(weight);
 
@@ -731,8 +731,8 @@ mod tests {
 
     #[test]
     fn test_add_balanced_edge() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
         let q2 = graph.add_node(weight);
@@ -761,8 +761,8 @@ mod tests {
 
     #[test]
     fn test_add_balanced_edge_left_branching() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u64> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u64> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
         for idx in (0..127).rev() {
@@ -774,8 +774,8 @@ mod tests {
 
     #[test]
     fn test_tree_construction() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
 
@@ -802,8 +802,8 @@ mod tests {
 
     #[test]
     fn test_clone_edges() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
         for idx in 2..10 {
@@ -820,8 +820,8 @@ mod tests {
 
     #[test]
     fn test_reroute_edge() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u16> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u16> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
         let q2 = graph.add_node(weight);
@@ -832,8 +832,8 @@ mod tests {
 
     #[test]
     fn test_edges_iterator() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u32> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let q1 = graph.add_node(weight);
         for idx in 0..7 {
@@ -854,8 +854,8 @@ mod tests {
 
     #[test]
     fn test_node_index_mut() {
-        let weight = Weight40::new(0, None, 0);
-        let mut graph: AvlGraph<Weight40, u32> = AvlGraph::new();
+        let weight = DefaultWeight::new(0, None, 0);
+        let mut graph: AvlGraph<DefaultWeight, u32> = AvlGraph::new();
         let q0 = graph.add_node(weight);
         let idx0 = NodeIndex::new(0);
         graph.get_node_mut(idx0).set_length(1);
