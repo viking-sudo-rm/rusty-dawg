@@ -48,6 +48,11 @@ impl DiskCdawg {
         self.cdawg.build();
     }
 
+    pub fn fill_counts(&mut self, stack_path: String, capacity: usize) {
+        let mut counter = cdawg::TopologicalCounter::new_disk(stack_path, capacity).unwrap();
+        counter.fill_counts(&mut self.cdawg);
+    }
+
     pub fn get_initial(&self) -> CdawgState {
         CdawgState {
             cs: self.cdawg.get_initial(),

@@ -1,5 +1,4 @@
 use serde::{Deserialize,Serialize};
-use std::cmp::{Eq, Ord, PartialEq, PartialOrd, Ordering};
 
 use graph::indexing::{DefaultIx, IndexType};
 

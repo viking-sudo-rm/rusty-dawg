@@ -10,3 +10,4 @@ pub mod cdawg_state;
 
 // We will use the Inenaga implementation of the build algorithm.
 pub use self::inenaga::Cdawg;
+pub use self::topological_counter::TopologicalCounter;
