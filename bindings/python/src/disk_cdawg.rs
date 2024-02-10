@@ -23,6 +23,9 @@ pub struct DiskCdawg {
 // Wrap the normal Dawg class with a Python interface.
 #[pymethods]
 impl DiskCdawg {
+    #[classattr]
+    const EOS: u16 = u16::MAX;
+
     // Assumes that tokens_path is a DiskVec already populated with the tokens we want to build on.
     #[new]
     pub fn new(tokens_path: String, mb_path: String, n_nodes: usize, n_edges: usize) -> Self {

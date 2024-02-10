@@ -17,6 +17,9 @@ pub struct Cdawg {
 // Wrap the normal Dawg class with a Python interface.
 #[pymethods]
 impl Cdawg {
+    #[classattr]
+    const EOS: u16 = u16::MAX;
+
     #[new]
     pub fn new(tokens: Vec<u16>) -> Self {
         let tokens_rc = Rc::new(RefCell::new(tokens));
@@ -32,6 +35,10 @@ impl Cdawg {
     pub fn fill_counts(&mut self) {
         let mut counter = cdawg::TopologicalCounter::new_ram();
         counter.fill_counts(&mut self.cdawg);
+    }
+
+    pub fn get_source(&self) -> usize {
+        self.cdawg.get_source().index()
     }
 
     pub fn get_initial(&self) -> CdawgState {
@@ -59,6 +66,10 @@ impl Cdawg {
         let (start, end, target) = self.cdawg.get_start_end_target(EdgeIndex::new(edge_idx));
         // Adjust back to 0-indexed start for inference time.
         (start - 1, end, target.index())
+    }
+
+    pub fn get_count(&self, state: usize) -> usize {
+        self.cdawg.get_count(NodeIndex::new(state))
     }
 
     pub fn get_suffix_count(&self, cs: CdawgState) -> usize {

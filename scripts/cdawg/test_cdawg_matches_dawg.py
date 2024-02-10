@@ -17,6 +17,7 @@ def get_tokens(tokenizer, path):
     for line in tqdm(open(path), desc=f"Open {path}..."):
         tokens = tokenizer(line)["input_ids"]
         all_tokens.extend(tokens)
+    all_tokens.append(Cdawg.EOS)
     return all_tokens
 
 def get_count(tokens, ngram):
@@ -73,6 +74,9 @@ if __name__ == "__main__":
     ngrams = [valid[idx + 1 - length: idx + 1] for idx, length in enumerate(clengths[:20])]
     actual_counts = [get_count(train, ngram) for ngram in ngrams]
     print("Actual counts:", actual_counts)
+
+    source = cdawg.get_source()
+    print("count(source) =", cdawg.get_count(source), "#(tokens) =", len(train))
 
     import matplotlib.pyplot as plt
     plt.figure()
