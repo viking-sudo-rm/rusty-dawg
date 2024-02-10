@@ -40,9 +40,11 @@ if __name__ == "__main__":
     dawg = Dawg()
     dawg.build(train)
 
-    print("Building CDAWG...")
     cdawg = Cdawg(train)
+    print("Building CDAWG...")
     cdawg.build()
+    print("Filling CDAWG counts...")
+    cdawg.fill_counts()
 
     ds, length = (dawg.get_initial(), 0)
     cs = cdawg.get_initial()

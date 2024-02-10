@@ -85,7 +85,6 @@ impl<Sb> TopologicalCounter<Sb> {
                 }
                 count = u64::min(count, MAX_COUNT.into());
                 cdawg.set_count(op.state, count.try_into().unwrap());
-                println!("Set count(q{}) = {}", op.state.index(), count);
             }
         }
     }
