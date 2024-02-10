@@ -8,6 +8,8 @@ use std::fmt::Debug;
 use std::marker::Copy;
 use tokenizers::tokenizer::Tokenizer;
 
+use tokenize::end::End;
+
 // pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
 //     s.split_word_bounds().filter(|w| {
 //         for c in w.chars() {
@@ -22,6 +24,7 @@ use tokenizers::tokenizer::Tokenizer;
 #[derive(Debug, Clone)]
 pub struct PretrainedTokenizer {
     pub tokenizer: Tokenizer,
+    pub add_eos: bool,
 }
 
 impl PretrainedTokenizer {
@@ -30,13 +33,13 @@ impl PretrainedTokenizer {
             .map_err(|err| anyhow!("Failed to load pretrained tokenizer {} - {}", name, err))
             .unwrap();
 
-        PretrainedTokenizer { tokenizer }
+        PretrainedTokenizer { tokenizer, add_eos: false }
     }
 }
 
 impl<E> Tokenize<E> for PretrainedTokenizer
 where
-    E: Eq + serde::Serialize + Copy + Debug + TryFrom<u32>,
+    E: Eq + serde::Serialize + Copy + Debug + TryFrom<u32> + End,
 {
     fn build(&mut self, _text: &str) {
         // do nothing (pretrained tokenizer is already built)
@@ -54,10 +57,15 @@ where
         let output = self.tokenizer.encode(text, true);
         let bindings = output.expect("REASON"); //.get_ids();
         let ids = bindings.get_ids();
-        let converted_values: Vec<E> = ids
+        let mut converted_values: Vec<E> = ids
             .iter()
             .map(|&num| num.try_into().unwrap_or_else(|_| panic!("Err!!!")))
             .collect();
+        
+        if self.add_eos {
+            converted_values.push(E::end())
+        }
+
         converted_values
     }
 
@@ -80,5 +88,14 @@ mod tests {
         assert_eq!(token_index.get_count(), 50257);
 
         assert_eq!(token_index.tokenize("hello world"), [31373, 995]);
+    }
+
+    #[test]
+    fn add_eos() {
+        let mut pt = PretrainedTokenizer::new("gpt2");
+        pt.add_eos = true;
+        let mut token_index: Box<dyn Tokenize<u16>> = Box::new(pt);
+
+        assert_eq!(token_index.tokenize("hello world"), [31373, 995, u16::MAX]);
     }
 }

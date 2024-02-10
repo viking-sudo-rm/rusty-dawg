@@ -8,6 +8,7 @@ pub trait Weight {
     fn set_failure(&mut self, failure: Option<NodeIndex>);
     fn increment_count(&mut self);
     fn get_count(&self) -> u16;
+    fn set_count(&mut self, count: u16);
 
     fn new(length: u64, failure: Option<NodeIndex>, count: u16) -> Self
     where

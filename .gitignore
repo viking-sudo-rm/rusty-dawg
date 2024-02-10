@@ -9,3 +9,5 @@ cargo-flamegraph.stacks
 
 # Python
 **/__pycache__/**
+
+.vscode/

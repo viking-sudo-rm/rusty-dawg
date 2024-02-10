@@ -12,6 +12,7 @@ extern crate bincode;
 extern crate bitvec;
 extern crate clap;
 extern crate flate2;
+extern crate comparator;
 extern crate kdam;
 extern crate memmap2;
 extern crate rusty_dawg;
@@ -22,7 +23,10 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
+mod build_stats;
+mod build_cdawg;
 mod data_reader;
+mod cdawg;
 mod dawg;
 mod evaluator;
 mod graph;
@@ -46,6 +50,7 @@ use std::mem::size_of;
 
 use kdam::{tqdm, BarExt};
 
+use build_cdawg::build_cdawg;
 use dawg::Dawg;
 use evaluator::Evaluator;
 
@@ -58,6 +63,7 @@ use data_reader::{DataReader, PileReader, TxtReader};
 
 use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use weight::DefaultWeight;
+use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;
@@ -67,7 +73,7 @@ type N = DefaultWeight;
 author = "William Merrill <willm@nyu.edu>",
 version, about, long_about = None,
 )]
-struct Args {
+pub struct Args {
     #[arg(long)]
     train_path: String,
     #[arg(long, default_value = "")]
@@ -113,10 +119,39 @@ struct Args {
     // Amount of input to read at a time while consuming file. Defaults to 10 GB.
     #[arg(long, default_value_t = 10000000000)]
     buf_size: usize,
+
+    #[arg(long, short, action)]
+    single_string: bool,  // Don't end document between documents.
+
+    // CDAWG args.
+    #[arg(long, short, action)]
+    cdawg: bool,
+    #[arg(long)]
+    train_vec_path: Option<String>,
+    #[arg(long)]
+    stats_threshold: Option<usize>,
+    #[arg(long)]
+    stats_path: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    if args.cdawg {
+        println!("Building CDAWG instead of DAWG...");
+        return match args.disk_path.clone() {
+            Some(path) => {
+                type Mb = DiskBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                let mb = Mb::new(path);
+                Ok(build_cdawg::<Mb>(args, mb)?)
+            },
+            None => {
+                type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                let mb = Mb::default();
+                Ok(build_cdawg::<Mb>(args, mb)?)
+            },
+        };
+    }
 
     match args.disk_path.clone() {
         Some(path) => println!("DAWG on disk: {}", path),
@@ -183,7 +218,8 @@ where
         + TryFrom<usize>
         + 'static
         + TryInto<u32>
-        + TryFrom<u32>,
+        + TryFrom<u32>
+        + tokenize::end::End,
     usize: TryFrom<E>,
     u64: TryFrom<E>,
     Mb: MemoryBacking<N, E, DefaultIx>,
@@ -225,7 +261,8 @@ where
     let test_raw: String = if args.test_path.is_empty() {
         "".to_string()
     } else {
-        fs::read_to_string(args.test_path.as_str()).expect("Error loading test")
+        let path = args.test_path.as_str();
+        fs::read_to_string(path).unwrap_or_else(|_| panic!("Could not load test from {}", path))
     };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
     let doc_id_token = E::try_from(index.get_count()).unwrap(); // The token used to store document IDs.

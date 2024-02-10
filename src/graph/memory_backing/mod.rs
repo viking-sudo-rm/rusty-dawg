@@ -18,7 +18,7 @@ where
     type NodeRef: NodeRef<N, Ix>;
     type EdgeRef: EdgeRef<E, Ix>;
     type NodeMutRef: NodeMutRef<Ix>;
-    type EdgeMutRef: EdgeMutRef<Ix>;
+    type EdgeMutRef: EdgeMutRef<E, Ix>;
 
     type VecN: VecBacking<Node<N, Ix>, TRef = Self::NodeRef, TMutRef = Self::NodeMutRef>;
     type VecE: VecBacking<Edge<E, Ix>, TRef = Self::EdgeRef, TMutRef = Self::EdgeMutRef>;

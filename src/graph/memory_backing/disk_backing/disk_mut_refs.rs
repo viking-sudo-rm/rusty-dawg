@@ -53,6 +53,13 @@ where
         let _ = disk_vec.set(self.index, &node);
     }
 
+    fn set_count(self, count: u16) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut node = disk_vec.get(self.index).unwrap();
+        node.weight.set_count(count);
+        let _ = disk_vec.set(self.index, &node);
+    }
+
     fn set_first_edge(self, first_edge: EdgeIndex<Ix>) {
         let mut disk_vec = self.disk_vec.borrow_mut();
         let mut node = disk_vec.get(self.index).unwrap();
@@ -72,11 +79,18 @@ impl<E, Ix> MutRef<Edge<E, Ix>> for DiskEdgeMutRef<E, Ix> {
     }
 }
 
-impl<E, Ix> EdgeMutRef<Ix> for DiskEdgeMutRef<E, Ix>
+impl<E, Ix> EdgeMutRef<E, Ix> for DiskEdgeMutRef<E, Ix>
 where
     Ix: IndexType + Copy,
     Edge<E, Ix>: Serialize + DeserializeOwned + Default,
 {
+    fn set_weight(self, weight: E) {
+        let mut disk_vec = self.disk_vec.borrow_mut();
+        let mut edge = disk_vec.get(self.index).unwrap();
+        edge.weight = weight;
+        let _ = disk_vec.set(self.index, &edge);
+    }
+
     fn set_target(self, target: NodeIndex<Ix>) {
         let mut disk_vec = self.disk_vec.borrow_mut();
         let mut edge = disk_vec.get(self.index).unwrap();

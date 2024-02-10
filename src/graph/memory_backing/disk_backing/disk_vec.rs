@@ -113,6 +113,16 @@ where
         Ok(())
     }
 
+    /// A hacky way to use the DiskVec as a stack.
+    /// Possible strange interactions with other methods that use len!!
+    pub fn pop(&mut self) -> Result<Option<T>> {
+        if self.len == 0 {
+            return Ok(None);
+        }
+        self.len -= 1;
+        Ok(Some(self.get(self.len)?))
+    }
+
     fn _set(&mut self, index: usize, value: &T) -> Result<()> {
         if let Mmap::MmapMut(ref mut mmap) = self.mmap {
             let serialized = bincode::DefaultOptions::new()
