@@ -2,7 +2,7 @@
 // I prefer an object to a function here because the state is quite complicated.
 // This is all 0-indexed because it's independent from building the algorithm.
 
-use graph::indexing::{IndexType, NodeIndex};
+use crate::graph::indexing::{IndexType, NodeIndex};
 
 #[derive(Debug, Copy, Clone)]
 pub struct CdawgState<Ix>

@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ord;
 use std::fmt::Debug;
 
-use dawg::Dawg;
-use graph::avl_graph::node::NodeRef;
-use graph::indexing::{DefaultIx, NodeIndex};
-use graph::memory_backing::MemoryBacking;
-use weight::Weight;
+use crate::dawg::Dawg;
+use crate::graph::avl_graph::node::NodeRef;
+use crate::graph::indexing::{DefaultIx, NodeIndex};
+use crate::graph::memory_backing::MemoryBacking;
+use crate::weight::Weight;
 
 pub fn get_entropy<E, W, Mb>(dawg: &Dawg<E, W, DefaultIx, Mb>, state: NodeIndex) -> f64
 where
@@ -36,12 +36,8 @@ where
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use dawg::Dawg;
-    use stat_utils::*;
-    use tokenize::{TokenIndex, Tokenize};
-    use weight::DefaultWeight;
-
-    use graph::indexing::NodeIndex;
+    use super::*;
+    use crate::weight::DefaultWeight;
 
     #[test]
     fn test_get_entropy() {

@@ -1,9 +1,6 @@
-use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-// Including Borrow breaks things?
-
-use graph::indexing::{NodeIndex, DefaultIx};
 
 pub trait Stack<T> {
     fn push(&mut self, item: T);
@@ -40,7 +37,7 @@ where
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+    use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
 
     #[test]
     fn test_stack_vec() {

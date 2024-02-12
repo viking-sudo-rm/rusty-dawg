@@ -1,5 +1,5 @@
 pub use self::weight40::DefaultWeight;
-use graph::indexing::NodeIndex;
+use crate::graph::indexing::NodeIndex;
 
 pub trait Weight {
     fn get_length(&self) -> u64;

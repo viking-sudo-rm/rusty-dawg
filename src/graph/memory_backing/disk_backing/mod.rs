@@ -2,17 +2,17 @@ mod disk_mut_refs;
 pub mod disk_vec;
 pub mod vec; // Implement VecBacking for DiskVec and DiskVecItem // Raw implementation of DiskVec data structure.
 
-use graph::avl_graph::edge::Edge;
-use graph::avl_graph::node::Node;
+use crate::graph::avl_graph::edge::Edge;
+use crate::graph::avl_graph::node::Node;
 
-use graph::indexing::{EdgeIndex, IndexType, NodeIndex};
-use graph::memory_backing::MemoryBacking;
+use crate::graph::indexing::{EdgeIndex, IndexType, NodeIndex};
+use crate::graph::memory_backing::MemoryBacking;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fs::create_dir_all;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
-use weight::Weight;
+use crate::weight::Weight;
 
 use self::disk_mut_refs::{DiskEdgeMutRef, DiskNodeMutRef};
 use self::vec::Vec;

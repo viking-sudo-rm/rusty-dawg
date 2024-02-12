@@ -189,9 +189,9 @@ mod tests {
     use serde::Deserialize;
     use tempfile::tempdir;
 
-    use graph::avl_graph::node::{Node, NodeRef};
-    use graph::indexing::{DefaultIx, NodeIndex};
-    use weight::{DefaultWeight, Weight};
+    use crate::graph::avl_graph::node::{Node, NodeRef};
+    use crate::graph::indexing::{DefaultIx, NodeIndex};
+    use crate::weight::{DefaultWeight, Weight};
 
     #[derive(Serialize, Deserialize, Default, Debug)]
     struct Foo {

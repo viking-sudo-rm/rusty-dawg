@@ -4,33 +4,33 @@
 // Edges stored in AVL tree: // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
 use anyhow::Result;
-use comparator::Comparator;
+use crate::comparator::Comparator;
 use std::clone::Clone;
 use std::cmp::{Eq, Ord, Ordering};
 use std::path::Path;
 
 use std::marker::PhantomData;
 
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use crate::serde::de::DeserializeOwned;
+use crate::serde::Serialize;
 use std::cmp::{max, min};
 use std::fmt::Debug;
 
-use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
-use weight::Weight;
+use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use crate::weight::Weight;
 
 pub mod edge;
 pub mod node;
 mod serde;
 mod comparator;
 
-pub use graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
-pub use graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
-use graph::avl_graph::comparator::DEFAULT_CMP;
+pub use edge::{Edge, EdgeMutRef, EdgeRef};
+pub use node::{Node, NodeMutRef, NodeRef};
+use comparator::DEFAULT_CMP;
 
-use graph::memory_backing::ram_backing::RamBacking;
-use graph::memory_backing::vec_backing::VecBacking;
-use graph::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
+use crate::graph::memory_backing::ram_backing::RamBacking;
+use crate::graph::memory_backing::vec_backing::VecBacking;
+use crate::graph::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
 
 #[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, Ix>>
@@ -621,14 +621,14 @@ where
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use graph::avl_graph::edge::EdgeRef;
-    use graph::avl_graph::node::{NodeMutRef, NodeRef};
-    use graph::avl_graph::AvlGraph;
-    use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+    use crate::graph::avl_graph::edge::EdgeRef;
+    use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
+    use crate::graph::avl_graph::AvlGraph;
+    use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+    use crate::weight::{Weight, DefaultWeight};
+    use crate::cdawg::comparator::CdawgComparator;
+    use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
     use std::convert::TryInto;
-    use weight::{Weight, DefaultWeight};
-    use cdawg::comparator::CdawgComparator;
-    use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
     use std::rc::Rc;
     use std::cell::RefCell;
 

@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 use std::marker::Copy;
 
-use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
-use weight::Weight;
+use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use crate::weight::Weight;
 
 #[derive(Deserialize, Serialize, Copy, Default)]
 pub struct Node<N, Ix = DefaultIx> {
@@ -180,16 +180,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::weight::WeightMinimal;
-
     use super::*;
     use bincode;
     use bincode::{deserialize, serialize, Options};
-    use weight::DefaultWeight;
+    use crate::weight::DefaultWeight;
 
     #[test]
     fn test_serialize_deserialize_node() {
-        type NodeType = Node<WeightMinimal, DefaultIx>;
+        type NodeType = Node<DefaultWeight, DefaultIx>;
         let node: NodeType = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
         let bytes = serialize(&node).unwrap();
         let new_node: NodeType = deserialize(&bytes).unwrap();
@@ -200,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_node_with_fixint() {
-        type T = Node<WeightMinimal, DefaultIx>;
+        type T = Node<DefaultWeight, DefaultIx>;
         let node: T = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
         let bytes = bincode::DefaultOptions::new()
             .with_fixint_encoding()

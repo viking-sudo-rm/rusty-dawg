@@ -1,6 +1,6 @@
-use graph::avl_graph::AvlGraph;
-use graph::indexing::IndexType;
-use graph::memory_backing::MemoryBacking;
+use crate::graph::avl_graph::AvlGraph;
+use crate::graph::indexing::IndexType;
+use crate::graph::memory_backing::MemoryBacking;
 use serde::de::Deserializer;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::{SerializeStruct, Serializer};

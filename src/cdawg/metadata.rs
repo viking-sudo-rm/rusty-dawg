@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn test_save_load_json() {
-        let mut file = NamedTempFile::new().expect("Failed to create file");
+        let file = NamedTempFile::new().expect("Failed to create file");
         let path = file.path();
         let blob = CdawgMetadata {source: 42, sink: 35, end_position: 54};
         blob.save_json(path).unwrap();

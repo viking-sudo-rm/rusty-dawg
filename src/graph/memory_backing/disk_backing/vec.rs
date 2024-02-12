@@ -1,9 +1,9 @@
 // Implement the VecBacking interface for DiskVec.
 
 use anyhow::Result;
-use graph::memory_backing::disk_backing::disk_mut_refs::{DiskVecItem, MutRef};
-use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use graph::memory_backing::vec_backing::VecBacking;
+use crate::graph::memory_backing::disk_backing::disk_mut_refs::{DiskVecItem, MutRef};
+use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::graph::memory_backing::vec_backing::VecBacking;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::cell::RefCell;
@@ -64,8 +64,8 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use graph::memory_backing::disk_backing::disk_mut_refs::MutRef;
-    use graph::memory_backing::vec_backing::VecBacking;
+    use crate::graph::memory_backing::disk_backing::disk_mut_refs::MutRef;
+    use crate::graph::memory_backing::vec_backing::VecBacking;
     use serde::Deserialize;
     use std::cell::RefCell;
     use std::rc::Rc;

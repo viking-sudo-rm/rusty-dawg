@@ -6,37 +6,30 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
 use std::cmp::Ord;
-use std::convert::TryFrom;
 use std::convert::TryInto;
-use std::fmt::Debug;
 use std::io::{BufReader, Read};
 use std::rc::Rc;
 use std::cell::RefCell;
-
-use io::Save;
 
 use std::fs;
 use std::mem::size_of;
 
 use kdam::{tqdm, BarExt};
 
-use io;
 use super::Args;
 
-use data_reader::{DataReader, PileReader, TxtReader};
-
-use cdawg::Cdawg;
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use evaluator::Evaluator;
-
-use graph::avl_graph::edge::Edge;
-use graph::avl_graph::node::Node;
-use graph::indexing::{DefaultIx, NodeIndex};
-use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
-use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use build_stats::BuildStats;
-
-use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
+use crate::io;
+use crate::io::Save;
+use crate::data_reader::{DataReader, PileReader, TxtReader};
+use crate::cdawg::Cdawg;
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::graph::avl_graph::edge::Edge;
+use crate::graph::avl_graph::node::Node;
+use crate::graph::indexing::DefaultIx;
+use crate::graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::build_stats::BuildStats;
+use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 
 type N = super::N;
 type E = CdawgEdgeWeight<DefaultIx>;
@@ -71,11 +64,6 @@ where
     println!("Opening train file...");
     let train_file = fs::File::open(args.train_path.as_str())?;
     let n_bytes = train_file.metadata().unwrap().len();
-    let eval_threshold = if args.n_eval == 0 {
-        0
-    } else {
-        args.n_tokens / args.n_eval
-    };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
     println!("Buffer size: {}B", args.buf_size);
 
@@ -96,14 +84,6 @@ where
         fs::read_to_string(path).unwrap_or_else(|_| panic!("Could not load test from {}", path))
     };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
-    let mut test: Vec<_> = index.tokenize(&test_raw);
-    // let mut test: Vec<usize> = test_raw.split_whitespace().map(|x| index.add(x)).collect();
-    let old_test_len = test.len();
-    if args.truncate_test > 0 {
-        test = test[0..args.truncate_test].to_vec();
-    }
-    let mut evaluator = Evaluator::new(&test, args.max_length);
-    println!("#(test): {}/{}", test.len(), old_test_len);
 
     let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
     let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
@@ -126,7 +106,6 @@ where
 
     println!("Starting build...");
     let mut idx: usize = 0;
-    let mut doc_idx = 0;
     let mut pbar = tqdm!(total = args.n_tokens);
     let (mut state, mut start) = (cdawg.get_source(), 1);
     for (doc_id, doc) in reader {
@@ -138,8 +117,7 @@ where
             idx += 1;
             (state, start) = cdawg.update(state, start, idx);
             if *token == u16::MAX {
-                (state, start) = cdawg.end_document(idx, doc_idx);
-                doc_idx += 1;
+                (state, start) = cdawg.end_document(idx, doc_id);
             }
             pbar.update(1);
 
