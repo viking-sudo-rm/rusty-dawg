@@ -20,9 +20,9 @@ RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --tokenizer $TOKENIZER \
     --data-reader "pile" \
     --utype u16 \
-    --buf-size 1000000000 \
+    --buf-size 3000000000 \
     --cdawg \
-    --stats-threshold 100000 \
+    --stats-threshold 300000 \
     --stats-path "$RUN_DIR/stats.jsonl" \
     --train-vec-path "$RUN_DIR/train.vec" \
     --disk-path "$RUN_DIR/cdawg"
