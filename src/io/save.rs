@@ -59,7 +59,7 @@ where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
 {
-    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+    fn save(&self, _save_path: &str) -> Result<(), Box<dyn Error>> {
         unimplemented!("Can't yet save CDAWGs on RAM");
     }
 }

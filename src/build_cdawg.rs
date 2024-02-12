@@ -30,6 +30,7 @@ use crate::graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use crate::build_stats::BuildStats;
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
+use crate::cdawg::token_backing::TokenBacking;
 
 type N = super::N;
 type E = CdawgEdgeWeight<DefaultIx>;
@@ -96,13 +97,20 @@ where
     // Maintain a DiskVec that we update incrementally (whenever we read a token, set it).
     println!("# tokens: {}", args.n_tokens);
     println!("Creating train vector...");
-    // let train_vec: Vec<u16> = Vec::with_capacity(args.n_tokens);
-    let train_vec: DiskVec<u16> = DiskVec::new(&args.train_vec_path.unwrap(), args.n_tokens)?;
-    let train_vec_rc = Rc::new(RefCell::new(train_vec));
+    let train_vec: Rc<RefCell<dyn TokenBacking<u16>>> = match &args.train_vec_path {
+        Some(ref train_vec_path) => {
+            let disk_vec = DiskVec::new(train_vec_path, args.n_tokens)?;
+            Rc::new(RefCell::new(disk_vec))
+        },
+        None => {
+            let vec = Vec::with_capacity(args.n_tokens);
+            Rc::new(RefCell::new(vec))
+        }
+    };
 
     println!("Allocating CDAWG...");
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
-        Cdawg::with_capacity_mb(train_vec_rc.clone(), mb, n_nodes, n_edges);
+        Cdawg::with_capacity_mb(train_vec.clone(), mb, n_nodes, n_edges);
 
     println!("Starting build...");
     let mut idx: usize = 0;
@@ -111,10 +119,8 @@ where
     for (doc_id, doc) in reader {
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
-            // *token for Vec, token for DiskVec
-            let _ = train_vec_rc.borrow_mut().push(token);
-            // let _ = train_vec_rc.borrow_mut().push(*token);
             idx += 1;
+            let _ = train_vec.borrow_mut().push(*token);
             (state, start) = cdawg.update(state, start, idx);
             if *token == u16::MAX {
                 (state, start) = cdawg.end_document(idx, doc_id);
