@@ -139,6 +139,7 @@ where
             let _ = train_vec_rc.borrow_mut().push(token);
             // let _ = train_vec_rc.borrow_mut().push(*token);
             idx += 1;
+            println!("\tstate={}, gamma=({}, {})", state.index(), start, idx);
             (state, start) = cdawg.update(state, start, idx);
             if *token == u16::MAX {
                 println!("Ending document");
