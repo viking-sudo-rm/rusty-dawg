@@ -124,6 +124,7 @@ where
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
         Cdawg::with_capacity_mb(train_vec_rc.clone(), mb, n_nodes, n_edges);
 
+    println!("Starting build...");
     let mut state: NodeIndex<DefaultIx>;
     let mut start: usize;
     let mut idx: usize = 0;
@@ -133,6 +134,7 @@ where
         (state, start) = (cdawg.get_source(), 1);
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
+            println!("\tToken: {}", token);
             // *token for Vec, token for DiskVec
             let _ = train_vec_rc.borrow_mut().push(token);
             // let _ = train_vec_rc.borrow_mut().push(*token);
