@@ -8,7 +8,7 @@
 
 DATA_PATH="/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json"
 N_TOKENS=2520623333
-TOKENIZER="EleutherAI/gpt-neo-2.7B"
+TOKENIZER="EleutherAI/pythia-12b"
 RUN_DIR="/home/willm/pile-run"
 
 RUST_BACKTRACE=1 ./target/release/rusty-dawg \
