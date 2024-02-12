@@ -338,6 +338,7 @@ where
     // Returns the last state passed through, and the beginning of the active edge out of it.
     // Assumes 1 indexing!! This is because gamma would have to encode negative values with 0 indexing.
     fn canonize(&self, mut state: Option<NodeIndex<Ix>>, gamma: (usize, usize)) -> (Option<NodeIndex<Ix>>, usize) {
+        println!("Canonize {:?}, ({}, {})", state, gamma.0, gamma.1);
         let (mut start, end) = gamma;
         if start > end {
             // Means we are at a state.
