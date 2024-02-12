@@ -132,17 +132,14 @@ where
     for (doc_id, doc) in reader {
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
-            println!("\tToken: {}", token);
             // *token for Vec, token for DiskVec
             let _ = train_vec_rc.borrow_mut().push(token);
             // let _ = train_vec_rc.borrow_mut().push(*token);
             idx += 1;
-            println!("Before update at state={}, gamma=({}, {})", state.index(), start, idx);
             (state, start) = cdawg.update(state, start, idx);
             if *token == u16::MAX {
                 (state, start) = cdawg.end_document(idx, doc_idx);
                 doc_idx += 1;
-                println!("Ended doc at state={}, gamma=({}, {})", state.index(), start, idx);
             }
             pbar.update(1);
 
