@@ -147,7 +147,7 @@ where
         for idx in 1..length + 1 {
             (state, start) = self.update(state, start, idx);
             if self.tokens.borrow().get(idx - 1) == u16::MAX {
-                self.end_document(idx, idx);
+                (state, start) = self.end_document(idx, idx);
             }
         }
     }
@@ -1161,12 +1161,17 @@ mod tests {
 
         let (mut state, mut start) = (cdawg.source, 1);
         let length = train.borrow().len();
+        let mut starts = Vec::new();
         for idx in 1..length + 1 {
             (state, start) = cdawg.update(state, start, idx);
             if train.borrow().get(idx - 1) == u16::MAX {
-                cdawg.end_document(idx, idx);
+                (state, start) = cdawg.end_document(idx, idx);
+                starts.push(start);
             }
         }
+
+        // Make sure the start gets reset to 1-indexed + 1.
+        assert_eq!(starts, vec![5, 9]);
 
         // Check that the documents are encoded correctly with edges from source to their sink node.
         let cmp0 = CdawgComparator::new(train.clone());
@@ -1199,7 +1204,7 @@ mod tests {
         for idx in 1..length + 1 {
             (state, start) = cdawg.update(state, start, idx);
             if train.borrow().get(idx - 1) == u16::MAX {
-                cdawg.end_document(idx, idx);
+                (state, start) = cdawg.end_document(idx, idx);
             }
         }
 

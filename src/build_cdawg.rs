@@ -143,7 +143,7 @@ where
             (state, start) = cdawg.update(state, start, idx);
             if *token == u16::MAX {
                 println!("Ending document");
-                cdawg.end_document(idx, doc_idx);
+                (state, start) = cdawg.end_document(idx, doc_idx);
                 doc_idx += 1;
             }
             pbar.update(1);
