@@ -6,11 +6,12 @@
 # The number of tokens for Wikitext-103 is X (about 50x as many).
 # Larger datasets should be run with a different script most likely.
 
-DATA_PATH="/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json.gz"
+DATA_PATH=${1:-"/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json.gz"}
+RUN_DIR=${2:-"/home/willm/pile-run"}
+
 N_TOKENS=2520623333
 # TOKENIZER="EleutherAI/pythia-12b"
 TOKENIZER="gpt2"
-RUN_DIR="/home/willm/pile-run"
 
 RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --train-path $DATA_PATH \
