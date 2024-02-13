@@ -24,9 +24,9 @@ pub mod node;
 mod serde;
 mod comparator;
 
-pub use edge::{Edge, EdgeMutRef, EdgeRef};
-pub use node::{Node, NodeMutRef, NodeRef};
-use comparator::DEFAULT_CMP;
+pub use self::edge::{Edge, EdgeMutRef, EdgeRef};
+pub use self::node::{Node, NodeMutRef, NodeRef};
+use self::comparator::DEFAULT_CMP;
 
 use crate::graph::memory_backing::ram_backing::RamBacking;
 use crate::graph::memory_backing::vec_backing::VecBacking;
