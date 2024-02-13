@@ -1,8 +1,8 @@
-use dawg::Dawg;
-use graph::indexing::DefaultIx;
-use graph::memory_backing::MemoryBacking;
+use crate::dawg::Dawg;
+use crate::graph::indexing::DefaultIx;
+use crate::graph::memory_backing::MemoryBacking;
 use serde::{Deserialize, Serialize};
-use stat_utils::get_entropy;
+use crate::stat_utils::get_entropy;
 use std::cmp::max;
 use std::cmp::Ord;
 use std::collections::HashMap;
@@ -10,11 +10,10 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-use weight::Weight;
+use crate::weight::Weight;
 
-use graph::avl_graph::node::NodeRef;
+use crate::graph::avl_graph::node::NodeRef;
 
-// TODO:
 #[derive(Serialize)]
 pub struct Evaluator<'a, E>
 where
@@ -134,12 +133,11 @@ where
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use dawg::Dawg;
-    use evaluator::Evaluator;
-    use graph::indexing::DefaultIx;
-    use graph::memory_backing::RamBacking;
-    use tokenize::{TokenIndex, Tokenize};
-
+    use crate::dawg::Dawg;
+    use crate::evaluator::Evaluator;
+    use crate::graph::indexing::DefaultIx;
+    use crate::graph::memory_backing::RamBacking;
+    use crate::tokenize::{TokenIndex, Tokenize};
     use crate::weight::weight40::DefaultWeight;
 
     #[test]

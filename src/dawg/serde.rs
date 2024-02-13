@@ -1,11 +1,11 @@
-use dawg::Dawg;
+use crate::dawg::Dawg;
 use serde::de::Deserializer;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
 
-use graph::avl_graph::AvlGraph;
-use graph::indexing::{IndexType, NodeIndex};
-use graph::memory_backing::MemoryBacking;
+use crate::graph::avl_graph::AvlGraph;
+use crate::graph::indexing::{IndexType, NodeIndex};
+use crate::graph::memory_backing::MemoryBacking;
 use serde::de::{SeqAccess, Visitor};
 
 use std::marker::PhantomData;

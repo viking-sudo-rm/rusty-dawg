@@ -1,12 +1,12 @@
-use dawg::Dawg;
-use graph::indexing::DefaultIx;
-use graph::memory_backing::{DiskBacking, RamBacking};
+use crate::dawg::Dawg;
+use crate::graph::indexing::DefaultIx;
+use crate::graph::memory_backing::{DiskBacking, RamBacking};
 use serde::de::DeserializeOwned;
 use std::error::Error;
 use std::fs;
-use weight::Weight;
-use cdawg::Cdawg;
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::weight::Weight;
+use crate::cdawg::Cdawg;
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Eq;
@@ -59,7 +59,7 @@ where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
 {
-    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+    fn save(&self, _save_path: &str) -> Result<(), Box<dyn Error>> {
         unimplemented!("Can't yet save CDAWGs on RAM");
     }
 }

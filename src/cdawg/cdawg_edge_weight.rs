@@ -1,6 +1,6 @@
 use serde::{Deserialize,Serialize};
 
-use graph::indexing::{DefaultIx, IndexType};
+use crate::graph::indexing::{DefaultIx, IndexType};
 
 // TODO: Can simply remove this type and use (Ix, Ix)
 

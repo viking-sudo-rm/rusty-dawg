@@ -1,4 +1,3 @@
-use crate::tokenize::Tokenize;
 use anyhow::anyhow;
 
 use std::convert::TryFrom;
@@ -8,7 +7,8 @@ use std::fmt::Debug;
 use std::marker::Copy;
 use tokenizers::tokenizer::Tokenizer;
 
-use tokenize::end::End;
+use crate::tokenize::Tokenize;
+use crate::tokenize::end::End;
 
 // pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
 //     s.split_word_bounds().filter(|w| {

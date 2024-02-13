@@ -6,11 +6,11 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use cdawg::Cdawg;
-use graph::indexing::IndexType;
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use weight::Weight;
-use graph::memory_backing::MemoryBacking;
+use crate::cdawg::Cdawg;
+use crate::graph::indexing::IndexType;
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::weight::Weight;
+use crate::graph::memory_backing::MemoryBacking;
 
 #[derive(Serialize, Deserialize)]
 pub struct BuildStats {

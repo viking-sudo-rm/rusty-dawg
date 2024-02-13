@@ -1,12 +1,12 @@
 mod vec;
 
-use graph::indexing::IndexType;
-use graph::memory_backing::MemoryBacking;
+use crate::graph::indexing::IndexType;
+use crate::graph::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
-use weight::Weight;
+use crate::weight::Weight;
 
-use graph::avl_graph::edge::Edge;
-use graph::avl_graph::node::Node;
+use crate::graph::avl_graph::edge::Edge;
+use crate::graph::avl_graph::node::Node;
 
 #[derive(Clone)]
 pub struct RamBacking<N, E, Ix> {

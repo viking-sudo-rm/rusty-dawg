@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use data_reader::buf_reader::BufReader;
+use crate::data_reader::buf_reader::BufReader;
 
 pub struct PileReader {
     buf_reader: BufReader,

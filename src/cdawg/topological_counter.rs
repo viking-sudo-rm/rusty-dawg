@@ -1,16 +1,15 @@
-use std::convert::TryInto;
 use anyhow::Result;
 use std::path::Path;
 
 use serde::{Serialize, Deserialize};
 
-use cdawg::inenaga::Cdawg;
-use cdawg::stack::Stack;
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use graph::memory_backing::MemoryBacking;
-use graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use graph::indexing::{NodeIndex, IndexType};
-use weight::Weight;
+use crate::cdawg::inenaga::Cdawg;
+use crate::cdawg::stack::Stack;
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::graph::memory_backing::MemoryBacking;
+use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::graph::indexing::{NodeIndex, IndexType};
+use crate::weight::Weight;
 
 /// An state on the stack, that should either be opened or closed.
 #[derive(Default, Deserialize, Serialize)]

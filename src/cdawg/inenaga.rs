@@ -29,18 +29,18 @@ use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use graph::{EdgeRef, NodeRef};
-use graph::avl_graph::edge::EdgeMutRef;
-use graph::avl_graph::node::NodeMutRef;
-use graph::avl_graph::AvlGraph;
-use graph::indexing::{DefaultIx, NodeIndex, EdgeIndex, IndexType};
-use weight::{DefaultWeight, Weight};
-use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use cdawg::metadata::CdawgMetadata;
-use cdawg::token_backing::TokenBacking;
-use cdawg::comparator::CdawgComparator;
-use cdawg::cdawg_state::CdawgState;
+use crate::graph::{EdgeRef, NodeRef};
+use crate::graph::avl_graph::edge::EdgeMutRef;
+use crate::graph::avl_graph::node::NodeMutRef;
+use crate::graph::avl_graph::AvlGraph;
+use crate::graph::indexing::{DefaultIx, NodeIndex, EdgeIndex, IndexType};
+use crate::weight::{DefaultWeight, Weight};
+use crate::graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::cdawg::metadata::CdawgMetadata;
+use crate::cdawg::token_backing::TokenBacking;
+use crate::cdawg::comparator::CdawgComparator;
+use crate::cdawg::cdawg_state::CdawgState;
 
 // TODO: Add TokenBacking for tokens
 
@@ -669,7 +669,7 @@ where
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    use graph::memory_backing::disk_backing::disk_vec::DiskVec;
+    use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
 
     macro_rules! get_edge {
         // `()` indicates that the macro takes no argument.

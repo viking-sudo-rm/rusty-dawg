@@ -7,24 +7,24 @@
 mod serde;
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use crate::serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::cmp::{Eq, Ord};
 use std::collections::LinkedList;
 use std::fmt::Debug;
 use std::path::Path;
 
-use graph::avl_graph::AvlGraph;
-use graph::indexing::NodeIndex;
-use weight::{DefaultWeight, Weight};
+use crate::graph::avl_graph::AvlGraph;
+use crate::graph::indexing::NodeIndex;
+use crate::weight::{DefaultWeight, Weight};
 
-use graph::indexing::{DefaultIx, IndexType};
-use graph::memory_backing::disk_backing::DiskBacking;
-use graph::memory_backing::ram_backing::RamBacking;
-use graph::memory_backing::MemoryBacking;
-use serde::de::DeserializeOwned;
+use crate::graph::indexing::{DefaultIx, IndexType};
+use crate::graph::memory_backing::disk_backing::DiskBacking;
+use crate::graph::memory_backing::ram_backing::RamBacking;
+use crate::graph::memory_backing::MemoryBacking;
+use crate::serde::de::DeserializeOwned;  // The global serde, not the submodule
 
-use graph::avl_graph::node::{NodeMutRef, NodeRef};
+use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where
@@ -383,21 +383,13 @@ where Mb: MemoryBacking<DefaultWeight, u16, DefaultIx> {}
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use dawg::Dawg;
-    use weight::Weight;
-
-    use graph::avl_graph::node::NodeRef;
-    use graph::indexing::{DefaultIx, NodeIndex};
-
+    use super::*;
     use bincode::{deserialize_from, serialize_into};
     use std::convert::TryInto;
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom, Write};
     use tempfile::tempdir;
     use tempfile::NamedTempFile;
-    use weight::weight40::DefaultWeight;
-
-    use crate::graph::memory_backing::{DiskBacking, RamBacking};
 
     #[test]
     fn test_build_bab() {

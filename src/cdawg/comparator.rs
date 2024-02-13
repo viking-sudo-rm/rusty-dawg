@@ -5,9 +5,9 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use graph::indexing::IndexType;
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use cdawg::token_backing::TokenBacking;
+use crate::graph::indexing::IndexType;
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::cdawg::token_backing::TokenBacking;
 
 const END: u16 = u16::MAX;
 
@@ -55,7 +55,7 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use graph::indexing::DefaultIx;
+    use crate::graph::indexing::DefaultIx;
 
     type E = CdawgEdgeWeight<DefaultIx>;
 

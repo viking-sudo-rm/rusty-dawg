@@ -1,4 +1,4 @@
-use graph::memory_backing::vec_backing::VecBacking;
+use crate::graph::memory_backing::vec_backing::VecBacking;
 
 // FIXME: Did this with unsafe pointers for convenience but would be good to use &/&mut!
 impl<T> VecBacking<T> for Vec<T> {
@@ -25,7 +25,7 @@ impl<T> VecBacking<T> for Vec<T> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use graph::memory_backing::vec_backing::VecBacking;
+    use super::*;
 
     #[test]
     fn test_index() {

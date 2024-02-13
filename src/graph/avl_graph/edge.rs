@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
-use graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 
 #[derive(Serialize, Deserialize, Default, Copy)]
 pub struct Edge<E, Ix = DefaultIx> {

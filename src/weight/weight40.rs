@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
 use crate::weight::Weight;
-use graph::indexing::{DefaultIx, IndexType, NodeIndex};
+use crate::graph::indexing::{DefaultIx, IndexType, NodeIndex};
 
 pub type DefaultWeight = WeightMinimal;
 
