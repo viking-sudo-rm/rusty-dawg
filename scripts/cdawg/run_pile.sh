@@ -23,7 +23,7 @@ RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --utype u16 \
     --buf-size 3000000000 \
     --cdawg \
-    --stats-threshold 300000 \
+    --stats-threshold 10000000 \
     --stats-path "$RUN_DIR/stats.jsonl" \
     --train-vec-path "$RUN_DIR/train.vec" \
     --disk-path "$RUN_DIR/cdawg"
