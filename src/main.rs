@@ -140,14 +140,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     if args.cdawg {
-        println!("Building CDAWG instead of DAWG...");
         return match args.disk_path.clone() {
             Some(path) => {
+                println!("Building CDAWG on disk...");
                 type Mb = DiskBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
                 let mb = Mb::new(path);
                 Ok(build_cdawg::<Mb>(args, mb)?)
             },
             None => {
+                println!("Building CDAWG in RAM...");
                 type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
                 let mb = Mb::default();
                 Ok(build_cdawg::<Mb>(args, mb)?)

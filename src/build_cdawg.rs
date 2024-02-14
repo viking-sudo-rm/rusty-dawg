@@ -36,7 +36,6 @@ use crate::cdawg::TopologicalCounter;
 type N = super::N;
 type E = CdawgEdgeWeight<DefaultIx>;
 
-// Confusingly, E here is the token type.
 pub fn build_cdawg<Mb>(args: Args, mb: Mb) -> Result<()>
 where
     Mb: MemoryBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>,
@@ -104,6 +103,7 @@ where
             Rc::new(RefCell::new(disk_vec))
         },
         None => {
+            println!("Storing tokens vector in RAM!");
             let vec = Vec::with_capacity(args.n_tokens);
             Rc::new(RefCell::new(vec))
         }
@@ -160,6 +160,9 @@ where
     }
 
     let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
+    if let Some(ref stats_path) = args.stats_path {
+        stats.append_to_jsonl(stats_path)?;
+    }
     println!("");
     println!("==========");
     println!("Completed!");
