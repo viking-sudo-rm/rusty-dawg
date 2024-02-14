@@ -132,6 +132,8 @@ pub struct Args {
     stats_threshold: Option<usize>,
     #[arg(long)]
     stats_path: Option<String>,
+    #[arg(long)]
+    count_path: Option<String>,  // DiskVec path to use while traversing graph.
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

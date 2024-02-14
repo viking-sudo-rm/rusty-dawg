@@ -31,6 +31,7 @@ use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
 use crate::build_stats::BuildStats;
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use crate::cdawg::token_backing::TokenBacking;
+use crate::cdawg::TopologicalCounter;
 
 type N = super::N;
 type E = CdawgEdgeWeight<DefaultIx>;
@@ -112,7 +113,6 @@ where
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
         Cdawg::with_capacity_mb(train_vec.clone(), mb, n_nodes, n_edges);
 
-    println!("Starting build...");
     let mut idx: usize = 0;
     let mut pbar = tqdm!(total = args.n_tokens);
     let (mut state, mut start) = (cdawg.get_source(), 1);
@@ -140,14 +140,26 @@ where
             }
         }
     }
+    eprintln!();
 
     // All this does is generate the metadata file.
     if let Some(disk_path) = args.disk_path {
         let _ = cdawg.save(disk_path.as_str());
     }
 
+    println!("\nFilling counts...");
+    match args.count_path {
+        Some(ref count_path) => {
+            let mut counter = TopologicalCounter::new_disk(count_path, idx)?;
+            counter.fill_counts(&mut cdawg);
+        },
+        None => {
+            let mut counter = TopologicalCounter::new_ram();
+            counter.fill_counts(&mut cdawg);
+        },
+    }
+
     let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
-    eprintln!();
     println!("");
     println!("==========");
     println!("Completed!");
