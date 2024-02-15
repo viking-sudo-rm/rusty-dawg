@@ -60,7 +60,7 @@ where
     println!("  E: {}B", size_of::<E>());
     println!("  Node: {}B", size_of::<Node<N, DefaultIx>>());
     println!("  Edge: {}B", size_of::<Edge<E, DefaultIx>>());
-    println!("");
+    println!();
 
     println!("Opening train file...");
     let train_file = fs::File::open(args.train_path.as_str())?;
@@ -120,7 +120,7 @@ where
         let tokens = index.tokenize(doc.as_str());
         for token in &tokens {
             idx += 1;
-            let _ = train_vec.borrow_mut().push(*token);
+            train_vec.borrow_mut().push(*token);
             (state, start) = cdawg.update(state, start, idx);
             if *token == u16::MAX {
                 (state, start) = cdawg.end_document(idx, doc_id);
@@ -163,7 +163,7 @@ where
     if let Some(ref stats_path) = args.stats_path {
         stats.append_to_jsonl(stats_path)?;
     }
-    println!("");
+    println!();
     println!("==========");
     println!("Completed!");
     println!("==========");
@@ -174,7 +174,7 @@ where
     println!("  nodes/token: {:.2}", stats.get_nodes_per_token());
     println!("  edge/token: {:.2}", stats.get_edges_per_token());
     println!("  balance ratio: {:.2}", stats.balance_ratio);
-    println!("");
+    println!();
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");
