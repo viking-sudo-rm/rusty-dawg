@@ -9,7 +9,7 @@ pub use self::vec_backing::DiskVec;
 use crate::graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
 use crate::graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
 
-use self::vec_backing::VecBacking;
+// Define the traits that submodules will implement in various ways.
 
 pub trait MemoryBacking<N, E, Ix>
 where
@@ -27,4 +27,21 @@ where
     fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN;
 
     fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE;
+}
+
+pub trait VecBacking<T> {
+    type TRef;
+    type TMutRef;
+
+    fn len(&self) -> usize;
+
+    fn push(&mut self, item: T);
+
+    fn index(&self, index: usize) -> Self::TRef;
+
+    fn index_mut(&mut self, index: usize) -> Self::TMutRef;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }

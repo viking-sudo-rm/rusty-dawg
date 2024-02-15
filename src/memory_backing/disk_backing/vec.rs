@@ -1,7 +1,7 @@
 // Implement the VecBacking interface for DiskVec.
 
 use super::disk_mut_refs::{DiskVecItem, MutRef};
-use crate::memory_backing::vec_backing::{DiskVec, VecBacking};
+use crate::memory_backing::{DiskVec, VecBacking};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -64,7 +64,7 @@ where
 mod tests {
     use super::*;
     use crate::memory_backing::disk_backing::disk_mut_refs::MutRef;
-    use crate::memory_backing::vec_backing::VecBacking;
+    use crate::memory_backing::VecBacking;
     use serde::Deserialize;
     use std::cell::RefCell;
     use std::rc::Rc;
