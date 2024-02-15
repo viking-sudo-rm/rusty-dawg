@@ -14,6 +14,7 @@ extern crate clap;
 extern crate comparator;
 extern crate flate2;
 extern crate kdam;
+extern crate lru;
 extern crate memmap2;
 extern crate rusty_dawg;
 extern crate serde;

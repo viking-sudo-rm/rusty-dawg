@@ -5,6 +5,7 @@ extern crate comparator;
 extern crate flate2;
 extern crate fslock;
 extern crate kdam;
+extern crate lru;
 extern crate memmap2;
 extern crate memory_stats;
 extern crate num;
