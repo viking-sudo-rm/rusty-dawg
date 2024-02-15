@@ -191,7 +191,7 @@ where
             // Within the loop, never possible for opt_state to be null.
             let state = opt_state.unwrap();
 
-            if start <= end - 1 {
+            if start < end {
                 // Implicit case checks when an edge is active.
                 let cur_dest = self.extension(state, (start, end - 1));
                 if dest == Some(cur_dest) {
@@ -1215,7 +1215,7 @@ mod tests {
 
         let mut lengths = Vec::new();
         let mut cs = cdawg.get_initial();
-        for token in vec![a, b, c, a, d].iter() {
+        for token in [a, b, c, a, d].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
         }
@@ -1231,7 +1231,7 @@ mod tests {
 
         let mut lengths = Vec::new();
         let mut cs = cdawg.get_initial();
-        for token in vec![a, b, a].iter() {
+        for token in [a, b, a].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
         }
@@ -1239,7 +1239,7 @@ mod tests {
 
         lengths = Vec::new();
         cs = cdawg.get_initial();
-        for token in vec![a, b, b].iter() {
+        for token in [a, b, b].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
         }
@@ -1256,7 +1256,7 @@ mod tests {
 
         let mut lengths = Vec::new();
         let mut cs = cdawg.get_initial();
-        for token in vec![a, b, d].iter() {
+        for token in [a, b, d].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
         }
@@ -1302,7 +1302,7 @@ mod tests {
         // Check that the suffix overlaps are returned correctly.
         let mut lengths = Vec::new();
         let mut cs = cdawg.get_initial();
-        for token in vec![b, c, b].iter() {
+        for token in [b, c, b].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
         }
@@ -1329,7 +1329,7 @@ mod tests {
         let mut lengths = Vec::new();
         let mut counts = Vec::new();
         let mut cs = cdawg.get_initial();
-        for token in vec![c, o, a, c, o, l].iter() {
+        for token in [c, o, a, c, o, l].iter() {
             cs = cdawg.transition_and_count(cs, *token);
             lengths.push(cs.length);
             counts.push(cdawg.get_suffix_count(cs));

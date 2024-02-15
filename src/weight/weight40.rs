@@ -53,7 +53,7 @@ impl Weight for WeightMinimal {
     }
 
     fn get_count(&self) -> usize {
-        self.count.index().into()
+        self.count.index()
     }
 
     fn set_count(&mut self, count: usize) {

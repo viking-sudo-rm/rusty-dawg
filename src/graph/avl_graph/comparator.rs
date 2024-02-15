@@ -7,12 +7,6 @@ pub struct DefaultComparator {}
 
 impl<E: Eq + Ord> Comparator<E> for DefaultComparator {
     fn compare(&self, e1: &E, e2: &E) -> Ordering {
-        if e1 == e2 {
-            Ordering::Equal
-        } else if e1 < e2 {
-            Ordering::Less
-        } else {
-            Ordering::Greater
-        }
+        e1.cmp(e2)
     }
 }

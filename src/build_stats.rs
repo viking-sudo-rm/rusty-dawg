@@ -38,7 +38,7 @@ impl BuildStats {
             n_tokens,
             n_nodes: cdawg.node_count(),
             n_edges: cdawg.edge_count(),
-            n_bytes: n_bytes,
+            n_bytes,
             balance_ratio: cdawg.balance_ratio(1),
             elapsed_time,
         }

@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_stack_vec() {
-        let mut stack: Box<dyn Stack<usize>> = Box::new(Vec::new());
+        let mut stack: Box<dyn Stack<usize>> = Box::<Vec<usize>>::default();
 
         stack.push(0);
         stack.push(1);

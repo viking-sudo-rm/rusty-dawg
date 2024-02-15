@@ -3,12 +3,12 @@
 
 use anyhow::Result;
 
-use serde::{Deserialize, Serialize};
+
 use std::cell::RefCell;
 use std::cmp::min;
-use std::cmp::Ord;
+
 use std::convert::TryInto;
-use std::io::{BufReader, Read};
+
 use std::rc::Rc;
 
 use std::fs;
@@ -30,7 +30,7 @@ use crate::graph::indexing::DefaultIx;
 use crate::io;
 use crate::io::Save;
 use crate::memory_backing::disk_backing::disk_vec::DiskVec;
-use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::memory_backing::{MemoryBacking};
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 
 type N = super::N;
@@ -88,7 +88,7 @@ where
 
     let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
     let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
-    let max_length: Option<u64> = if !args.max_state_length.is_negative() {
+    let _max_length: Option<u64> = if !args.max_state_length.is_negative() {
         Some(args.max_state_length.try_into().unwrap())
     } else {
         None
