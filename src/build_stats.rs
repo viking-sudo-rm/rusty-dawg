@@ -10,7 +10,7 @@ use crate::cdawg::Cdawg;
 use crate::graph::indexing::IndexType;
 use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::weight::Weight;
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::MemoryBacking;
 
 #[derive(Serialize, Deserialize)]
 pub struct BuildStats {

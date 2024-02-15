@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::graph::avl_graph::AvlGraph;
 use crate::graph::indexing::{IndexType, NodeIndex};
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::MemoryBacking;
 use serde::de::{SeqAccess, Visitor};
 
 use std::marker::PhantomData;

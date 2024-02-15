@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use crate::dawg::Dawg;
 use crate::graph::avl_graph::node::NodeRef;
 use crate::graph::indexing::{DefaultIx, NodeIndex};
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::MemoryBacking;
 use crate::weight::Weight;
 
 pub fn get_entropy<E, W, Mb>(dawg: &Dawg<E, W, DefaultIx, Mb>, state: NodeIndex) -> f64

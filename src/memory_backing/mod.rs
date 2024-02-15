@@ -4,6 +4,7 @@ pub mod vec_backing;
 
 pub use self::disk_backing::DiskBacking;
 pub use self::ram_backing::RamBacking;
+pub use self::disk_backing::disk_vec::DiskVec;
 
 use crate::graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
 use crate::graph::avl_graph::node::{Node, NodeMutRef, NodeRef};

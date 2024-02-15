@@ -6,7 +6,7 @@ use crate::graph::avl_graph::edge::Edge;
 use crate::graph::avl_graph::node::Node;
 
 use crate::graph::indexing::{EdgeIndex, IndexType, NodeIndex};
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::MemoryBacking;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fs::create_dir_all;

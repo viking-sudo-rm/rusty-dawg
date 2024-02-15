@@ -1,6 +1,6 @@
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::MemoryBacking;
 use serde::{Deserialize, Serialize};
 use crate::stat_utils::get_entropy;
 use std::cmp::max;
@@ -136,7 +136,7 @@ mod tests {
     use crate::dawg::Dawg;
     use crate::evaluator::Evaluator;
     use crate::graph::indexing::DefaultIx;
-    use crate::graph::memory_backing::RamBacking;
+    use crate::memory_backing::RamBacking;
     use crate::tokenize::{TokenIndex, Tokenize};
     use crate::weight::weight40::DefaultWeight;
 

@@ -1,7 +1,7 @@
 mod vec;
 
 use crate::graph::indexing::IndexType;
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::MemoryBacking;
 use std::marker::PhantomData;
 use crate::weight::Weight;
 

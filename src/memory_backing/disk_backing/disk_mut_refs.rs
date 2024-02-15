@@ -1,7 +1,7 @@
 use crate::graph::avl_graph::edge::{Edge, EdgeMutRef};
 use crate::graph::avl_graph::node::{Node, NodeMutRef};
-use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
-use crate::graph::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
+use crate::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::cell::RefCell;

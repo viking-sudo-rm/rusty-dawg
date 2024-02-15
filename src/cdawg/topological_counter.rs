@@ -6,8 +6,8 @@ use serde::{Serialize, Deserialize};
 use crate::cdawg::inenaga::Cdawg;
 use crate::cdawg::stack::Stack;
 use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use crate::graph::memory_backing::MemoryBacking;
-use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::memory_backing::MemoryBacking;
+use crate::memory_backing::disk_backing::disk_vec::DiskVec;
 use crate::graph::indexing::{NodeIndex, IndexType};
 use crate::weight::Weight;
 

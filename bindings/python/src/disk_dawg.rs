@@ -4,7 +4,7 @@ use pyo3::types::PyType;
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::DefaultIx;
 use rusty_dawg::graph::indexing::NodeIndex;
-use rusty_dawg::graph::memory_backing::DiskBacking;
+use rusty_dawg::memory_backing::DiskBacking;
 use rusty_dawg::graph::{EdgeRef, NodeRef};
 use rusty_dawg::weight::DefaultWeight;
 

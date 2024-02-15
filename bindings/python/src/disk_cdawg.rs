@@ -9,8 +9,8 @@ use crate::cdawg_state::CdawgState;
 use rusty_dawg::cdawg;
 use rusty_dawg::graph::indexing::{EdgeIndex, NodeIndex, DefaultIx};
 use rusty_dawg::weight::DefaultWeight;
-use rusty_dawg::graph::memory_backing::DiskBacking;
-use rusty_dawg::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use rusty_dawg::memory_backing::DiskBacking;
+use rusty_dawg::memory_backing::disk_backing::disk_vec::DiskVec;
 use rusty_dawg::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 type Mb = DiskBacking<DefaultWeight, CdawgEdgeWeight<DefaultIx>, DefaultIx>;

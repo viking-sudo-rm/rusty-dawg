@@ -19,9 +19,9 @@ use crate::graph::indexing::NodeIndex;
 use crate::weight::{DefaultWeight, Weight};
 
 use crate::graph::indexing::{DefaultIx, IndexType};
-use crate::graph::memory_backing::disk_backing::DiskBacking;
-use crate::graph::memory_backing::ram_backing::RamBacking;
-use crate::graph::memory_backing::MemoryBacking;
+use crate::memory_backing::disk_backing::DiskBacking;
+use crate::memory_backing::ram_backing::RamBacking;
+use crate::memory_backing::MemoryBacking;
 use crate::serde::de::DeserializeOwned;  // The global serde, not the submodule
 
 use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};

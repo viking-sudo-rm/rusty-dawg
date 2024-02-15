@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use std::fs;
 use crate::weight::Weight;
 
-use crate::graph::memory_backing::DiskBacking;
+use crate::memory_backing::DiskBacking;
 
 pub trait Load {
     fn load(load_path: &str) -> Result<Self, Box<dyn Error>>

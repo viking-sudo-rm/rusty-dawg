@@ -35,7 +35,7 @@ use crate::graph::avl_graph::node::NodeMutRef;
 use crate::graph::avl_graph::AvlGraph;
 use crate::graph::indexing::{DefaultIx, NodeIndex, EdgeIndex, IndexType};
 use crate::weight::{DefaultWeight, Weight};
-use crate::graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::metadata::CdawgMetadata;
 use crate::cdawg::token_backing::TokenBacking;
@@ -669,7 +669,7 @@ where
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+    use crate::memory_backing::disk_backing::disk_vec::DiskVec;
 
     macro_rules! get_edge {
         // `()` indicates that the macro takes no argument.

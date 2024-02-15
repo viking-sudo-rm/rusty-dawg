@@ -3,7 +3,7 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::memory_backing::disk_backing::disk_vec::DiskVec;
 
 pub trait TokenBacking<T> {
     fn len(&self) -> usize;

@@ -28,9 +28,9 @@ pub use self::edge::{Edge, EdgeMutRef, EdgeRef};
 pub use self::node::{Node, NodeMutRef, NodeRef};
 use self::comparator::DEFAULT_CMP;
 
-use crate::graph::memory_backing::ram_backing::RamBacking;
-use crate::graph::memory_backing::vec_backing::VecBacking;
-use crate::graph::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
+use crate::memory_backing::ram_backing::RamBacking;
+use crate::memory_backing::vec_backing::VecBacking;
+use crate::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
 
 #[derive(Default)]
 pub struct AvlGraph<N, E, Ix = DefaultIx, Mb = RamBacking<N, E, Ix>>

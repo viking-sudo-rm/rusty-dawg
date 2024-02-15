@@ -1,4 +1,4 @@
-use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::memory_backing::disk_backing::disk_vec::DiskVec;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -37,7 +37,7 @@ where
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    use crate::graph::memory_backing::disk_backing::disk_vec::DiskVec;
+    use crate::memory_backing::disk_backing::disk_vec::DiskVec;
 
     #[test]
     fn test_stack_vec() {

@@ -26,6 +26,7 @@ extern crate unicode_segmentation;
 mod build_stats;
 mod build_cdawg;
 mod data_reader;
+mod memory_backing;
 mod cdawg;
 mod dawg;
 mod evaluator;
@@ -50,20 +51,20 @@ use std::mem::size_of;
 
 use kdam::{tqdm, BarExt};
 
-use build_cdawg::build_cdawg;
-use dawg::Dawg;
-use evaluator::Evaluator;
+use crate::build_cdawg::build_cdawg;
+use crate::dawg::Dawg;
+use crate::evaluator::Evaluator;
 
-use graph::avl_graph::edge::Edge;
-use graph::avl_graph::node::Node;
-use graph::indexing::DefaultIx;
-use graph::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::graph::avl_graph::edge::Edge;
+use crate::graph::avl_graph::node::Node;
+use crate::graph::indexing::DefaultIx;
+use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
-use data_reader::{DataReader, PileReader, TxtReader};
+use crate::data_reader::{DataReader, PileReader, TxtReader};
 
-use tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
-use weight::DefaultWeight;
-use cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
+use crate::weight::DefaultWeight;
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;

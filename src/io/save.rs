@@ -1,6 +1,6 @@
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
-use crate::graph::memory_backing::{DiskBacking, RamBacking};
+use crate::memory_backing::{DiskBacking, RamBacking};
 use serde::de::DeserializeOwned;
 use std::error::Error;
 use std::fs;

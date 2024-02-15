@@ -18,6 +18,7 @@ extern crate unicode_segmentation;
 
 pub mod build_stats;
 pub mod data_reader;
+pub mod memory_backing;
 pub mod cdawg;
 pub mod dawg;
 pub mod evaluator;

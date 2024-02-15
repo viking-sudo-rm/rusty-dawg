@@ -1,4 +1,4 @@
-use crate::graph::memory_backing::vec_backing::VecBacking;
+use crate::memory_backing::vec_backing::VecBacking;
 
 // FIXME: Did this with unsafe pointers for convenience but would be good to use &/&mut!
 impl<T> VecBacking<T> for Vec<T> {
