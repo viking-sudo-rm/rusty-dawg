@@ -22,13 +22,6 @@ where
         }
     }
 
-    pub fn max_value() -> Self {
-        Self {
-            start: Ix::max_value(),
-            end: Ix::max_value(),
-        }
-    }
-
     pub fn get_span(&self) -> (usize, usize) {
         (self.start.index(), self.end.index())
     }

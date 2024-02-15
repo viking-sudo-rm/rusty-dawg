@@ -3,7 +3,6 @@
 
 use anyhow::Result;
 
-
 use std::cell::RefCell;
 use std::cmp::min;
 
@@ -29,8 +28,7 @@ use crate::graph::avl_graph::node::Node;
 use crate::graph::indexing::DefaultIx;
 use crate::io;
 use crate::io::Save;
-use crate::memory_backing::disk_backing::disk_vec::DiskVec;
-use crate::memory_backing::MemoryBacking;
+use crate::memory_backing::{DiskVec, MemoryBacking};
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 
 type N = super::N;

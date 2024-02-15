@@ -745,7 +745,7 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use crate::memory_backing::disk_backing::disk_vec::DiskVec;
+    use crate::memory_backing::DiskVec;
     use tempfile::tempdir;
 
     macro_rules! get_edge {

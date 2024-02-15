@@ -1,5 +1,4 @@
 mod disk_mut_refs;
-pub mod disk_vec;
 pub mod vec; // Implement VecBacking for DiskVec and DiskVecItem // Raw implementation of DiskVec data structure.
 
 use crate::graph::avl_graph::edge::Edge;

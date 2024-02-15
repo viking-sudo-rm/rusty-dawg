@@ -1,3 +1,7 @@
+mod disk_vec;
+
+pub use disk_vec::DiskVec;
+
 pub trait VecBacking<T> {
     type TRef;
     type TMutRef;

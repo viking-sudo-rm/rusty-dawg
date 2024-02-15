@@ -1,4 +1,4 @@
-use crate::memory_backing::disk_backing::disk_vec::DiskVec;
+use crate::memory_backing::DiskVec;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -36,7 +36,6 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use crate::memory_backing::disk_backing::disk_vec::DiskVec;
     use tempfile::tempdir;
 
     #[test]

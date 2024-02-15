@@ -7,8 +7,7 @@ use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::inenaga::Cdawg;
 use crate::cdawg::stack::Stack;
 use crate::graph::indexing::{IndexType, NodeIndex};
-use crate::memory_backing::disk_backing::disk_vec::DiskVec;
-use crate::memory_backing::MemoryBacking;
+use crate::memory_backing::{DiskVec, MemoryBacking};
 use crate::weight::Weight;
 
 /// An state on the stack, that should either be opened or closed.
