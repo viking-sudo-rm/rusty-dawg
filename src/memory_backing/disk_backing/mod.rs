@@ -43,8 +43,8 @@ impl<N, E, Ix> DiskBacking<N, E, Ix> {
 impl<N, E, Ix> MemoryBacking<N, E, Ix> for DiskBacking<N, E, Ix>
 where
     Ix: IndexType + Copy + Serialize + DeserializeOwned,
-    N: Weight + Serialize + DeserializeOwned + Default + Clone,
-    E: Copy + Serialize + DeserializeOwned + Default,
+    N: Weight + Serialize + DeserializeOwned + Default + Clone + Copy,
+    E: Copy + Serialize + DeserializeOwned + Default + Copy,
 {
     type NodeRef = Node<N, Ix>;
     type EdgeRef = Edge<E, Ix>;
@@ -57,19 +57,19 @@ where
 
     // The disk-backed implementations of new_node_vec and new_edge_vec should pass file_path when they construct a new Vector.
 
-    fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN {
+    fn new_node_vec(&self, capacity: Option<usize>, cache_size: usize) -> Self::VecN {
         let path = self.get_nodes_path();
         match capacity {
-            Some(n) => Vec::new(path, n).unwrap(),
-            None => Vec::new(path, 8).unwrap(),
+            Some(n) => Vec::new(path, n, cache_size).unwrap(),
+            None => Vec::new(path, 8, cache_size).unwrap(),
         }
     }
 
-    fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE {
+    fn new_edge_vec(&self, capacity: Option<usize>, cache_size: usize) -> Self::VecE {
         let path = self.get_edges_path();
         match capacity {
-            Some(n) => Vec::new(path, n).unwrap(),
-            None => Vec::new(path, 8).unwrap(),
+            Some(n) => Vec::new(path, n, cache_size).unwrap(),
+            None => Vec::new(path, 8, cache_size).unwrap(),
         }
     }
 }

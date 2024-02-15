@@ -18,6 +18,7 @@ use std::fmt::Debug;
 
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use crate::weight::Weight;
+use crate::memory_backing::CacheConfig;
 
 mod comparator;
 pub mod edge;
@@ -57,14 +58,14 @@ where
 impl<N, E, Ix> AvlGraph<N, E, Ix, DiskBacking<N, E, Ix>>
 where
     E: Copy + Debug + Serialize + DeserializeOwned + Default,
-    N: Weight + Clone + Serialize + DeserializeOwned + Default,
+    N: Weight + Copy + Clone + Serialize + DeserializeOwned + Default,
     Ix: IndexType + Serialize + DeserializeOwned,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P, cache_config: CacheConfig) -> Result<Self> {
         let mb: DiskBacking<N, E, Ix> = DiskBacking::new(path);
         // FIXME: This can be refactored to call a method in Mb.
-        let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path())?;
-        let edges = disk_backing::vec::Vec::load(mb.get_edges_path())?;
+        let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path(), cache_config.node_cache_size)?;
+        let edges = disk_backing::vec::Vec::load(mb.get_edges_path(), cache_config.edge_cache_size)?;
         Ok(Self {
             nodes,
             edges,
@@ -80,8 +81,8 @@ where
     Ix: IndexType,
 {
     pub fn new_mb(mb: Mb) -> Self {
-        let nodes = mb.new_node_vec(None);
-        let edges = mb.new_edge_vec(None);
+        let nodes = mb.new_node_vec(None, 0);
+        let edges = mb.new_edge_vec(None, 0);
         AvlGraph {
             nodes,
             edges,
@@ -89,9 +90,9 @@ where
         }
     }
 
-    pub fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize) -> Self {
-        let nodes = mb.new_node_vec(Some(n_nodes));
-        let edges = mb.new_edge_vec(Some(n_edges));
+    pub fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize, cache_config: CacheConfig) -> Self {
+        let nodes = mb.new_node_vec(Some(n_nodes), cache_config.node_cache_size);
+        let edges = mb.new_edge_vec(Some(n_edges), cache_config.edge_cache_size);
         AvlGraph {
             nodes,
             edges,

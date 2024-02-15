@@ -29,14 +29,14 @@ where
 
     // The disk-backed implementations of new_node_vec and new_edge_vec will presumably pass a file/path.
 
-    fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN {
+    fn new_node_vec(&self, capacity: Option<usize>, _cache_size: usize) -> Self::VecN {
         match capacity {
             Some(n) => Vec::with_capacity(n),
             None => Vec::new(),
         }
     }
 
-    fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE {
+    fn new_edge_vec(&self, capacity: Option<usize>, _cache_size: usize) -> Self::VecE {
         match capacity {
             Some(n) => Vec::with_capacity(n),
             None => Vec::new(),

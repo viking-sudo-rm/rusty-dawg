@@ -1,7 +1,7 @@
 // Implement the VecBacking interface for DiskVec.
 
 use super::disk_mut_refs::{DiskVecItem, MutRef};
-use crate::memory_backing::{DiskVec, VecBacking};
+use crate::memory_backing::{CachedDiskVec, VecBacking};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -13,22 +13,22 @@ pub struct Vec<T>
 where
     T: Sized,
 {
-    disk_vec: Rc<RefCell<DiskVec<T>>>,
+    disk_vec: Rc<RefCell<CachedDiskVec<T>>>,
 }
 
 impl<T> Vec<T>
 where
-    T: DiskVecItem + Default + Serialize + DeserializeOwned,
+    T: DiskVecItem + Default + Serialize + DeserializeOwned + Copy,
 {
-    pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize) -> Result<Self> {
-        let disk_vec = DiskVec::new(path, capacity)?;
+    pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize, cache_size: usize) -> Result<Self> {
+        let disk_vec = CachedDiskVec::new(path, capacity, cache_size)?;
         Ok(Self {
             disk_vec: Rc::new(RefCell::new(disk_vec)),
         })
     }
 
-    pub fn load<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Self> {
-        let disk_vec = DiskVec::load(path)?;
+    pub fn load<P: AsRef<Path> + std::fmt::Debug>(path: P, cache_size: usize) -> Result<Self> {
+        let disk_vec = CachedDiskVec::load(path, cache_size)?;
         Ok(Self {
             disk_vec: Rc::new(RefCell::new(disk_vec)),
         })
@@ -37,7 +37,7 @@ where
 
 impl<T> VecBacking<T> for Vec<T>
 where
-    T: DiskVecItem + Default + Serialize + DeserializeOwned,
+    T: DiskVecItem + Default + Serialize + DeserializeOwned + Copy,
 {
     type TRef = T;
     type TMutRef = T::MutRef;
@@ -51,7 +51,7 @@ where
     }
 
     fn index(&self, index: usize) -> T {
-        self.disk_vec.borrow().get(index).unwrap()
+        self.disk_vec.borrow_mut().get(index).unwrap()
     }
 
     fn index_mut(&mut self, index: usize) -> T::MutRef {
@@ -71,12 +71,12 @@ mod tests {
     use tempfile::tempdir;
 
     pub struct DummyMutRef {
-        disk_vec: Rc<RefCell<DiskVec<u8>>>,
+        disk_vec: Rc<RefCell<CachedDiskVec<u8>>>,
         index: usize,
     }
 
     impl MutRef<u8> for DummyMutRef {
-        fn new(disk_vec: Rc<RefCell<DiskVec<u8>>>, index: usize) -> Self {
+        fn new(disk_vec: Rc<RefCell<CachedDiskVec<u8>>>, index: usize) -> Self {
             Self { disk_vec, index }
         }
     }
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn test_diskvec_as_veclike() {
         let tmp_dir = tempdir().unwrap();
-        let disk_vec = Vec::<u8>::new(tmp_dir.path().join("vec.bin"), 4).unwrap();
+        let disk_vec = Vec::<u8>::new(tmp_dir.path().join("vec.bin"), 4, 0).unwrap();
         let mut mb: Box<dyn VecBacking<u8, TRef = u8, TMutRef = DummyMutRef>> = Box::new(disk_vec);
 
         mb.push(20);

@@ -39,7 +39,7 @@ use crate::graph::avl_graph::node::NodeMutRef;
 use crate::graph::avl_graph::AvlGraph;
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use crate::graph::{EdgeRef, NodeRef};
-use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking, CacheConfig};
 use crate::weight::{DefaultWeight, Weight};
 
 // TODO: Add TokenBacking for tokens
@@ -71,16 +71,17 @@ where
 impl<W, Ix> Cdawg<W, Ix, DiskBacking<W, CdawgEdgeWeight<Ix>, Ix>>
 where
     Ix: IndexType + Serialize + for<'de> serde::Deserialize<'de>,
-    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     CdawgEdgeWeight<Ix>: Serialize + for<'de> Deserialize<'de>,
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
         tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
         path: P,
+        cache_config: CacheConfig,
     ) -> Result<Self> {
         // Load source/sink from config file if it exists.
         let path2 = path.clone();
-        let graph = AvlGraph::load(path)?;
+        let graph = AvlGraph::load(path, cache_config)?;
 
         let mut config_path = path2.as_ref().to_path_buf();
         config_path.push("metadata.json");
@@ -142,9 +143,10 @@ where
         mb: Mb,
         n_nodes: usize,
         n_edges: usize,
+        cache_config: CacheConfig,
     ) -> Cdawg<W, Ix, Mb> {
         let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> =
-            AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
+            AvlGraph::with_capacity_mb(mb, n_nodes, n_edges, cache_config);
         let source = graph.add_node(W::new(0, None, 0));
         // FIXME: Hacky type conversion for sink failure.
         let sink = graph.add_node(W::new(0, Some(NodeIndex::new(source.index())), 1));
@@ -1164,7 +1166,7 @@ mod tests {
         cdawg.save(path).unwrap();
 
         let tokens2: Vec<u16> = vec![10, 11, 12];
-        let cdawg2: DiskCdawg = Cdawg::load(Rc::new(RefCell::new(tokens2)), path).unwrap();
+        let cdawg2: DiskCdawg = Cdawg::load(Rc::new(RefCell::new(tokens2)), path, CacheConfig::none()).unwrap();
         assert_eq!(cdawg2.source, cdawg.source);
         assert_eq!(cdawg2.sink, cdawg.sink);
         assert_eq!(

@@ -1,7 +1,7 @@
 use crate::graph::avl_graph::edge::{Edge, EdgeMutRef};
 use crate::graph::avl_graph::node::{Node, NodeMutRef};
 use crate::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
-use crate::memory_backing::DiskVec;
+use crate::memory_backing::CachedDiskVec;
 use crate::weight::Weight;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -9,16 +9,16 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub trait MutRef<T> {
-    fn new(disk_vec: Rc<RefCell<DiskVec<T>>>, index: usize) -> Self;
+    fn new(disk_vec: Rc<RefCell<CachedDiskVec<T>>>, index: usize) -> Self;
 }
 
 pub struct DiskNodeMutRef<N, Ix> {
-    disk_vec: Rc<RefCell<DiskVec<Node<N, Ix>>>>,
+    disk_vec: Rc<RefCell<CachedDiskVec<Node<N, Ix>>>>,
     index: usize,
 }
 
 impl<N, Ix> MutRef<Node<N, Ix>> for DiskNodeMutRef<N, Ix> {
-    fn new(disk_vec: Rc<RefCell<DiskVec<Node<N, Ix>>>>, index: usize) -> Self {
+    fn new(disk_vec: Rc<RefCell<CachedDiskVec<Node<N, Ix>>>>, index: usize) -> Self {
         Self { disk_vec, index }
     }
 }
@@ -28,7 +28,7 @@ impl<N, Ix> NodeMutRef<Ix> for DiskNodeMutRef<N, Ix>
 where
     Ix: IndexType,
     N: Weight,
-    Node<N, Ix>: Serialize + DeserializeOwned + Default,
+    Node<N, Ix>: Serialize + DeserializeOwned + Default + Copy,
 {
     fn set_length(self, length: u64) {
         let mut disk_vec = self.disk_vec.borrow_mut();
@@ -69,12 +69,12 @@ where
 }
 
 pub struct DiskEdgeMutRef<E, Ix> {
-    disk_vec: Rc<RefCell<DiskVec<Edge<E, Ix>>>>,
+    disk_vec: Rc<RefCell<CachedDiskVec<Edge<E, Ix>>>>,
     index: usize,
 }
 
 impl<E, Ix> MutRef<Edge<E, Ix>> for DiskEdgeMutRef<E, Ix> {
-    fn new(disk_vec: Rc<RefCell<DiskVec<Edge<E, Ix>>>>, index: usize) -> Self {
+    fn new(disk_vec: Rc<RefCell<CachedDiskVec<Edge<E, Ix>>>>, index: usize) -> Self {
         Self { disk_vec, index }
     }
 }
@@ -83,6 +83,7 @@ impl<E, Ix> EdgeMutRef<E, Ix> for DiskEdgeMutRef<E, Ix>
 where
     Ix: IndexType + Copy,
     Edge<E, Ix>: Serialize + DeserializeOwned + Default,
+    E: Copy,
 {
     fn set_weight(self, weight: E) {
         let mut disk_vec = self.disk_vec.borrow_mut();

@@ -19,9 +19,7 @@ use crate::graph::indexing::NodeIndex;
 use crate::weight::{DefaultWeight, Weight};
 
 use crate::graph::indexing::{DefaultIx, IndexType};
-use crate::memory_backing::disk_backing::DiskBacking;
-use crate::memory_backing::ram_backing::RamBacking;
-use crate::memory_backing::MemoryBacking;
+use crate::memory_backing::{DiskBacking, RamBacking, CacheConfig, MemoryBacking};
 use crate::serde::de::DeserializeOwned; // The global serde, not the submodule
 
 use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
@@ -60,10 +58,10 @@ where
 impl<E, W> Dawg<E, W, DefaultIx, DiskBacking<W, E, DefaultIx>>
 where
     E: Eq + Ord + Copy + Debug + Serialize + DeserializeOwned + Default,
-    W: Weight + Clone + Serialize + DeserializeOwned + Default,
+    W: Weight + Copy + Clone + Serialize + DeserializeOwned + Default,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P) -> Result<Self> {
-        let dawg = AvlGraph::load(path)?;
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P, cache_config: CacheConfig) -> Result<Self> {
+        let dawg = AvlGraph::load(path, cache_config)?;
         Ok(Self {
             dawg,
             initial: NodeIndex::new(0), // FIXME: Assumes that the initial state was numbered as 0.
@@ -95,9 +93,10 @@ where
         max_length: Option<u64>,
         n_nodes: usize,
         n_edges: usize,
+        cache_config: CacheConfig,
     ) -> Dawg<E, W, DefaultIx, Mb> {
         let mut dawg: AvlGraph<W, E, DefaultIx, Mb> =
-            AvlGraph::with_capacity_mb(mb, n_nodes, n_edges);
+            AvlGraph::with_capacity_mb(mb, n_nodes, n_edges, cache_config);
         let initial = dawg.add_node(W::initial());
         dawg.get_node_mut(initial).increment_count();
         Dawg {

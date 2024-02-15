@@ -59,7 +59,7 @@ use crate::evaluator::Evaluator;
 use crate::graph::avl_graph::edge::Edge;
 use crate::graph::avl_graph::node::Node;
 use crate::graph::indexing::DefaultIx;
-use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::memory_backing::{CacheConfig, DiskBacking, MemoryBacking, RamBacking};
 
 use crate::data_reader::{DataReader, PileReader, TxtReader};
 
@@ -117,6 +117,8 @@ pub struct Args {
     // Estimate of the number of tokens, used to allocate DAWG.
     #[arg(long, default_value_t = 200000000)]
     n_tokens: usize,
+    #[arg(long, default_value_t = 0)]
+    cache_size: usize,
 
     // Amount of input to read at a time while consuming file. Defaults to 10 GB.
     #[arg(long, default_value_t = 10000000000)]
@@ -136,6 +138,18 @@ pub struct Args {
     stats_path: Option<String>,
     #[arg(long)]
     count_path: Option<String>, // DiskVec path to use while traversing graph.
+}
+
+impl Args {
+    pub fn get_cache_config(&self) -> CacheConfig {
+        // TODO: Generalize CacheConfig to store size info as well?
+        let nodes_ratio = self.nodes_ratio / (self.nodes_ratio + self.edges_ratio);
+        let edges_ratio = self.edges_ratio / (self.nodes_ratio + self.edges_ratio);
+        CacheConfig {
+            node_cache_size: (nodes_ratio * (self.cache_size as f64)).ceil() as usize,
+            edge_cache_size: (edges_ratio * (self.cache_size as f64)).ceil() as usize,
+        }
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -281,6 +295,7 @@ where
 
     let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
     let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
+    let cache_config = args.get_cache_config();
     let max_length: Option<u64> = if !args.max_state_length.is_negative() {
         Some(args.max_state_length.try_into().unwrap())
     } else {
@@ -288,7 +303,7 @@ where
     };
 
     let mut dawg: Dawg<E, N, DefaultIx, Mb> =
-        Dawg::with_capacity_mb(mb, max_length, n_nodes, n_edges);
+        Dawg::with_capacity_mb(mb, max_length, n_nodes, n_edges, cache_config);
 
     let mut idx = 0;
     let mut last = dawg.get_initial();

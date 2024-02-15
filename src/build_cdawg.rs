@@ -67,7 +67,7 @@ where
     println!("Buffer size: {}B", args.buf_size);
 
     let reader: Box<DataReader> = if args.data_reader == "pile" {
-        Box::new(PileReader::new(args.train_path).unwrap())
+        Box::new(PileReader::new(args.train_path.clone()).unwrap())
     } else {
         Box::new(TxtReader::new(
             train_file,
@@ -86,6 +86,7 @@ where
 
     let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
     let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
+    let cache_config = args.get_cache_config();
     let _max_length: Option<u64> = if !args.max_state_length.is_negative() {
         Some(args.max_state_length.try_into().unwrap())
     } else {
@@ -109,7 +110,7 @@ where
 
     println!("Allocating CDAWG...");
     let mut cdawg: Cdawg<N, DefaultIx, Mb> =
-        Cdawg::with_capacity_mb(train_vec.clone(), mb, n_nodes, n_edges);
+        Cdawg::with_capacity_mb(train_vec.clone(), mb, n_nodes, n_edges, cache_config);
 
     let mut idx: usize = 0;
     let mut pbar = tqdm!(total = args.n_tokens);

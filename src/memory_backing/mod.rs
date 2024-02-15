@@ -4,7 +4,7 @@ pub mod vec_backing;
 
 pub use self::disk_backing::DiskBacking;
 pub use self::ram_backing::RamBacking;
-pub use self::vec_backing::DiskVec;
+pub use self::vec_backing::{CacheConfig, CachedDiskVec, DiskVec};
 
 use crate::graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
 use crate::graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
@@ -24,9 +24,9 @@ where
     type VecN: VecBacking<Node<N, Ix>, TRef = Self::NodeRef, TMutRef = Self::NodeMutRef>;
     type VecE: VecBacking<Edge<E, Ix>, TRef = Self::EdgeRef, TMutRef = Self::EdgeMutRef>;
 
-    fn new_node_vec(&self, capacity: Option<usize>) -> Self::VecN;
+    fn new_node_vec(&self, capacity: Option<usize>, cache_size: usize) -> Self::VecN;
 
-    fn new_edge_vec(&self, capacity: Option<usize>) -> Self::VecE;
+    fn new_edge_vec(&self, capacity: Option<usize>, cache_size: usize) -> Self::VecE;
 }
 
 pub trait VecBacking<T> {

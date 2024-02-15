@@ -9,10 +9,10 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
 
-use crate::memory_backing::DiskBacking;
+use crate::memory_backing::{CacheConfig, DiskBacking};
 
 pub trait Load {
-    fn load(load_path: &str) -> Result<Self, Box<dyn Error>>
+    fn load(load_path: &str, cache_config: CacheConfig) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
 }
@@ -21,9 +21,9 @@ pub trait Load {
 impl<E, W> Load for Dawg<E, W>
 where
     E: Eq + Copy + Debug + for<'de> Deserialize<'de>,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    W: Weight + Copy + Serialize + for<'a> Deserialize<'a> + Clone,
 {
-    fn load(load_path: &str) -> Result<Self, Box<dyn Error>> {
+    fn load(load_path: &str, _cache_config: CacheConfig) -> Result<Self, Box<dyn Error>> {
         let file = fs::OpenOptions::new().read(true).open(load_path)?;
         Ok(deserialize_from(&file)?)
     }
@@ -33,10 +33,10 @@ where
 impl<E, W> Load for Dawg<E, W, DefaultIx, DiskBacking<W, E, DefaultIx>>
 where
     E: Eq + Copy + Ord + Debug + Serialize + DeserializeOwned + Default,
-    W: Weight + Clone + Serialize + DeserializeOwned + Default,
+    W: Weight + Copy + Clone + Serialize + DeserializeOwned + Default,
 {
-    fn load(load_path: &str) -> Result<Self, Box<dyn Error>> {
-        let dawg = Dawg::load(load_path)?;
+    fn load(load_path: &str, cache_config: CacheConfig) -> Result<Self, Box<dyn Error>> {
+        let dawg = Dawg::load(load_path, cache_config)?;
         Ok(dawg)
     }
 }
