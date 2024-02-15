@@ -17,8 +17,8 @@ use std::cmp::{max, min};
 use std::fmt::Debug;
 
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
-use crate::weight::Weight;
 use crate::memory_backing::CacheConfig;
+use crate::weight::Weight;
 
 mod comparator;
 pub mod edge;
@@ -61,11 +61,16 @@ where
     N: Weight + Copy + Clone + Serialize + DeserializeOwned + Default,
     Ix: IndexType + Serialize + DeserializeOwned,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P, cache_config: CacheConfig) -> Result<Self> {
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
+        path: P,
+        cache_config: CacheConfig,
+    ) -> Result<Self> {
         let mb: DiskBacking<N, E, Ix> = DiskBacking::new(path);
         // FIXME: This can be refactored to call a method in Mb.
-        let nodes = disk_backing::vec::Vec::load(mb.get_nodes_path(), cache_config.node_cache_size)?;
-        let edges = disk_backing::vec::Vec::load(mb.get_edges_path(), cache_config.edge_cache_size)?;
+        let nodes =
+            disk_backing::vec::Vec::load(mb.get_nodes_path(), cache_config.node_cache_size)?;
+        let edges =
+            disk_backing::vec::Vec::load(mb.get_edges_path(), cache_config.edge_cache_size)?;
         Ok(Self {
             nodes,
             edges,
@@ -90,7 +95,12 @@ where
         }
     }
 
-    pub fn with_capacity_mb(mb: Mb, n_nodes: usize, n_edges: usize, cache_config: CacheConfig) -> Self {
+    pub fn with_capacity_mb(
+        mb: Mb,
+        n_nodes: usize,
+        n_edges: usize,
+        cache_config: CacheConfig,
+    ) -> Self {
         let nodes = mb.new_node_vec(Some(n_nodes), cache_config.node_cache_size);
         let edges = mb.new_edge_vec(Some(n_edges), cache_config.edge_cache_size);
         AvlGraph {

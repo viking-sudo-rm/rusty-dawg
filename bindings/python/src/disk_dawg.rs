@@ -4,8 +4,8 @@ use pyo3::types::PyType;
 use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::DefaultIx;
 use rusty_dawg::graph::indexing::NodeIndex;
-use rusty_dawg::memory_backing::DiskBacking;
 use rusty_dawg::graph::{EdgeRef, NodeRef};
+use rusty_dawg::memory_backing::{CacheConfig, DiskBacking};
 use rusty_dawg::weight::DefaultWeight;
 
 type Mb = DiskBacking<DefaultWeight, u16, DefaultIx>;
@@ -20,10 +20,10 @@ pub struct DiskDawg {
 #[pymethods]
 impl DiskDawg {
     #[classmethod]
+    // #[pyo3(signature = (path, **kwargs))]
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
-        // let file = fs::OpenOptions::new().read(true).open(&path)?;
         Ok(Self {
-            dawg: dawg::Dawg::load(&path).expect("Failed to deserialize"),
+            dawg: dawg::Dawg::load(&path, CacheConfig::none()).expect("Failed to deserialize"),
         })
     }
 

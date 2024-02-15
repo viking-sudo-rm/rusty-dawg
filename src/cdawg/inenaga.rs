@@ -39,7 +39,7 @@ use crate::graph::avl_graph::node::NodeMutRef;
 use crate::graph::avl_graph::AvlGraph;
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use crate::graph::{EdgeRef, NodeRef};
-use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking, CacheConfig};
+use crate::memory_backing::{CacheConfig, DiskBacking, MemoryBacking, RamBacking};
 use crate::weight::{DefaultWeight, Weight};
 
 // TODO: Add TokenBacking for tokens
@@ -1166,7 +1166,8 @@ mod tests {
         cdawg.save(path).unwrap();
 
         let tokens2: Vec<u16> = vec![10, 11, 12];
-        let cdawg2: DiskCdawg = Cdawg::load(Rc::new(RefCell::new(tokens2)), path, CacheConfig::none()).unwrap();
+        let cdawg2: DiskCdawg =
+            Cdawg::load(Rc::new(RefCell::new(tokens2)), path, CacheConfig::none()).unwrap();
         assert_eq!(cdawg2.source, cdawg.source);
         assert_eq!(cdawg2.sink, cdawg.sink);
         assert_eq!(

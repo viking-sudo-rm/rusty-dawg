@@ -5,6 +5,7 @@ use rusty_dawg::dawg;
 use rusty_dawg::graph::indexing::NodeIndex;
 use rusty_dawg::graph::{EdgeRef, NodeRef};
 use rusty_dawg::io::Load;
+use rusty_dawg::memory_backing::CacheConfig;
 use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass]
@@ -26,7 +27,8 @@ impl Dawg {
     pub fn load(_cls: &PyType, path: String) -> PyResult<Self> {
         // let file = fs::OpenOptions::new().read(true).open(&path)?;
         let wrapped_dawg =
-            <dawg::Dawg<u16, DefaultWeight> as Load>::load(&path).expect("Failed to deserialize");
+            <dawg::Dawg<u16, DefaultWeight> as Load>::load(&path, CacheConfig::none())
+                .expect("Failed to deserialize");
         Ok(Self { dawg: wrapped_dawg })
     }
 

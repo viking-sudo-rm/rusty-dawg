@@ -19,7 +19,7 @@ use crate::graph::indexing::NodeIndex;
 use crate::weight::{DefaultWeight, Weight};
 
 use crate::graph::indexing::{DefaultIx, IndexType};
-use crate::memory_backing::{DiskBacking, RamBacking, CacheConfig, MemoryBacking};
+use crate::memory_backing::{CacheConfig, DiskBacking, MemoryBacking, RamBacking};
 use crate::serde::de::DeserializeOwned; // The global serde, not the submodule
 
 use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
@@ -60,7 +60,10 @@ where
     E: Eq + Ord + Copy + Debug + Serialize + DeserializeOwned + Default,
     W: Weight + Copy + Clone + Serialize + DeserializeOwned + Default,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(path: P, cache_config: CacheConfig) -> Result<Self> {
+    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
+        path: P,
+        cache_config: CacheConfig,
+    ) -> Result<Self> {
         let dawg = AvlGraph::load(path, cache_config)?;
         Ok(Self {
             dawg,

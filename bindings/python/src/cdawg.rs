@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
-use rusty_dawg::graph::indexing::{EdgeIndex, NodeIndex, DefaultIx};
+use rusty_dawg::graph::indexing::{DefaultIx, EdgeIndex, NodeIndex};
 use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass(unsendable)]

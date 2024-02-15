@@ -20,7 +20,11 @@ impl<T> Vec<T>
 where
     T: DiskVecItem + Default + Serialize + DeserializeOwned + Copy,
 {
-    pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize, cache_size: usize) -> Result<Self> {
+    pub fn new<P: AsRef<Path> + std::fmt::Debug>(
+        path: P,
+        capacity: usize,
+        cache_size: usize,
+    ) -> Result<Self> {
         let disk_vec = CachedDiskVec::new(path, capacity, cache_size)?;
         Ok(Self {
             disk_vec: Rc::new(RefCell::new(disk_vec)),

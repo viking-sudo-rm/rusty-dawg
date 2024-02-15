@@ -268,7 +268,7 @@ where
     };
     let buf_size: usize = min(n_bytes.try_into().unwrap(), args.buf_size);
     let reader: Box<DataReader> = if args.data_reader == "pile" {
-        Box::new(PileReader::new(args.train_path).unwrap())
+        Box::new(PileReader::new(args.train_path.clone()).unwrap())
     } else {
         Box::new(TxtReader::new(
             train_file,
