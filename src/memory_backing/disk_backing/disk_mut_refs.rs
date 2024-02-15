@@ -2,11 +2,11 @@ use crate::graph::avl_graph::edge::{Edge, EdgeMutRef};
 use crate::graph::avl_graph::node::{Node, NodeMutRef};
 use crate::memory_backing::disk_backing::disk_vec::DiskVec;
 use crate::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
+use crate::weight::Weight;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::weight::Weight;
 
 pub trait MutRef<T> {
     fn new(disk_vec: Rc<RefCell<DiskVec<T>>>, index: usize) -> Self;

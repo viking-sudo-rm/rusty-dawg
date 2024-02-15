@@ -6,8 +6,8 @@
 
 mod serde;
 
-use anyhow::Result;
 use crate::serde::{Deserialize, Serialize};
+use anyhow::Result;
 use std::cmp::max;
 use std::cmp::{Eq, Ord};
 use std::collections::LinkedList;
@@ -22,7 +22,7 @@ use crate::graph::indexing::{DefaultIx, IndexType};
 use crate::memory_backing::disk_backing::DiskBacking;
 use crate::memory_backing::ram_backing::RamBacking;
 use crate::memory_backing::MemoryBacking;
-use crate::serde::de::DeserializeOwned;  // The global serde, not the submodule
+use crate::serde::de::DeserializeOwned; // The global serde, not the submodule
 
 use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
 
@@ -377,8 +377,10 @@ where
 }
 
 // pyo3 requires that types implement Send
-unsafe impl<Mb> Send for Dawg<u16, DefaultWeight, DefaultIx, Mb>
-where Mb: MemoryBacking<DefaultWeight, u16, DefaultIx> {}
+unsafe impl<Mb> Send for Dawg<u16, DefaultWeight, DefaultIx, Mb> where
+    Mb: MemoryBacking<DefaultWeight, u16, DefaultIx>
+{
+}
 
 #[cfg(test)]
 #[allow(unused_imports)]

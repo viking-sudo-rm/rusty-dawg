@@ -1,14 +1,14 @@
 use anyhow::Result;
 use std::path::Path;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::inenaga::Cdawg;
 use crate::cdawg::stack::Stack;
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use crate::memory_backing::MemoryBacking;
+use crate::graph::indexing::{IndexType, NodeIndex};
 use crate::memory_backing::disk_backing::disk_vec::DiskVec;
-use crate::graph::indexing::{NodeIndex, IndexType};
+use crate::memory_backing::MemoryBacking;
 use crate::weight::Weight;
 
 /// An state on the stack, that should either be opened or closed.
@@ -20,11 +20,11 @@ pub struct StackOp<Ix> {
 
 impl<Ix> StackOp<Ix> {
     pub fn open(state: NodeIndex<Ix>) -> Self {
-        Self {state, open: true}
+        Self { state, open: true }
     }
 
     pub fn close(state: NodeIndex<Ix>) -> Self {
-        Self {state, open: false}
+        Self { state, open: false }
     }
 }
 
@@ -37,7 +37,7 @@ where
     Ix: IndexType + Serialize + for<'de> Deserialize<'de>,
 {
     pub fn new_ram() -> Self {
-        Self {stack: Vec::new()}
+        Self { stack: Vec::new() }
     }
 }
 
@@ -47,7 +47,7 @@ where
 {
     pub fn new_disk<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize) -> Result<Self> {
         let stack = DiskVec::new(path, capacity)?;
-        Ok(Self {stack})
+        Ok(Self { stack })
     }
 }
 
@@ -91,8 +91,8 @@ impl<Sb> TopologicalCounter<Sb> {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use std::rc::Rc;
     use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[test]
     fn test_counts_cocoa() {
@@ -110,7 +110,18 @@ mod tests {
     #[test]
     fn test_counts_abcabcaba() {
         let (a, b, c) = (0, 1, 2);
-        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a, u16::MAX])));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![
+            a,
+            b,
+            c,
+            a,
+            b,
+            c,
+            a,
+            b,
+            a,
+            u16::MAX,
+        ])));
         cdawg.build();
         let mut counter = TopologicalCounter::new_ram();
         counter.fill_counts(&mut cdawg);
@@ -125,7 +136,17 @@ mod tests {
     #[test]
     fn test_counts_multidoc() {
         let (a, b, c) = (0, 1, 2);
-        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![a, b, c, u16::MAX, a, u16::MAX, b, b, u16::MAX])));
+        let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(vec![
+            a,
+            b,
+            c,
+            u16::MAX,
+            a,
+            u16::MAX,
+            b,
+            b,
+            u16::MAX,
+        ])));
         cdawg.build();
         let mut counter = TopologicalCounter::new_ram();
         counter.fill_counts(&mut cdawg);
@@ -138,5 +159,4 @@ mod tests {
         assert_eq!(cdawg.get_count(NodeIndex::new(4)), 1);
         assert_eq!(cdawg.get_count(NodeIndex::new(5)), 3);
     }
-
 }

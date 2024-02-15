@@ -14,7 +14,8 @@ pub trait TokenBacking<T> {
 }
 
 impl<T> TokenBacking<T> for Vec<T>
-where T: Copy
+where
+    T: Copy,
 {
     fn len(&self) -> usize {
         Vec::len(self)

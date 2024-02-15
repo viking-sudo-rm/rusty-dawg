@@ -181,9 +181,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::weight::DefaultWeight;
     use bincode;
     use bincode::{deserialize, serialize, Options};
-    use crate::weight::DefaultWeight;
 
     #[test]
     fn test_serialize_deserialize_node() {

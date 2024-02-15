@@ -1,6 +1,6 @@
 use crate::memory_backing::disk_backing::disk_vec::DiskVec;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 pub trait Stack<T> {
     fn push(&mut self, item: T);
@@ -36,8 +36,8 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use crate::memory_backing::disk_backing::disk_vec::DiskVec;
+    use tempfile::tempdir;
 
     #[test]
     fn test_stack_vec() {

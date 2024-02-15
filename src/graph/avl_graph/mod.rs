@@ -3,8 +3,8 @@
 // Originally based on petgraph. See https://timothy.hobbs.cz/rust-play/petgraph-internals.html
 // Edges stored in AVL tree: // https://stackoverflow.com/questions/7211806/how-to-implement-insertion-for-avl-tree-without-parent-pointer
 
-use anyhow::Result;
 use crate::comparator::Comparator;
+use anyhow::Result;
 use std::clone::Clone;
 use std::cmp::{Eq, Ord, Ordering};
 use std::path::Path;
@@ -19,14 +19,14 @@ use std::fmt::Debug;
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use crate::weight::Weight;
 
+mod comparator;
 pub mod edge;
 pub mod node;
 mod serde;
-mod comparator;
 
+use self::comparator::DEFAULT_CMP;
 pub use self::edge::{Edge, EdgeMutRef, EdgeRef};
 pub use self::node::{Node, NodeMutRef, NodeRef};
-use self::comparator::DEFAULT_CMP;
 
 use crate::memory_backing::ram_backing::RamBacking;
 use crate::memory_backing::vec_backing::VecBacking;
@@ -196,8 +196,15 @@ where
         let edge_weight = self.edges.index(edge.index()).get_weight();
         match cmp.compare(&weight, &edge_weight) {
             Ordering::Equal => (edge, last_edge),
-            Ordering::Less => self.binary_search(self.edges.index(edge.index()).get_left(), edge, weight, cmp),
-            Ordering::Greater => self.binary_search(self.edges.index(edge.index()).get_right(), edge, weight, cmp),
+            Ordering::Less => {
+                self.binary_search(self.edges.index(edge.index()).get_left(), edge, weight, cmp)
+            }
+            Ordering::Greater => self.binary_search(
+                self.edges.index(edge.index()).get_right(),
+                edge,
+                weight,
+                cmp,
+            ),
         }
     }
 
@@ -388,7 +395,12 @@ where
     }
 
     // get_edge_by_weight by for CDAWGs.
-    pub fn get_edge_by_weight_cmp(&self, a: NodeIndex<Ix>, weight: E, cmp: Box<dyn Comparator<E>>) -> Option<EdgeIndex<Ix>> {
+    pub fn get_edge_by_weight_cmp(
+        &self,
+        a: NodeIndex<Ix>,
+        weight: E,
+        cmp: Box<dyn Comparator<E>>,
+    ) -> Option<EdgeIndex<Ix>> {
         let first_edge = self.get_node(a).get_first_edge();
         if first_edge == EdgeIndex::end() {
             return None;
@@ -471,7 +483,8 @@ where
             return false;
         }
 
-        let (e, _) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
+        let (e, _) =
+            self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
         if e == EdgeIndex::end() {
             return false;
         }
@@ -485,7 +498,8 @@ where
             return None;
         }
 
-        let (e, _last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
+        let (e, _last_e) =
+            self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
         if e == EdgeIndex::end() {
             return None;
         }
@@ -493,12 +507,7 @@ where
     }
 
     // DONT USE THIS, here for legacy test reasons
-    fn add_edge(
-        &mut self,
-        a: NodeIndex<Ix>,
-        b: NodeIndex<Ix>,
-        weight: E,
-    ) -> Option<EdgeIndex<Ix>> {
+    fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
         let edge = Edge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
@@ -511,7 +520,8 @@ where
         }
 
         // binary search to find pointer where we insert new edge (edge and parent pointers)
-        let (e, last_e) = self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
+        let (e, last_e) =
+            self.binary_search(first_edge, EdgeIndex::end(), weight, Box::new(DEFAULT_CMP));
         if e != EdgeIndex::end() {
             return None;
         }
@@ -621,16 +631,16 @@ where
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
+    use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+    use crate::cdawg::comparator::CdawgComparator;
     use crate::graph::avl_graph::edge::EdgeRef;
     use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
     use crate::graph::avl_graph::AvlGraph;
     use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
-    use crate::weight::{Weight, DefaultWeight};
-    use crate::cdawg::comparator::CdawgComparator;
-    use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+    use crate::weight::{DefaultWeight, Weight};
+    use std::cell::RefCell;
     use std::convert::TryInto;
     use std::rc::Rc;
-    use std::cell::RefCell;
 
     use serde::{Deserialize, Serialize};
 

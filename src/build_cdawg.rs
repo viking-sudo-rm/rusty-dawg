@@ -4,12 +4,12 @@
 use anyhow::Result;
 
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::cmp::min;
 use std::cmp::Ord;
 use std::convert::TryInto;
 use std::io::{BufReader, Read};
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use std::fs;
 use std::mem::size_of;
@@ -18,20 +18,20 @@ use kdam::{tqdm, BarExt};
 
 use super::Args;
 
-use crate::io;
-use crate::io::Save;
-use crate::data_reader::{DataReader, PileReader, TxtReader};
-use crate::cdawg::Cdawg;
+use crate::build_stats::BuildStats;
 use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
+use crate::cdawg::token_backing::TokenBacking;
+use crate::cdawg::Cdawg;
+use crate::cdawg::TopologicalCounter;
+use crate::data_reader::{DataReader, PileReader, TxtReader};
 use crate::graph::avl_graph::edge::Edge;
 use crate::graph::avl_graph::node::Node;
 use crate::graph::indexing::DefaultIx;
-use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
+use crate::io;
+use crate::io::Save;
 use crate::memory_backing::disk_backing::disk_vec::DiskVec;
-use crate::build_stats::BuildStats;
+use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
-use crate::cdawg::token_backing::TokenBacking;
-use crate::cdawg::TopologicalCounter;
 
 type N = super::N;
 type E = CdawgEdgeWeight<DefaultIx>;
@@ -101,7 +101,7 @@ where
         Some(ref train_vec_path) => {
             let disk_vec = DiskVec::new(train_vec_path, args.n_tokens)?;
             Rc::new(RefCell::new(disk_vec))
-        },
+        }
         None => {
             println!("Storing tokens vector in RAM!");
             let vec = Vec::with_capacity(args.n_tokens);
@@ -152,11 +152,11 @@ where
         Some(ref count_path) => {
             let mut counter = TopologicalCounter::new_disk(count_path, idx)?;
             counter.fill_counts(&mut cdawg);
-        },
+        }
         None => {
             let mut counter = TopologicalCounter::new_ram();
             counter.fill_counts(&mut cdawg);
-        },
+        }
     }
 
     let stats = BuildStats::from_cdawg(&cdawg, idx, n_bytes, pbar.elapsed_time());
@@ -178,7 +178,7 @@ where
 
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");
-        cdawg.save(&args.save_path).unwrap();  // FIXME
+        cdawg.save(&args.save_path).unwrap(); // FIXME
         println!("Successfully saved DAWG to {}!", &args.save_path);
     }
     Ok(())

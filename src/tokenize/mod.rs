@@ -1,7 +1,7 @@
+pub mod end;
 pub mod null_token_index;
 pub mod pretrain_tokenizer;
 pub mod token_index;
-pub mod end;
 
 pub use self::null_token_index::NullTokenIndex;
 pub use self::pretrain_tokenizer::PretrainedTokenizer;

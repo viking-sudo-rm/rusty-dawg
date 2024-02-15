@@ -11,8 +11,8 @@ extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;
 extern crate clap;
-extern crate flate2;
 extern crate comparator;
+extern crate flate2;
 extern crate kdam;
 extern crate memmap2;
 extern crate rusty_dawg;
@@ -23,15 +23,15 @@ extern crate tempfile;
 extern crate tokenizers;
 extern crate unicode_segmentation;
 
-mod build_stats;
 mod build_cdawg;
-mod data_reader;
-mod memory_backing;
+mod build_stats;
 mod cdawg;
+mod data_reader;
 mod dawg;
 mod evaluator;
 mod graph;
 mod io;
+mod memory_backing;
 mod stat_utils;
 mod tokenize;
 mod weight;
@@ -62,9 +62,9 @@ use crate::memory_backing::{DiskBacking, MemoryBacking, RamBacking};
 
 use crate::data_reader::{DataReader, PileReader, TxtReader};
 
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use crate::weight::DefaultWeight;
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 
 // Node and edge weight types.
 type N = DefaultWeight;
@@ -122,7 +122,7 @@ pub struct Args {
     buf_size: usize,
 
     #[arg(long, short, action)]
-    single_string: bool,  // Don't end document between documents.
+    single_string: bool, // Don't end document between documents.
 
     // CDAWG args.
     #[arg(long, short, action)]
@@ -134,7 +134,7 @@ pub struct Args {
     #[arg(long)]
     stats_path: Option<String>,
     #[arg(long)]
-    count_path: Option<String>,  // DiskVec path to use while traversing graph.
+    count_path: Option<String>, // DiskVec path to use while traversing graph.
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -147,13 +147,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 type Mb = DiskBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
                 let mb = Mb::new(path);
                 Ok(build_cdawg::<Mb>(args, mb)?)
-            },
+            }
             None => {
                 println!("Building CDAWG in RAM...");
                 type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
                 let mb = Mb::default();
                 Ok(build_cdawg::<Mb>(args, mb)?)
-            },
+            }
         };
     }
 

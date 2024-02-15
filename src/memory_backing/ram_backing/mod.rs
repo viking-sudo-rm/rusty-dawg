@@ -2,8 +2,8 @@ mod vec;
 
 use crate::graph::indexing::IndexType;
 use crate::memory_backing::MemoryBacking;
-use std::marker::PhantomData;
 use crate::weight::Weight;
+use std::marker::PhantomData;
 
 use crate::graph::avl_graph::edge::Edge;
 use crate::graph::avl_graph::node::Node;

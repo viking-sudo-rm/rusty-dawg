@@ -7,8 +7,8 @@ use std::fmt::Debug;
 use std::marker::Copy;
 use tokenizers::tokenizer::Tokenizer;
 
-use crate::tokenize::Tokenize;
 use crate::tokenize::end::End;
+use crate::tokenize::Tokenize;
 
 // pub(crate) fn tokenize(s: &str) -> impl Iterator<Item = &str> {
 //     s.split_word_bounds().filter(|w| {
@@ -33,7 +33,10 @@ impl PretrainedTokenizer {
             .map_err(|err| anyhow!("Failed to load pretrained tokenizer {} - {}", name, err))
             .unwrap();
 
-        PretrainedTokenizer { tokenizer, add_eos: false }
+        PretrainedTokenizer {
+            tokenizer,
+            add_eos: false,
+        }
     }
 }
 
@@ -61,7 +64,7 @@ where
             .iter()
             .map(|&num| num.try_into().unwrap_or_else(|_| panic!("Err!!!")))
             .collect();
-        
+
         if self.add_eos {
             converted_values.push(E::end())
         }

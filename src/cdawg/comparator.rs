@@ -1,28 +1,34 @@
 // Comparator for CdawgEdgeWeights that looks them up in tokens.
 
 use comparator::Comparator;
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::rc::Rc;
-use std::cell::RefCell;
 
-use crate::graph::indexing::IndexType;
 use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::token_backing::TokenBacking;
+use crate::graph::indexing::IndexType;
 
 const END: u16 = u16::MAX;
 
 pub struct CdawgComparator {
     tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
-    token1: Option<u16>,  // If token is provided, it is assumed to be the token for e1.
+    token1: Option<u16>, // If token is provided, it is assumed to be the token for e1.
 }
 
 impl CdawgComparator {
     pub fn new(tokens: Rc<RefCell<dyn TokenBacking<u16>>>) -> Self {
-        Self {tokens, token1: None}
+        Self {
+            tokens,
+            token1: None,
+        }
     }
 
     pub fn new_with_token(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, token: u16) -> Self {
-        Self {tokens, token1: Some(token)}
+        Self {
+            tokens,
+            token1: Some(token),
+        }
     }
 }
 
@@ -93,6 +99,4 @@ mod tests {
         assert_eq!(cmp.compare(&E::new(4, 5), &E::new(4, 5)), Ordering::Equal);
         assert_eq!(cmp.compare(&E::new(2, 3), &E::new(0, 5)), Ordering::Greater);
     }
-
-
 }

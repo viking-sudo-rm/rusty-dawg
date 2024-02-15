@@ -1,16 +1,16 @@
 // Stats for logging during the building of a DAWG or CDAWG.
 
 use anyhow::Result;
-use std::path::Path;
+use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use serde::{Deserialize, Serialize};
+use std::path::Path;
 
+use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::Cdawg;
 use crate::graph::indexing::IndexType;
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
-use crate::weight::Weight;
 use crate::memory_backing::MemoryBacking;
+use crate::weight::Weight;
 
 #[derive(Serialize, Deserialize)]
 pub struct BuildStats {
@@ -23,7 +23,12 @@ pub struct BuildStats {
 }
 
 impl BuildStats {
-    pub fn from_cdawg<W, Ix, Mb>(cdawg: &Cdawg<W, Ix, Mb>, n_tokens: usize, n_bytes: u64, elapsed_time: f32) -> Self
+    pub fn from_cdawg<W, Ix, Mb>(
+        cdawg: &Cdawg<W, Ix, Mb>,
+        n_tokens: usize,
+        n_bytes: u64,
+        elapsed_time: f32,
+    ) -> Self
     where
         W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
         Ix: IndexType,

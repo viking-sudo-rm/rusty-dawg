@@ -1,8 +1,9 @@
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
 use crate::memory_backing::MemoryBacking;
-use serde::{Deserialize, Serialize};
 use crate::stat_utils::get_entropy;
+use crate::weight::Weight;
+use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::cmp::Ord;
 use std::collections::HashMap;
@@ -10,7 +11,6 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-use crate::weight::Weight;
 
 use crate::graph::avl_graph::node::NodeRef;
 

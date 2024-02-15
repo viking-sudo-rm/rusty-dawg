@@ -7,12 +7,12 @@ use crate::graph::avl_graph::node::Node;
 
 use crate::graph::indexing::{EdgeIndex, IndexType, NodeIndex};
 use crate::memory_backing::MemoryBacking;
+use crate::weight::Weight;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fs::create_dir_all;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
-use crate::weight::Weight;
 
 use self::disk_mut_refs::{DiskEdgeMutRef, DiskNodeMutRef};
 use self::vec::Vec;

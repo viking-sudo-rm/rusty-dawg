@@ -1,13 +1,13 @@
-use bincode::deserialize_from;
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
+use crate::weight::Weight;
+use bincode::deserialize_from;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::cmp::Eq;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
-use crate::weight::Weight;
 
 use crate::memory_backing::DiskBacking;
 

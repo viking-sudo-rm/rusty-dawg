@@ -9,10 +9,10 @@ pub struct CdawgState<Ix>
 where
     Ix: IndexType,
 {
-    pub state: NodeIndex<Ix>,  // Original state of active edge.
-    pub edge_start: usize,  // Original start of active edge.
-    pub start: usize,  // Start of gamma.
-    pub end: usize,  // End of gamma.
-    pub target: Option<NodeIndex<Ix>>,  // Target of active edge.
-    pub length: u64,  // Current length.
+    pub state: NodeIndex<Ix>,          // Original state of active edge.
+    pub edge_start: usize,             // Original start of active edge.
+    pub start: usize,                  // Start of gamma.
+    pub end: usize,                    // End of gamma.
+    pub target: Option<NodeIndex<Ix>>, // Target of active edge.
+    pub length: u64,                   // Current length.
 }
