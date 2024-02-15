@@ -84,6 +84,7 @@ where
     };
     index.build(&test_raw); // Either the tokenizer must be pretrained or test must contain all tokens!
 
+    println!("Cache size: {}", args.cache_size);
     let n_nodes = (args.nodes_ratio * (args.n_tokens as f64)).ceil() as usize;
     let n_edges = (args.edges_ratio * (args.n_tokens as f64)).ceil() as usize;
     let cache_config = args.get_cache_config();
