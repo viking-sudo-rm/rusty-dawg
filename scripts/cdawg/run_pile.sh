@@ -23,4 +23,4 @@ RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --stats-path "$RUN_DIR/stats.jsonl" \
     --train-vec-path "$RUN_DIR/train.vec" \
     --disk-path "$RUN_DIR/cdawg" \
-    --cache-size 1000000000
+    --cache-size 10000000000
