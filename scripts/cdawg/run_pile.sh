@@ -7,6 +7,7 @@ RUN_DIR=${2:-"/home/willm/pile-run"}
 NODES_RATIO=0.20
 EDGES_RATIO=0.93
 N_TOKENS=2520623333
+CACHE_SIZE=0
 TOKENIZER="gpt2"
 
 RUST_BACKTRACE=full ./target/release/rusty-dawg \
@@ -15,6 +16,7 @@ RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --nodes-ratio $NODES_RATIO \
     --edges-ratio $EDGES_RATIO \
     --tokenizer $TOKENIZER \
+    --cache-size $CACHE_SIZE \
     --data-reader "pile" \
     --utype u16 \
     --buf-size 3000000000 \
@@ -22,5 +24,4 @@ RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --stats-threshold 10000000 \
     --stats-path "$RUN_DIR/stats.jsonl" \
     --train-vec-path "$RUN_DIR/train.vec" \
-    --disk-path "$RUN_DIR/cdawg" \
-    --cache-size 10000000000
+    --disk-path "$RUN_DIR/cdawg"

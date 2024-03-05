@@ -132,6 +132,14 @@ where
             self.vec.get(index)
         }
     }
+
+    /// Get number of elements currently in the cache.
+    pub fn get_cache_len(&self) -> usize {
+        match self.cache.as_ref() {
+            Some(cache) => cache.len(),
+            None => 0,
+        }
+    }
 }
 
 #[cfg(test)]
