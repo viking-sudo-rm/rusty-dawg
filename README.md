@@ -33,29 +33,6 @@ cargo build --release
 
 Note that the `--release` flag is very important for performance. The code will be 10-100x slower without it.
 
-## Building the Python bindings
-
-The Python bindings are generated using [maturin](https://github.com/PyO3/maturin). First install maturin in your Python environment:
-
-```
-pip install maturin
-```
-
-Then `cd` into the Python bindings directory (`bindings/python`) and run:
-
-```
-make install
-```
-
-If, for some reason, you cannot run make files, you can alternatively run the following in two steps:
-
-```
-python -m maturin build --release
-pip install target/wheels/*.whl
-```
-
-The scripts/rebuild_bindings.sh scripts can also do this.
-
 ## Running Benchmarking Script
 
 To run the benchmarking script, you need the Wikitext2/103 data. You can either download this to rusty-dawg/data path or point to an existing repository (easy on beaker, you can use my copy of the data).
@@ -74,9 +51,9 @@ DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
 
 The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. The benchmarking script will also print out the size of the DAWG at the bottom.
 
-# Example of How to Build CDAWGs
+# Building DAWGs or CDAWGs
 
-The CDAWG is a strict improvement on the original DAWG. If you want to index your corpus, we thus recommend adapting the [run_pile](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script for building CDAWGs.
+To get started building the CDAWG on your corpus, we recommend adapting the [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script. This script was written to build a CDAWG (memory-efficient improvement of DAWG) on the Pile.
 
 ## `DATA_PATH`
 
@@ -103,6 +80,37 @@ By default, this script uses the `gpt2` tokenizer. You might consider using a di
 ## Cache Size
 
 This parameters simply controls how many bytes of text are read into RAM at once while decompressing the training data. It isn't that important, but if you run into RAM issues, you should lower it!
+
+# Using DAWGs or CDAWGs in Python
+
+The library is implemented in Rust, but DAWGs, once built, can be loaded and used easily in Python! You can even build DAWGs from scratch using the Python bindings, though we don't necessarily recommend that.
+
+## Building the Python bindings
+
+The Python bindings are generated using [maturin](https://github.com/PyO3/maturin). First install maturin in your Python environment:
+
+```
+pip install maturin
+```
+
+Then `cd` into the Python bindings directory (`bindings/python`) and run:
+
+```
+make install
+```
+
+If, for some reason, you cannot run make files, you can alternatively run the following in two steps:
+
+```
+python -m maturin build --release
+pip install target/wheels/*.whl
+```
+
+The scripts/rebuild_bindings.sh scripts can also do this.
+
+## Example Usage
+
+You can refer to [scripts/cdawg/test_cdawg_matches_dawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_cdawg_matches_dawg.py) for an example of how to build and use a CDAWG in RAM with the Python bindings. To use a disk CDAWG instead, you can use `DiskCdawg` instead of `Cdawg`. [scripts/cdawg/test_load_cdawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_load_cdawg.py) shows an example of how to load a pre-built `DiskCdawg`.
 
 # Documentation
 
