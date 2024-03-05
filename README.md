@@ -93,20 +93,24 @@ The Python bindings are generated using [maturin](https://github.com/PyO3/maturi
 pip install maturin
 ```
 
-Then `cd` into the Python bindings directory (`bindings/python`) and run:
+Then, you should be able to build (or rebuild) the Python bindings with:
+
+```
+scripts/rebuild_bindings.sh
+```
+
+*(If above doesn't work)* Alternatively, `cd` into the Python bindings directory (`bindings/python`) and run:
 
 ```
 make install
 ```
 
-If, for some reason, you cannot run make files, you can alternatively run the following in two steps:
+*(If above still doesn't work)* You can build the bindings in two steps:
 
 ```
 python -m maturin build --release
 pip install target/wheels/*.whl
 ```
-
-The scripts/rebuild_bindings.sh scripts can also do this.
 
 ## Example Usage
 
