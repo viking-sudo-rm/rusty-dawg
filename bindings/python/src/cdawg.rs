@@ -32,6 +32,12 @@ impl Cdawg {
         self.cdawg.build();
     }
 
+    /// Build CDAWG incrementally. Use Rust build() at scale rather than calling through Python!
+    pub fn update(&mut self, in_state: usize, start: usize, end: usize) -> (usize, usize) {
+        let (new_state, new_start) = self.cdawg.update(NodeIndex::new(in_state), start, end);
+        (new_state.index(), new_start)
+    }
+
     pub fn fill_counts(&mut self) {
         let mut counter = cdawg::TopologicalCounter::new_ram();
         counter.fill_counts(&mut self.cdawg);
