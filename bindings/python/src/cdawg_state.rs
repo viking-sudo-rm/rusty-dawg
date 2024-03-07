@@ -14,4 +14,12 @@ impl CdawgState {
     pub fn get_length(&self) -> u64 {
         self.cs.length
     }
+
+    pub fn get_state_and_gamma(&self) -> (Option<usize>, (usize, usize)) {
+        let (state, gamma) = self.cs.get_state_and_gamma();
+        match state {
+            Some(q) => (Some(q.index()), gamma),
+            None => (None, gamma),
+        }
+    }
 }

@@ -1,9 +1,10 @@
 version: v2
 description: Build DAWG on the Pile split {{.Env.DATA_PATH}}
+budget: ai2/allennlp
 tasks:
-  - name: build-dawg
+  - name: build-cdawg
     image:
-      beaker: willm/rusty-dawg-ssh-debug
+      beaker: willm/rusty-cdawg
     command: [scripts/run_pile_beaker.sh]
     envVars:
       - name: N_TOKENS

@@ -16,3 +16,16 @@ where
     pub target: Option<NodeIndex<Ix>>, // Target of active edge.
     pub length: u64,                   // Current length.
 }
+
+impl<Ix> CdawgState<Ix>
+where
+    Ix: IndexType,
+{
+    pub fn get_state_and_gamma(&self) -> (Option<NodeIndex<Ix>>, (usize, usize)) {
+        if self.start == self.end {
+            (self.target, (self.start, self.end))
+        } else {
+            (Some(self.state), (self.edge_start, self.start))
+        }
+    }
+}

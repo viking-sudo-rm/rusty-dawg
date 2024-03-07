@@ -6,6 +6,7 @@ use std::rc::Rc;
 use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
+use rusty_dawg::graph::NodeRef;
 use rusty_dawg::graph::indexing::{DefaultIx, EdgeIndex, NodeIndex};
 use rusty_dawg::weight::DefaultWeight;
 
@@ -80,5 +81,17 @@ impl Cdawg {
 
     pub fn get_suffix_count(&self, cs: CdawgState) -> usize {
         self.cdawg.get_suffix_count(cs.cs)
+    }
+
+    /// gamma here is 0-indexed.
+    pub fn implicitly_fail(&self, state: usize, gamma: (usize, usize)) -> CdawgState {
+        CdawgState {
+            cs: self.cdawg.implicitly_fail(NodeIndex::new(state), gamma)
+        }
+    }
+
+    /// Return the length associated with a node.
+    pub fn get_length(&self, state: usize) -> u64 {
+        self.cdawg.get_graph().get_node(NodeIndex::new(state)).get_length()
     }
 }

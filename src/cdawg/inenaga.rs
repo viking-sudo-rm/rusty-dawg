@@ -682,7 +682,7 @@ where
     // Generalizes failure transition for when we have state + gamma.
     // This is 0-indexed since we use it at inference time.
     // Gamma represents a path of tokens we want to follow from fstate.
-    fn implicitly_fail(&self, state: NodeIndex<Ix>, gamma: (usize, usize)) -> CdawgState<Ix> {
+    pub fn implicitly_fail(&self, state: NodeIndex<Ix>, gamma: (usize, usize)) -> CdawgState<Ix> {
         let (start, end) = gamma;
         let fstate = self.graph.get_node(state).get_failure();
 
