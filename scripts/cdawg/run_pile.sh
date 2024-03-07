@@ -7,19 +7,17 @@ RUN_DIR=${2:-"/home/willm/pile-run"}
 NODES_RATIO=0.20
 EDGES_RATIO=0.93
 N_TOKENS=2520623333
-CACHE_SIZE=0
-TOKENIZER="gpt2"
 
 RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --train-path $DATA_PATH \
     --n-tokens $N_TOKENS \
     --nodes-ratio $NODES_RATIO \
     --edges-ratio $EDGES_RATIO \
-    --tokenizer $TOKENIZER \
-    --cache-size $CACHE_SIZE \
+    --cache-size 0 \
+    --buf-size 3000000000 \
+    --tokenizer "allenai/OLMo-7B" \
     --data-reader "pile" \
     --utype u16 \
-    --buf-size 3000000000 \
     --cdawg \
     --stats-threshold 10000000 \
     --stats-path "$RUN_DIR/stats.jsonl" \
