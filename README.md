@@ -21,13 +21,13 @@ Simply use the one-liner [here](https://www.rust-lang.org/tools/install).
 
 To run tests, you can call Cargo (which should have been installed with Rust) from inside the repo directory:
 
-```
+```bash
 cargo test
 ```
 
 To compile an optimized release build, you can run:
 
-```
+```bash
 cargo build --release
 ```
 
@@ -39,13 +39,13 @@ To run the benchmarking script, you need the Wikitext2/103 data. You can either 
 
 You first need to download the [data](https://drive.google.com/file/d/1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby/view?usp=sharing) directory, unzip it, and put it in the root of the repository directory (i.e., rusty-dawg/data). Then you can run:
 
-```
+```bash
 ./scripts/benchmark.sh wikitext-2-raw
 ```
 
 If the data is stored somewhere else, you can do:
 
-```
+```bash
 DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
 ```
 
@@ -89,28 +89,38 @@ The library is implemented in Rust, but DAWGs, once built, can be loaded and use
 
 The Python bindings are generated using [maturin](https://github.com/PyO3/maturin). First install maturin in your Python environment:
 
-```
+```bash
 pip install maturin
 ```
 
-Then `cd` into the Python bindings directory (`bindings/python`) and run:
+Then, you should be able to build (or rebuild) the Python bindings with:
 
+```bash
+source scripts/rebuild_bindings.sh
 ```
+
+*(If above doesn't work)* Alternatively, `cd` into the Python bindings directory (`bindings/python`) and run:
+
+```bash
 make install
 ```
 
-If, for some reason, you cannot run make files, you can alternatively run the following in two steps:
+*(If above still doesn't work)* You can build the bindings in two steps:
 
-```
+```bash
 python -m maturin build --release
 pip install target/wheels/*.whl
 ```
 
-The scripts/rebuild_bindings.sh scripts can also do this.
+## Using the Python Library
 
-## Example Usage
+After installing the bindings, you should be able to import the library:
 
-You can refer to [scripts/cdawg/test_cdawg_matches_dawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_cdawg_matches_dawg.py) for an example of how to build and use a CDAWG in RAM with the Python bindings. To use a disk CDAWG instead, you can use `DiskCdawg` instead of `Cdawg`. [scripts/cdawg/test_load_cdawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_load_cdawg.py) shows an example of how to load a pre-built `DiskCdawg`.
+```python
+from rusty_dawg import Cdawg, DiskCdawg
+```
+
+Refer to [scripts/cdawg/test_cdawg_matches_dawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_cdawg_matches_dawg.py) for an example of how to build and use a CDAWG in RAM with the Python bindings. To use a disk CDAWG instead, you can use `DiskCdawg` instead of `Cdawg`. [scripts/cdawg/test_load_cdawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_load_cdawg.py) shows an example of how to load a pre-built `DiskCdawg`.
 
 # Documentation
 
