@@ -7,7 +7,7 @@ RUN_DIR=${2:-"/home/willm/pile-run"}
 
 NODES_RATIO=0.20
 EDGES_RATIO=0.93
-N_TOKENS=2520623333
+N_TOKENS=2520623333  # Overriding env variable.
 
 RUST_BACKTRACE=full ./target/release/rusty-dawg \
     --train-path $DATA_PATH \

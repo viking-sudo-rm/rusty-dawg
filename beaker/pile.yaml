@@ -1,5 +1,5 @@
 version: v2
-description: Build DAWG on the Pile split {{.Env.INPUT_PATH}}
+description: Build DAWG on the Pile split {{.Env.DATA_PATH}}
 tasks:
   - name: build-dawg
     image:
@@ -8,10 +8,10 @@ tasks:
     envVars:
       - name: N_TOKENS
         value: {{.Env.N_TOKENS}}
-      - name: INPUT_PATH
-        value: {{.Env.INPUT_PATH}}
-      - name: OUTPUT_PATH
-        value: {{.Env.OUTPUT_PATH}}
+      - name: DATA_PATH
+        value: {{.Env.DATA_PATH}}
+      - name: RUN_DIR
+        value: {{.Env.RUN_DIR}}
       - name: GCLOUD_KEY
         value: /gcloud_key.json
     datasets:
