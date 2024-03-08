@@ -1,16 +1,16 @@
 version: v2
-description: Build DAWG on the Pile split {{.Env.DATA_PATH}}
+description: Build DAWG on the Pile split {{.Env.INPUT_PATH}}
 budget: ai2/allennlp
 tasks:
   - name: build-cdawg
     image:
       beaker: willm/rusty-cdawg
-    command: [scripts/run_pile_beaker.sh]
+    command: [scripts/cdawg/run_pile_beaker.sh]
     envVars:
       - name: N_TOKENS
         value: {{.Env.N_TOKENS}}
-      - name: DATA_PATH
-        value: {{.Env.DATA_PATH}}
+      - name: INPUT_PATH
+        value: {{.Env.INPUT_PATH}}
       - name: RUN_DIR
         value: {{.Env.RUN_DIR}}
       - name: GCLOUD_KEY

@@ -148,14 +148,16 @@ where
     }
 
     println!("\nFilling counts...");
-    match args.count_path {
-        Some(ref count_path) => {
-            let mut counter = TopologicalCounter::new_disk(count_path, idx)?;
-            counter.fill_counts(&mut cdawg);
-        }
-        None => {
-            let mut counter = TopologicalCounter::new_ram();
-            counter.fill_counts(&mut cdawg);
+    if !args.no_counts {
+        match args.count_path {
+            Some(ref count_path) => {
+                let mut counter = TopologicalCounter::new_disk(count_path, idx)?;
+                counter.fill_counts(&mut cdawg);
+            }
+            None => {
+                let mut counter = TopologicalCounter::new_ram();
+                counter.fill_counts(&mut cdawg);
+            }
         }
     }
 

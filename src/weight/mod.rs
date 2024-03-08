@@ -41,4 +41,3 @@ pub trait Weight {
 }
 
 pub mod weight40;
-pub use self::weight40::WeightMinimal;

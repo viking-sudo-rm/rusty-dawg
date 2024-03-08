@@ -138,6 +138,8 @@ pub struct Args {
     stats_path: Option<String>,
     #[arg(long)]
     count_path: Option<String>, // DiskVec path to use while traversing graph.
+    #[arg(long)]
+    no_counts: bool, // Don't add counts.
 }
 
 impl Args {
