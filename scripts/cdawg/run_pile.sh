@@ -5,8 +5,9 @@
 DATA_PATH=${1:-"/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json.gz"}
 RUN_DIR=${2:-"/home/willm/pile-run"}
 
-NODES_RATIO=0.18
-EDGES_RATIO=0.98
+# Allocation variables, based on Pythia tokenizer. Added 0.01 for good measure!
+NODES_RATIO=0.19
+EDGES_RATIO=0.99
 N_TOKENS=2520623333
 
 ./target/release/rusty-dawg \
