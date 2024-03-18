@@ -11,9 +11,9 @@ gcloud auth activate-service-account --project=ai2-allennlp --key-file=$GCLOUD_K
 echo "Copying Pile shard: $GCLOUD_PATH"
 gcloud compute scp --zone "us-central1-a" $GCLOUD_PATH /data.jsonl.gz
 
-# Set allocation variables.
-NODES_RATIO=0.20
-EDGES_RATIO=0.93
+# Set allocation variables for Pythia tokenizer (change if different tokenizer).
+NODES_RATIO=0.18
+EDGES_RATIO=0.98
 
 # Run Rusty DAWG on the downloaded Pile shard.
 ./target/release/rusty-dawg \
