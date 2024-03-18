@@ -31,3 +31,5 @@ EDGES_RATIO=0.93
     --stats-path "$RUN_DIR/stats.jsonl" \
     --train-vec-path "$RUN_DIR/train.vec" \
     --disk-path "$RUN_DIR/cdawg"
+
+# Counts are being built in RAM here. If it fails, can add --no-counts and add later.
