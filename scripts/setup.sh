@@ -11,8 +11,9 @@ cargo build --release
 
 DATA_PATH=$1
 LOCAL_DIR=/home/willm/data
-mkdir $LOCAL_DIR
+mkdir $LOCAL_DIR $LOCAL_DIR/original $LOCAL_DIR/splits
+mkdir /home/willm/runs
 
 # Login to Google Cloud and download the data
 gcloud auth login
-gcloud compute scp --zone "us-central1-a" "lm-datasets:/mnt/tank/pile/train/$DATA_PATH" $LOCAL_DIR/data.jsonl.gz
+gcloud compute scp --zone "us-central1-a" "lm-datasets:/mnt/tank/pile/train/$DATA_PATH" $LOCAL_DIR/$DATA_PATH
