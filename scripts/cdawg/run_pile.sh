@@ -8,7 +8,7 @@ RUN_DIR=${2:-"/home/willm/pile-run"}
 # Allocation variables, based on Pythia tokenizer. Added 0.01 for good measure!
 NODES_RATIO=0.19
 EDGES_RATIO=0.99
-N_TOKENS=2520623333
+N_TOKENS=75618699990 # 2520623333
 
 ./target/release/rusty-dawg \
     --train-path $DATA_PATH \
