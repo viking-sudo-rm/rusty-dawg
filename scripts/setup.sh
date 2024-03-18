@@ -2,6 +2,7 @@
 # Setup a new VM to run Rusty DAWG
 
 sudo apt install build-essential
+ssh-keygen  # Maybe this helps? :/
 
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
