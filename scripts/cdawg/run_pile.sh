@@ -15,7 +15,7 @@ EDGES_RATIO=0.99
     --n-tokens $N_TOKENS \
     --nodes-ratio $NODES_RATIO \
     --edges-ratio $EDGES_RATIO \
-    --cache-size 0 \
+    --cache-size ${CACHE_SIZE:-0} \
     --buf-size 3000000000 \
     --tokenizer "EleutherAI/pythia-12b" \
     --data-reader "pile" \
