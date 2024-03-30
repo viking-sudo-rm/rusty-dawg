@@ -17,7 +17,7 @@ use std::cmp::{max, min};
 use std::fmt::Debug;
 
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
-use crate::memory_backing::CacheConfig;
+use crate::memory_backing::{CacheConfig, DiskVec};
 use crate::weight::Weight;
 
 mod comparator;
@@ -52,6 +52,18 @@ where
     pub fn new() -> Self {
         let mb: RamBacking<N, E, Ix> = RamBacking::default();
         Self::new_mb(mb)
+    }
+
+    pub fn save_to_disk<P: AsRef<Path> + Clone + Debug>(&self, path: P) -> Result<()>
+    where
+        N: Serialize + DeserializeOwned + Default,
+        E: Serialize + DeserializeOwned + Default,
+        Ix: Serialize + DeserializeOwned + Default,
+    {
+        let mb: DiskBacking<N, E, Ix> = DiskBacking::new(path);
+        let _ = DiskVec::from_vec(&self.nodes, mb.get_nodes_path());
+        let _ = DiskVec::from_vec(&self.edges, mb.get_edges_path());
+        Ok(())
     }
 }
 

@@ -104,17 +104,6 @@ where
             })
         }
     }
-
-    pub fn save<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {
-        let mut config_path = path.as_ref().to_path_buf();
-        config_path.push("metadata.json");
-        let config = CdawgMetadata {
-            source: self.source.index(),
-            sink: self.sink.index(),
-            end_position: self.end_position,
-        };
-        config.save_json(config_path)
-    }
 }
 
 impl<W, Ix, Mb> Cdawg<W, Ix, Mb>
@@ -740,6 +729,18 @@ where
     pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> usize {
         self.get_count(cs.target.unwrap())
     }
+
+    ///Save metadata
+    pub fn save_metadata<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {
+        let mut config_path = path.as_ref().to_path_buf();
+        config_path.push("metadata.json");
+        let config = CdawgMetadata {
+            source: self.source.index(),
+            sink: self.sink.index(),
+            end_position: self.end_position,
+        };
+        config.save_json(config_path)
+    }
 }
 
 #[cfg(test)]
@@ -1155,7 +1156,7 @@ mod tests {
     type DiskCdawg = Cdawg<DiskW, DefaultIx, DiskBacking<DiskW, DiskE, DefaultIx>>;
 
     #[test]
-    fn test_save_load_null() {
+    fn test_save_metadata_load_null() {
         let tmp_dir = tempdir().unwrap();
         let path = tmp_dir.path();
 
@@ -1163,7 +1164,7 @@ mod tests {
         let mb = DiskBacking::new(path);
         let mut cdawg: DiskCdawg = Cdawg::new_mb(Rc::new(RefCell::new(tokens)), mb);
         cdawg.add_balanced_edge(cdawg.source, cdawg.sink, (1, 1));
-        cdawg.save(path).unwrap();
+        cdawg.save_metadata(path).unwrap();
 
         let tokens2: Vec<u16> = vec![10, 11, 12];
         let cdawg2: DiskCdawg =
@@ -1182,7 +1183,7 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
 
         let vec: Vec<u16> = vec![0, 1, 2];
-        let disk_vec = DiskVec::<u16>::from_vec(vec, tmp_dir.path().join("vec.bin")).unwrap();
+        let disk_vec = DiskVec::<u16>::from_vec(&vec, tmp_dir.path().join("vec.bin")).unwrap();
         let mut cdawg: Cdawg = Cdawg::new(Rc::new(RefCell::new(disk_vec)));
         let (mut state, mut start) = (cdawg.source, 1);
 

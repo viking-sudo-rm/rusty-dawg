@@ -2,7 +2,7 @@ use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::Cdawg;
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
-use crate::memory_backing::{DiskBacking, RamBacking};
+use crate::memory_backing::{DiskBacking, DiskVec, RamBacking};
 use crate::weight::Weight;
 use serde::de::DeserializeOwned;
 use std::error::Error;
@@ -50,7 +50,7 @@ where
     CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
-        Ok(self.save(save_path)?)
+        Ok(Cdawg::save_metadata(self, save_path)?)
     }
 }
 
@@ -59,7 +59,13 @@ where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
 {
-    fn save(&self, _save_path: &str) -> Result<(), Box<dyn Error>> {
-        unimplemented!("Can't yet save CDAWGs on RAM");
+    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+        // unimplemented!("Can't yet save CDAWGs on RAM");
+        println!("Saving RAM -> disk...");
+        // First save whatever is in RAM to disk.
+        self.get_graph().save_to_disk(save_path)?;
+        // Then generate metadata as we would normally.
+        Cdawg::save_metadata(self, save_path)?;
+        Ok(())
     }
 }

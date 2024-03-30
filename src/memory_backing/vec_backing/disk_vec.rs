@@ -72,7 +72,7 @@ where
     }
 
     /// Turn a `Vec<T>` into a new `DiskVec<T>`.
-    pub fn from_vec<P: AsRef<Path> + std::fmt::Debug>(vec: Vec<T>, path: P) -> Result<Self> {
+    pub fn from_vec<P: AsRef<Path> + std::fmt::Debug>(vec: &Vec<T>, path: P) -> Result<Self> {
         let len = vec.len();
         let mut disk_vec = Self::new(path, len)?;
         for item in vec {
@@ -242,7 +242,7 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
 
         let vec = vec![Foo { x: 0, y: 1 }, Foo { x: 2, y: 3 }];
-        let disk_vec = DiskVec::<Foo>::from_vec(vec, tmp_dir.path().join("vec.bin")).unwrap();
+        let disk_vec = DiskVec::<Foo>::from_vec(&vec, tmp_dir.path().join("vec.bin")).unwrap();
         assert_eq!(disk_vec.len(), 2);
         assert_eq!(disk_vec.get(1).unwrap().x, 2);
     }

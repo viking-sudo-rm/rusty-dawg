@@ -140,6 +140,8 @@ pub struct Args {
     count_path: Option<String>, // DiskVec path to use while traversing graph.
     #[arg(long)]
     no_counts: bool, // Don't add counts.
+    #[arg(long)]
+    ram: bool, // Force build in RAM.
 }
 
 impl Args {
@@ -160,6 +162,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.cdawg {
         return match args.disk_path.clone() {
             Some(path) => {
+                if args.ram {
+                    println!("Building CDAWG in RAM but saving on disk...");
+                    type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                    let mb = Mb::default();
+                    return Ok(build_cdawg::<Mb>(args, mb)?);
+                }
                 println!("Building CDAWG on disk...");
                 type Mb = DiskBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
                 let mb = Mb::new(path);

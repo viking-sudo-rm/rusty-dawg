@@ -53,7 +53,7 @@ where
 
     /// Turn a `Vec<T>` into a new `DiskVec<T>`.
     pub fn from_vec<P: AsRef<Path> + std::fmt::Debug>(
-        vec: Vec<T>,
+        vec: &Vec<T>,
         path: P,
         cache_size: usize,
     ) -> Result<Self> {
