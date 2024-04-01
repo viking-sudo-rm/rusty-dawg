@@ -5,10 +5,13 @@
 DATA_PATH=${1:-"/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json.gz"}
 RUN_DIR=${2:-"/home/willm/pile-run"}
 
+# Currently need to do this in advance for the RAM -> disk case.
+mkdir -p $RUN_DIR
+
 # Allocation variables, based on Pythia tokenizer. Added 0.01 for good measure!
-N_TOKENS=${N_TOKENS:-12603116665} # 2520623333
+N_TOKENS=${N_TOKENS:-11065494740} # 2520623333
 NODES_RATIO=0.19
-EDGES_RATIO=0.99
+EDGES_RATIO=0.98
 
 ./target/release/rusty-dawg \
     --train-path $DATA_PATH \
