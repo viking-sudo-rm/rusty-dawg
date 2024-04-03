@@ -9,6 +9,7 @@ parser = ArgumentParser()
 parser.add_argument("path", type=str)
 parser.add_argument("--format", choices=["disk-cdawg"], default="disk-cdawg")  # unused for now
 parser.add_argument("--tokenizer", default="EleutherAI/pythia-12b")
+parser.add_argument("--port", type=int, default=80)
 args = parser.parse_args()
 
 app = Flask(__name__) 
@@ -45,4 +46,4 @@ def cdawg_inference():
     })
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=args.port)
