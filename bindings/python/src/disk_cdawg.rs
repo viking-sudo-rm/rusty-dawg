@@ -57,6 +57,12 @@ impl DiskCdawg {
         counter.fill_counts(&mut self.cdawg);
     }
 
+    // TODO: Merge with above, adding default argument or TopologicalCounter object.
+    pub fn fill_counts_ram(&mut self) {
+        let mut counter = cdawg::TopologicalCounter::new_ram();
+        counter.fill_counts(&mut self.cdawg);
+    }
+
     pub fn get_initial(&self) -> CdawgState {
         CdawgState {
             cs: self.cdawg.get_initial(),
