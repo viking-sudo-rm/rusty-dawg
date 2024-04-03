@@ -10,7 +10,7 @@ import os
 
 from rusty_dawg import DiskCdawg
 
-args = argparse.ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument("path", type=str)
 args = parser.parse_args()
 
@@ -18,5 +18,4 @@ tokens_path = os.path.join(args.path, "tokens.vec")
 cdawg_path = os.path.join(args.path, "cdawg")
 cdawg = DiskCdawg.load(tokens_path, cdawg_path)
 cdawg.fill_counts_ram()
-
 print("Successfully filled counts in RAM!")
