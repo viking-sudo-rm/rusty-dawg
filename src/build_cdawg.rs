@@ -142,11 +142,6 @@ where
     }
     eprintln!();
 
-    // All this does is generate the metadata file.
-    if let Some(disk_path) = args.disk_path {
-        let _ = cdawg.save(disk_path.as_str());
-    }
-
     println!("\nFilling counts...");
     if !args.no_counts {
         match args.count_path {
@@ -178,10 +173,13 @@ where
     println!("  balance ratio: {:.2}", stats.balance_ratio);
     println!();
 
+    // TODO: Simplify this logic and the associated flags.
     if !args.save_path.is_empty() {
         println!("Saving DAWG...");
-        cdawg.save(&args.save_path).unwrap(); // FIXME
+        let _ = cdawg.save(&args.save_path);
         println!("Successfully saved DAWG to {}!", &args.save_path);
+    } else if let Some(disk_path) = args.disk_path {
+        let _ = cdawg.save(disk_path.as_str());
     }
     Ok(())
 }

@@ -20,10 +20,10 @@ time ./target/release/rusty-dawg \
     --n-tokens 2051910 \
     --nodes-ratio 1.25 \
     --edges-ratio 2.20 \
-    --tokenizer "whitespace"
-    # --cdawg \
-    # --ram \
-    # --disk-path "/Users/willm/Desktop/wiki/cdawg" \
-    # --train-vec-path "/Users/willm/Desktop/wiki/tokens.vec"
+    --tokenizer "whitespace" \
+    --cdawg \
+    --ram \
+    --disk-path "/Users/willm/Desktop/wiki/cdawg" \
+    --train-vec-path "/Users/willm/Desktop/wiki/tokens.vec"
 
 # Things will slow down if you don't pass a test set. Probably because all tokens are UNK.
