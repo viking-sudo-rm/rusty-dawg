@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 app = Flask(__name__) 
 tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
-tokens_path = os.path.join(args.path, "tokens.vec")
+train_path = os.path.join(args.path, "train.vec")
 cdawg_path = os.path.join(args.path, "cdawg")
 
 @app.route("/api/cdawg", methods=["POST"])
@@ -29,7 +29,7 @@ def cdawg_inference():
         return jsonify({"error": "request must contain 'tokens' or 'text' key"})
     
     # Need to do it this way because DiskCdawg is unsendable
-    cdawg = DiskCdawg.load(tokens_path, cdawg_path)
+    cdawg = DiskCdawg.load(train_path, cdawg_path)
 
     lengths = []
     counts = []
