@@ -1,5 +1,4 @@
 .DS_Store
-target/
 data/
 data.zip
 
@@ -9,5 +8,6 @@ cargo-flamegraph.stacks
 
 # Python
 **/__pycache__/**
+**/target/**
 
 .vscode/

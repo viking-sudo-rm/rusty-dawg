@@ -1,16 +1,19 @@
-#!/usr/bin/bash
+#!/usr/bin/zsh
 # Create a job to process the larger or smaller subsplits of the Pile.
 
-# FIXME: Change starts back to 00
+START=$1
+END=$2
+PREFIX=willm-pile2
+echo "=== Running from $START to $END ==="
 
-for split in {21..29}; do
-    MACHINE=willm-pile-$split
+for split in {$START..$END}; do
+    MACHINE=$PREFIX-$split
     echo "Creating $MACHINE..."
     gcloud compute instances create $MACHINE --source-instance-template willm-ram-384gb --zone "us-central1-a"
 done
 
-for split in {21..29}; do
-    MACHINE=willm-pile-$split
+for split in {$START..$END}; do
+    MACHINE=$PREFIX-$split
     gcloud compute scp --zone "us-central1-a" --recurse /home/willm/rusty-dawg-startup $MACHINE:/home/willm/rusty-dawg-startup
     cmd="screen -dmS cdawg bash -c 'export SPLIT=$split && chmod +x rusty-dawg-startup/wrap_startup.sh && rusty-dawg-startup/wrap_startup.sh; exec bash'"
     echo "Running command: $cmd"
