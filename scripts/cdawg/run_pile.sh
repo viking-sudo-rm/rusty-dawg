@@ -9,7 +9,7 @@ RUN_DIR=${2:-"/home/willm/pile-run"}
 mkdir -p $RUN_DIR
 
 # Allocation variables, based on Pythia tokenizer. Added 0.01 for good measure!
-N_TOKENS=${N_TOKENS:-11065494740} # 2520623333
+N_TOKENS=${N_TOKENS:-11117142449} # 2520623333
 NODES_RATIO=0.19
 EDGES_RATIO=0.98
 
