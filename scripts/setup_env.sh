@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 # This script can be used to set up dependencies for using the Python package (and API) after a build has finished.
 
 # First, install and setup Miniconda.
