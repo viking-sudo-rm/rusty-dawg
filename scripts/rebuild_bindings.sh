@@ -1,7 +1,9 @@
 #!/bin/zsh
 
+PYTHON=${PYTHON:-python}
+
 cd bindings/python
 rm -rf target/wheels
-python -m maturin build --release
-python -m pip install target/wheels/* --ignore-installed
+$PYTHON -m maturin build --release
+$PYTHON -m pip install target/wheels/* --ignore-installed
 cd ../..
