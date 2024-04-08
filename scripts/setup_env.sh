@@ -10,6 +10,8 @@ rm -rf ~/miniconda3/miniconda.sh
 source ~/.bashrc  # Reconfigure current shell.
 
 # FIXME: When ssh'ing, pip/python don't work.
+echo "Path after running ~/.bashrc:"
+echo $PATH
 
 # Install pip dependencies.
 ~/miniconda3/bin/python -m pip install maturin
