@@ -9,10 +9,13 @@ rm -rf ~/miniconda3/miniconda.sh
 ~/miniconda3/bin/conda init bash
 source ~/.bashrc  # Reconfigure current shell.
 
+# When ssh'ing, pip/python don't work.
+alias python=~/miniconda3/bin/python
+
 # Install pip dependencies.
-pip install maturin
-pip install transformers
-pip install flask
+python -m pip install maturin
+python -m pip install transformers
+python -m pip install flask
 
 # Build the Python bindings.
 source scripts/rebuild_bindings.sh
