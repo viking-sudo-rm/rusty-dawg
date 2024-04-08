@@ -46,4 +46,4 @@ def cdawg_inference():
     })
 
 if __name__ == "__main__":
-    app.run(debug=True, port=args.port)
+    app.run(port=args.port)
