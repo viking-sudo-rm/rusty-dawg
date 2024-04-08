@@ -21,28 +21,33 @@ cdawg_path = os.path.join(args.path, "cdawg")
 def cdawg_inference():
     blob = request.json
     if "tokens" in blob:
-        tokens = blob["tokens"]
+        all_tokens = blob["tokens"]
     elif "text" in blob:
-        text = blob["text"]
-        tokens = tokenizer.encode(text)
+        texts = blob["text"]
+        all_tokens = [tokenizer.encode(text) for text in texts]
     else:
         return jsonify({"error": "request must contain 'tokens' or 'text' key"})
     
     # Need to do it this way because DiskCdawg is unsendable
     cdawg = DiskCdawg.load(train_path, cdawg_path)
 
-    lengths = []
-    counts = []
-    cs = cdawg.get_initial()
-    for token in tokens:
-        cs = cdawg.transition_and_count(cs, token)
-        lengths.append(cs.get_length())
-        counts.append(cdawg.get_suffix_count(cs))
+    all_lengths = []
+    all_counts = []
+    for tokens in all_tokens:
+        cs = cdawg.get_initial()
+        lengths = []
+        counts = []
+        for token in tokens:
+            cs = cdawg.transition_and_count(cs, token)
+            lengths.append(cs.get_length())
+            counts.append(cdawg.get_suffix_count(cs))
+        all_lengths.append(lengths)
+        all_counts.append(counts)
 
     return jsonify({
-        "tokens": tokens,
-        "lengths": lengths,
-        "counts": counts,
+        "tokens": all_tokens,
+        "lengths": all_lengths,
+        "counts": all_counts,
     })
 
 if __name__ == "__main__":
