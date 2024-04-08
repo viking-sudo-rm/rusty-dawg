@@ -12,11 +12,12 @@ source ~/.bashrc  # Reconfigure current shell.
 # FIXME: When ssh'ing, pip/python don't work.
 echo "Path after running ~/.bashrc:"
 echo $PATH
+export PATH="/home/willm/miniconda3/bin:/home/willm/miniconda3/condabin:/home/willm/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/games"
 
 # Install pip dependencies.
-~/miniconda3/bin/python -m pip install maturin
-~/miniconda3/bin/python -m pip install transformers
-~/miniconda3/bin/python -m pip install flask
+python -m pip install maturin
+python -m pip install transformers
+python -m pip install flask
 
 # Build the Python bindings.
-PYTHON=~/miniconda3/bin/python source scripts/rebuild_bindings.sh
+source scripts/rebuild_bindings.sh
