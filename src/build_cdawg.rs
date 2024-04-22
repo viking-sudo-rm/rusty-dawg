@@ -22,7 +22,7 @@ use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::token_backing::TokenBacking;
 use crate::cdawg::Cdawg;
 use crate::cdawg::TopologicalCounter;
-use crate::data_reader::{DataReader, PileReader, TxtReader};
+use crate::data_reader::{DataReader, PileReader, JsonlReader, TxtReader};
 use crate::graph::avl_graph::edge::Edge;
 use crate::graph::avl_graph::node::Node;
 use crate::graph::indexing::DefaultIx;
@@ -68,6 +68,8 @@ where
 
     let reader: Box<DataReader> = if args.data_reader == "pile" {
         Box::new(PileReader::new(args.train_path.clone()).unwrap())
+    } else if args.data_reader == "jsonl" {
+        Box::new(JsonlReader::new(args.train_path.clone(), "text".to_string(), Some("split".to_string())).unwrap())
     } else {
         Box::new(TxtReader::new(
             train_file,
