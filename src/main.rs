@@ -1,12 +1,3 @@
-// Implementation of Suffix DFA in Rust.
-//
-// See here for Graph info:
-// https://docs.rs/petgraph/latest/petgraph/graph/struct.Graph.html
-//
-// See here for Suffix Automaton algorithm in Python:
-// https://github.com/viking-sudo-rm/knn-transformers/blob/master/src/suffix_dfa_builder.py
-//
-
 extern crate anyhow;
 extern crate bincode;
 extern crate bitvec;

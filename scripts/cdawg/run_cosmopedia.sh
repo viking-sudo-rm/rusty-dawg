@@ -1,15 +1,17 @@
 #!/usr/bin/bash
+# TODO: Merge script for Pile/Cosmopedia runs.
 
-DATA_PATH=${1:-"/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json.gz"}
-RUN_DIR=${2:-"/home/willm/pile-run"}
+DATA_PATH=${1:-"/net/nfs.cirrascale/allennlp/willm/data/cosmopedia/cat.jsonl.gz"}
+RUN_DIR=${2:-"/net/nfs.cirrascale/allennlp/willm/cdawgs/cosmopedia"}
 
 # Currently need to do this in advance for the RAM -> disk case.
 mkdir -p $RUN_DIR
 
 # Allocation variables, based on Pythia tokenizer. Added 0.01 for good measure!
-N_TOKENS=${N_TOKENS:-11117142449} # 2520623333
-NODES_RATIO=0.19
-EDGES_RATIO=0.98
+N_TOKENS=${N_TOKENS:-26000000000}  # Cosmopedia is at least 25B tokens.
+NODES_RATIO=0.2
+EDGES_RATIO=1.1
+# TODO: Validate these choices
 
 ./target/release/rusty-dawg \
     --train-path $DATA_PATH \
@@ -18,8 +20,8 @@ EDGES_RATIO=0.98
     --edges-ratio $EDGES_RATIO \
     --cache-size ${CACHE_SIZE:-0} \
     --buf-size 3000000000 \
-    --tokenizer "EleutherAI/pythia-12b" \
-    --data-reader "pile" \
+    --tokenizer "HuggingFaceTB/cosmo-1b" \
+    --data-reader "jsonl" \
     --utype u16 \
     --cdawg \
     --stats-threshold 10000000 \

@@ -8,8 +8,6 @@ extern crate kdam;
 extern crate lru;
 extern crate memmap2;
 extern crate memory_stats;
-extern crate num;
-extern crate petgraph;
 extern crate serde;
 extern crate serde_json;
 extern crate substring;
