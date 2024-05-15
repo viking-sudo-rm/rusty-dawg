@@ -69,7 +69,7 @@ where
     let reader: Box<DataReader> = if args.data_reader == "pile" {
         Box::new(PileReader::new(args.train_path.clone()).unwrap())
     } else if args.data_reader == "jsonl" {
-        Box::new(JsonlReader::new(args.train_path.clone(), "text".to_string(), Some("split".to_string())).unwrap())
+        Box::new(JsonlReader::new(args.train_path.clone(), "text".to_string(), None).unwrap())
     } else {
         Box::new(TxtReader::new(
             train_file,

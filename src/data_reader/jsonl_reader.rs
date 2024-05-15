@@ -29,6 +29,7 @@ impl Iterator for JsonlReader {
                 let text = blob[self.text_key.as_str()].as_str().unwrap();
                 let text_rc = Rc::new(text.to_string());
                 let doc_id = match self.domain_key.as_ref() {
+                    // FIXME: the key is actually a string. remove this or make a hashmap
                     Some(dkey) => blob[dkey].as_u64().unwrap(),
                     None => 0,
                 };
