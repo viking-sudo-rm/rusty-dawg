@@ -76,8 +76,7 @@ pub struct Args {
     #[arg(long, default_value = "")]
     results_path: String,
 
-    // This value can take on the following values:
-    // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
+    /// Tokenizer to use. This can be `whitespace` or any huggingface tokenizer, e.g., `gpt2`, `bert-base-uncased`, etc.
     #[arg(long, default_value = "gpt2")]
     tokenizer: String,
     #[arg(long, default_value = "txt")]
@@ -92,33 +91,42 @@ pub struct Args {
     n_eval: usize,
     #[arg(long, default_value_t = 10)]
     max_length: u64,
-    // Max length of a state in the Dawg.
+
+    /// Max length of a state in the DAWG.
     #[arg(long, default_value_t = -1)]
     max_state_length: i64,
 
+    /// Path to save the DAWG.
     #[arg(long)]
     disk_path: Option<String>,
     #[arg(long)]
     split_token: Option<String>,
 
+    /// Estimate of the number of nodes to allocate, expressed as a ratio of the total number of tokens.
     #[arg(long, default_value_t = 2.)]
     nodes_ratio: f64,
+
+    /// Estimate of the number of edges to allocate, expressed as a ratio of the total number of tokens.
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
-    // Estimate of the number of tokens, used to allocate DAWG.
+
+    /// Estimate of the number of tokens, used to allocate DAWG.
     #[arg(long, default_value_t = 200000000)]
     n_tokens: usize,
     #[arg(long, default_value_t = 0)]
     cache_size: usize,
 
-    // Amount of input to read at a time while consuming file. Defaults to 10 GB.
-    #[arg(long, default_value_t = 10000000000)]
+    /// Amount of input to read, in bytes, at a time while consuming file. Defaults to 10 GB.
+    #[arg(long, default_value_t = 10_000_000_000)]
     buf_size: usize,
 
+    /// Don't end document between documents.
     #[arg(long, short, action)]
-    single_string: bool, // Don't end document between documents.
+    single_string: bool,
 
     // CDAWG args.
+
+    /// Build CDAWG instead of DAWG.
     #[arg(long, short, action)]
     cdawg: bool,
     #[arg(long)]
@@ -127,12 +135,18 @@ pub struct Args {
     stats_threshold: Option<usize>,
     #[arg(long)]
     stats_path: Option<String>,
+
+    /// DiskVec path to use while traversing graph.
     #[arg(long)]
-    count_path: Option<String>, // DiskVec path to use while traversing graph.
+    count_path: Option<String>,
+
+    /// Don't add counts.
     #[arg(long)]
-    no_counts: bool, // Don't add counts.
+    no_counts: bool,
+
+    /// Build DAWG in RAM instead of on disk.
     #[arg(long)]
-    ram: bool, // Force build in RAM.
+    ram: bool,
 
     // FIXME: Below is causing issues, for whatever reason.
     // Special arguments for JsonReader (not used for Pile).
