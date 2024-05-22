@@ -86,6 +86,7 @@ where
         let mut config_path = path2.as_ref().to_path_buf();
         config_path.push("metadata.json");
         if config_path.exists() {
+            // FIXME(#98): This will fail silently if config file exists but is empty.
             let config = CdawgMetadata::load_json(config_path)?;
             Ok(Self {
                 tokens,
