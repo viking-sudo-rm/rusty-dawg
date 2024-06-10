@@ -747,7 +747,6 @@ where
 
     /// Get the entropy of a CDAWG state in bits.
     pub fn get_entropy(&self, cs: CdawgState<Ix>) -> f64 {
-        println!("=== Getting entropy ===");
         let (state, gamma) = cs.get_state_and_gamma();
         if gamma.0 != gamma.1 {
             return 0.;
@@ -757,11 +756,31 @@ where
         let denom = self.get_count(q);
         let mut sum = 0.;
         for next_state in self.get_graph().neighbors(q) {
-            println!("State: {}, {}/{}", next_state.index(), self.get_count(next_state), denom);
             let prob = (self.get_count(next_state) as f64) / (denom as f64);
             sum -= prob * f64::log2(prob);
         }
         sum
+    }
+
+    pub fn get_next_tokens(&self, cs: CdawgState<Ix>) -> Vec<(u16, f64)> {
+        let (state, gamma) = cs.get_state_and_gamma();
+        if gamma.0 != gamma.1 {
+            let token = self.tokens.borrow().get(gamma.1);
+            return vec![(token, 1.)];
+        }
+
+        let q = state.unwrap();
+        let denom = self.get_count(q);
+        let mut tokens = Vec::new();
+        for edge in self.get_graph().edges(q) {
+            // let edge_ref = self.graph.get_edge(edge_idx);
+            let next_state = edge.get_target();
+            let span = self.get_span(edge.get_weight(), next_state);
+            let token = self.tokens.borrow().get(span.0 - 1);  // Shift to 0 indexing.
+            let prob = (self.get_count(next_state) as f64) / (denom as f64);
+            tokens.push((token, prob));
+        }
+        tokens
     }
 }
 
@@ -1519,5 +1538,33 @@ mod tests {
         }
         // The 3rd value is 2 * 1/6 * log2(1/6) + 2 * 2/6 * log2(2/6)
         assert_eq!(entropies, vec![1., 0., 0., 1.9182958340544896, 1.]);
+    }
+
+    #[test]
+    fn test_get_next_tokens() {
+        // Test counts incrementally.
+        let (a, b, c, d) = (0, 1, 2, 3);
+        let train = Rc::new(RefCell::new(vec![c, a, b, a, c, u16::MAX]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
+        cdawg.build();
+        let mut counter = TopologicalCounter::new_ram();
+        counter.fill_counts(&mut cdawg);
+
+        let mut next_tokens = Vec::new();
+        let mut cs = cdawg.get_initial();
+        for token in [a, b, a, d, c].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            let mut tokens = cdawg.get_next_tokens(cs);
+            tokens.sort_by(|tup1, tup2| tup1.0.cmp(&tup2.0));
+            next_tokens.push(tokens);
+        }
+
+        assert_eq!(next_tokens, vec![
+            vec![(b, 0.5), (c, 0.5)],
+            vec![(a, 1.0)],
+            vec![(c, 1.0)],
+            vec![(a, 2. / 6.), (b, 1. / 6.), (c, 2. / 6.), (u16::MAX, 1. / 6.)],
+            vec![(a, 0.5), (u16::MAX, 0.5)],
+        ]);
     }
 }
