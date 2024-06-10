@@ -726,11 +726,6 @@ where
         self.graph.get_node_mut(state).set_count(count);
     }
 
-    // Get the count of the suffix matched by a CdawgState.
-    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> usize {
-        self.get_count(cs.target.unwrap())
-    }
-
     ///Save metadata
     pub fn save_metadata<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {
         let mut config_path = path.as_ref().to_path_buf();
@@ -742,6 +737,32 @@ where
         };
         config.save_json(config_path)
     }
+
+    // TODO(#100): Refactor these into an Infinigram class that wraps a Cdawg
+
+    /// Get the count of the suffix matched by a CdawgState.
+    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> usize {
+        self.get_count(cs.target.unwrap())
+    }
+
+    /// Get the entropy of a CDAWG state in bits.
+    pub fn get_entropy(&self, cs: CdawgState<Ix>) -> f64 {
+        println!("=== Getting entropy ===");
+        let (state, gamma) = cs.get_state_and_gamma();
+        if gamma.0 != gamma.1 {
+            return 0.;
+        }
+
+        let q = state.unwrap();
+        let denom = self.get_count(q);
+        let mut sum = 0.;
+        for next_state in self.get_graph().neighbors(q) {
+            println!("State: {}, {}/{}", next_state.index(), self.get_count(next_state), denom);
+            let prob = (self.get_count(next_state) as f64) / (denom as f64);
+            sum -= prob * f64::log2(prob);
+        }
+        sum
+    }
 }
 
 #[cfg(test)]
@@ -749,6 +770,7 @@ where
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use crate::cdawg::TopologicalCounter;
     use crate::memory_backing::DiskVec;
     use tempfile::tempdir;
 
@@ -1477,5 +1499,25 @@ mod tests {
         assert_eq!(cdawg.get_count(q2), 0);
         assert_eq!(cdawg.get_count(q3), 0);
         assert_eq!(cdawg.get_count(q4), 0);
+    }
+
+    #[test]
+    fn test_get_entropy() {
+        // Test counts incrementally.
+        let (a, b, c, d) = (0, 1, 2, 3);
+        let train = Rc::new(RefCell::new(vec![c, a, b, a, c, u16::MAX]));
+        let mut cdawg: Cdawg = Cdawg::new(train);
+        cdawg.build();
+        let mut counter = TopologicalCounter::new_ram();
+        counter.fill_counts(&mut cdawg);
+
+        let mut entropies = Vec::new();
+        let mut cs = cdawg.get_initial();
+        for token in [a, b, a, d, c].iter() {
+            cs = cdawg.transition_and_count(cs, *token);
+            entropies.push(cdawg.get_entropy(cs));
+        }
+        // The 3rd value is 2 * 1/6 * log2(1/6) + 2 * 2/6 * log2(2/6)
+        assert_eq!(entropies, vec![1., 0., 0., 1.9182958340544896, 1.]);
     }
 }
