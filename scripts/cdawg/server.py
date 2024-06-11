@@ -50,13 +50,15 @@ def cdawg_inference():
             counts.append(cdawg.get_suffix_count(cs))
             if return_entropies:
                 entropies.append(cdawg.get_entropy(cs))
-            if return_next_tokens > 0:
+            if return_next_tokens == -1:
                 next_tokens.append(cdawg.get_next_tokens(cs))
+            elif return_next_tokens > 0:
+                next_tokens.append(cdawg.get_next_tokens(cs)[:return_next_tokens])
         all_lengths.append(lengths)
         all_counts.append(counts)
         if return_entropies:
             all_entropies.append(entropies)
-        if return_next_tokens > 0:
+        if return_next_tokens != 0:
             all_next_tokens.append(next_tokens)
 
     results = {
@@ -66,7 +68,7 @@ def cdawg_inference():
     }
     if return_entropies:
         results["entropies"] = all_entropies
-    if return_next_tokens > 0:
+    if return_next_tokens != 0:
         results["next_tokens"] = all_next_tokens
     return jsonify(results)
 

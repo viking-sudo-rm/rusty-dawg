@@ -94,7 +94,17 @@ impl DiskCdawg {
         self.cdawg.get_count(NodeIndex::new(state))
     }
 
+    // Methods for inference time.
+
     pub fn get_suffix_count(&self, cs: CdawgState) -> usize {
         self.cdawg.get_suffix_count(cs.cs)
+    }
+
+    pub fn get_entropy(&self, cs: CdawgState) -> f64 {
+        self.cdawg.get_entropy(cs.cs)
+    }
+
+    pub fn get_next_tokens(&self, cs: CdawgState) -> Vec<(u16, f64)> {
+        self.cdawg.get_next_tokens(cs.cs)
     }
 }
