@@ -156,8 +156,8 @@ Much of the other modules are for n-gram language modeling and can be ignored fo
 
 Before contributing code, make sure to run format and clippy:
 ```shell
+cargo clippy --fix
 cargo fmt --
-cargo clippy
 ```
 
 # Publishing new releases
