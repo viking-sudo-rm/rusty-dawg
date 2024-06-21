@@ -61,7 +61,6 @@ impl BuildStats {
 
         let mut file = OpenOptions::new()
             .create(true)
-            
             .append(true)
             .open(path)
             .unwrap();
