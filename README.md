@@ -160,6 +160,15 @@ cargo clippy --fix
 cargo fmt --
 ```
 
+To test for possible other clippy issues, run:
+
+```shell
+cargo clippy --all-targets -- -D warnings \
+    -A clippy::comparison_chain \
+    -A clippy::upper-case-acronyms \
+    -A dead-code
+```
+
 # Publishing new releases
 
 Follow these steps to create a new release of Rusty DAWG.
