@@ -787,6 +787,7 @@ where
 #[cfg(test)]
 #[allow(unused_variables)]
 #[allow(unused_imports)]
+#[allow(unused_assignments)]
 mod tests {
     use super::*;
     use crate::cdawg::TopologicalCounter;

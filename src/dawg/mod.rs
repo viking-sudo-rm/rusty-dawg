@@ -379,6 +379,7 @@ where
 }
 
 // pyo3 requires that types implement Send
+#[allow(suspicious_auto_trait_impls)]
 unsafe impl<Mb> Send for Dawg<u16, DefaultWeight, DefaultIx, Mb> where
     Mb: MemoryBacking<DefaultWeight, u16, DefaultIx>
 {

@@ -11,6 +11,10 @@ pub trait TokenBacking<T> {
     fn get(&self, index: usize) -> T;
 
     fn push(&mut self, value: T);
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<T> TokenBacking<T> for Vec<T>
