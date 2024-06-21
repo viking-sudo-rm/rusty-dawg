@@ -1,6 +1,6 @@
 [package]
 name = "rusty-dawg"
-version = "0.2.0"
+version = "1.0.0"
 authors = ["lambdaviking"]
 repository = "https://github.com/viking-sudo-rm/rusty-dawg"
 edition = "2021"
