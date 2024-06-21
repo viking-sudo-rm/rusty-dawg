@@ -152,6 +152,14 @@ By default, main.rs will use `NullTokenIndex`, but you can pass `--tokenize` to 
 
 Much of the other modules are for n-gram language modeling and can be ignored for our purposes. `src/lms` implements various types of n-gram language models on top of a DAWG. `src/evaluator` implements logic to evaluate these n-gram language models on a test set. `src/stat_utils` implements a library of basic statistical functions for n-gram language modeling.
 
+# Code style
+
+Before contributing code, make sure to run format and clippy:
+```shell
+cargo fmt --
+cargo clippy
+```
+
 # Publishing new releases
 
 Follow these steps to create a new release of Rusty DAWG.

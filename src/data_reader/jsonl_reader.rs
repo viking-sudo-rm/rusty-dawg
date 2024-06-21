@@ -12,9 +12,17 @@ pub struct JsonlReader {
 }
 
 impl JsonlReader {
-    pub fn new(file: impl AsRef<std::path::Path>, text_key: String, domain_key: Option<String>) -> Result<Self> {
+    pub fn new(
+        file: impl AsRef<std::path::Path>,
+        text_key: String,
+        domain_key: Option<String>,
+    ) -> Result<Self> {
         let buf_reader = BufReader::open(file)?;
-        Ok(Self {buf_reader, text_key, domain_key})
+        Ok(Self {
+            buf_reader,
+            text_key,
+            domain_key,
+        })
     }
 }
 

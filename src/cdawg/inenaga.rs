@@ -776,7 +776,7 @@ where
             // let edge_ref = self.graph.get_edge(edge_idx);
             let next_state = edge.get_target();
             let span = self.get_span(edge.get_weight(), next_state);
-            let token = self.tokens.borrow().get(span.0 - 1);  // Shift to 0 indexing.
+            let token = self.tokens.borrow().get(span.0 - 1); // Shift to 0 indexing.
             let prob = (self.get_count(next_state) as f64) / (denom as f64);
             tokens.push((token, prob));
         }
@@ -1559,12 +1559,20 @@ mod tests {
             next_tokens.push(tokens);
         }
 
-        assert_eq!(next_tokens, vec![
-            vec![(b, 0.5), (c, 0.5)],
-            vec![(a, 1.0)],
-            vec![(c, 1.0)],
-            vec![(a, 2. / 6.), (b, 1. / 6.), (c, 2. / 6.), (u16::MAX, 1. / 6.)],
-            vec![(a, 0.5), (u16::MAX, 0.5)],
-        ]);
+        assert_eq!(
+            next_tokens,
+            vec![
+                vec![(b, 0.5), (c, 0.5)],
+                vec![(a, 1.0)],
+                vec![(c, 1.0)],
+                vec![
+                    (a, 2. / 6.),
+                    (b, 1. / 6.),
+                    (c, 2. / 6.),
+                    (u16::MAX, 1. / 6.)
+                ],
+                vec![(a, 0.5), (u16::MAX, 0.5)],
+            ]
+        );
     }
 }

@@ -134,12 +134,12 @@ pub struct Args {
     #[arg(long)]
     ram: bool, // Force build in RAM.
 
-    // FIXME: Below is causing issues, for whatever reason.
-    // Special arguments for JsonReader (not used for Pile).
-    // #[arg(long, default_value = "text")]
-    // jsonl_text_key: String,
-    // #[arg(long, default_value = "split")]
-    // jsonl_domain_key: String,
+               // FIXME: Below is causing issues, for whatever reason.
+               // Special arguments for JsonReader (not used for Pile).
+               // #[arg(long, default_value = "text")]
+               // jsonl_text_key: String,
+               // #[arg(long, default_value = "split")]
+               // jsonl_domain_key: String,
 }
 
 impl Args {
