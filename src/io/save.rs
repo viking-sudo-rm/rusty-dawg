@@ -27,6 +27,7 @@ where
         let save_file = fs::OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(save_path)?;
         serialize_into(&save_file, &self)?;
         Ok(())

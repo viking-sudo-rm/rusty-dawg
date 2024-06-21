@@ -57,7 +57,7 @@ unsafe impl IndexType for usize {
     }
     #[inline(always)]
     fn max_value() -> Self {
-        ::std::usize::MAX
+        usize::MAX
     }
 }
 
@@ -77,9 +77,9 @@ unsafe impl IndexType for Index48 {
     #[inline(always)]
     fn max_value() -> Self {
         Index48 {
-            lo: ::std::u16::MAX,
-            mid: ::std::u16::MAX,
-            hi: ::std::u16::MAX,
+            lo: u16::MAX,
+            mid: u16::MAX,
+            hi: u16::MAX,
         }
     }
 }
@@ -106,11 +106,11 @@ unsafe impl IndexType for Index40 {
     #[inline(always)]
     fn max_value() -> Self {
         Index40 {
-            i0: ::std::u8::MAX,
-            i1: ::std::u8::MAX,
-            i2: ::std::u8::MAX,
-            i3: ::std::u8::MAX,
-            i4: ::std::u8::MAX,
+            i0: u8::MAX,
+            i1: u8::MAX,
+            i2: u8::MAX,
+            i3: u8::MAX,
+            i4: u8::MAX,
         }
     }
 }
@@ -126,7 +126,7 @@ unsafe impl IndexType for u32 {
     }
     #[inline(always)]
     fn max_value() -> Self {
-        ::std::u32::MAX
+        u32::MAX
     }
 }
 
@@ -141,7 +141,7 @@ unsafe impl IndexType for u16 {
     }
     #[inline(always)]
     fn max_value() -> Self {
-        ::std::u16::MAX
+        u16::MAX
     }
 }
 
@@ -156,7 +156,7 @@ unsafe impl IndexType for u8 {
     }
     #[inline(always)]
     fn max_value() -> Self {
-        ::std::u8::MAX
+        u8::MAX
     }
 }
 

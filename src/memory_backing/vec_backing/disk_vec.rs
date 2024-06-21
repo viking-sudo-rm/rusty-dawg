@@ -42,6 +42,7 @@ where
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&path)?;
         file.set_len((capacity * item_size) as u64)?;
         let mmap = unsafe { MmapOptions::new().map_mut(&file)? };
