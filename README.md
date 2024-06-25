@@ -49,7 +49,7 @@ If the data is stored somewhere else, you can do:
 DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
 ```
 
-The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. The benchmarking script will also print out the size of the DAWG at the bottom.
+<!-- The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. The benchmarking script will also print out the size of the DAWG at the bottom. -->
 
 # Building Your CDAWG
 
