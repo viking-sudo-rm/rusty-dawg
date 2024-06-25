@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.9.1](https://github.com/https://github.com/viking-sudo-rm/rusty-dawg/releases/tag/v0.9.1) - 2024-06-25
+
 ## [v1.0.0](https://github.com/https://github.com/viking-sudo-rm/rusty-dawg/releases/tag/v1.0.0) - 2024-06-21
 
 ### Added

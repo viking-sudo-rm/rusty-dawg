@@ -1,4 +1,4 @@
-# Rusty DAWG
+# Rusty-DAWG
 
 A library for building suffix automata for string indexing and searching in Rust.
 
@@ -17,7 +17,7 @@ This library was started by Will Merrill and Yanai Elazar as part of an internsh
 
 Simply use the one-liner [here](https://www.rust-lang.org/tools/install).
 
-## Testing and Building Rusty DAWG
+## Testing and Building Rusty-DAWG
 
 To run tests, you can call Cargo (which should have been installed with Rust) from inside the repo directory:
 
@@ -51,9 +51,11 @@ DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
 
 The benchmarking spreadsheet requests both the runtime and the memory overhead. The total runtime will be printed out by the script's progress bar. The benchmarking script will also print out the size of the DAWG at the bottom.
 
-# Building DAWGs or CDAWGs
+# Building Your CDAWG
 
-To get started building the CDAWG on your corpus, we recommend adapting the [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script. This script was written to build a CDAWG (memory-efficient improvement of DAWG) on the Pile.
+The core functionality of Rusty-DAWG is to build DAWGs and CDAWGs, which are indexing structures for large corpora. The CDAWG is a strict improvement of the DAWG, so we recommend using the CDAWG if you are building a new index from scratch.
+
+To get started building a CDAWG on your corpus, we recommend adapting the [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script. This script was written to build a CDAWG (memory-efficient improvement of DAWG) on the Pile.
 
 ## `DATA_PATH`
 
@@ -85,7 +87,7 @@ This parameters simply controls how many bytes of text are read into RAM at once
 
 The library is implemented in Rust, but DAWGs, once built, can be loaded and used easily in Python! You can even build DAWGs from scratch using the Python bindings, though we don't necessarily recommend that.
 
-## Building the Python bindings
+## Building the Python Bindings
 
 The Python bindings are generated using [maturin](https://github.com/PyO3/maturin). First install maturin in your Python environment:
 
@@ -169,14 +171,14 @@ cargo clippy --all-targets -- -D warnings \
     -A dead-code
 ```
 
-# Publishing new releases
+# Publishing New Releases
 
-Follow these steps to create a new release of Rusty DAWG.
+Follow these steps to create a new release of Rusty-DAWG.
 
 1. Install `toml-cli` if you haven't already (`cargo install toml-cli --version 0.2.3`).
 2. Run the script `./scripts/release.sh` and follow the prompts.
 
-## Fixing a failed release
+## Fixing a Failed Release
 
 If for some reason the GitHub Actions release workflow failed with an error that needs to be fixed, you'll have to delete both the tag and corresponding release from GitHub. After you've pushed a fix, delete the tag from your local clone with
 
@@ -188,4 +190,18 @@ Then repeat the steps above.
 
 # Contributions
 
-Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty DAWG more efficient and scalable. Get in contact if you want to help out!
+Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty-DAWG more efficient and scalable. Get in contact if you want to help out!
+
+# Citation
+
+```bibtex
+@misc{merrill2024evaluatingngramnoveltylanguage,
+      title={Evaluating $n$-Gram Novelty of Language Models Using Rusty-DAWG}, 
+      author={William Merrill and Noah A. Smith and Yanai Elazar},
+      year={2024},
+      eprint={2406.13069},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+      url={https://arxiv.org/abs/2406.13069}, 
+}
+```
