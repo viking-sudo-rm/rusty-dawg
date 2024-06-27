@@ -127,7 +127,7 @@ where
             if *token == u16::MAX {
                 (state, start) = cdawg.end_document(idx, doc_id);
             }
-            pbar.update(1);
+            let _ = pbar.update(1);
 
             if let Some(stats_threshold) = args.stats_threshold {
                 if (idx + 1) % stats_threshold == 0 {

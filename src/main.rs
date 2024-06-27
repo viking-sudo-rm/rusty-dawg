@@ -374,7 +374,7 @@ where
                 }
             }
             idx += 1;
-            pbar.update(1);
+            let _ = pbar.update(1);
         }
         (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
     }
