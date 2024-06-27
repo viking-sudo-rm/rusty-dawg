@@ -1,6 +1,6 @@
 [package]
 name = "rusty-dawg"
-version = "0.2.0"
+version = "0.9.1"
 authors = ["lambdaviking"]
 repository = "https://github.com/viking-sudo-rm/rusty-dawg"
 edition = "2021"
@@ -9,22 +9,22 @@ edition = "2021"
 bincode = "1.3.3"
 bit-struct = "0.3.2"
 bitvec = "1.0.1"
-clap = { version = "4.4.6", features = ["derive"] }
+clap = { version = "4.5.7", features = ["derive"] }
 kdam = "0.3.0"
-serde = "1.0.163"
-serde_json = "1.0.107"
-memory-stats = "1.1.0"
+serde = "1.0.193"
+serde_json = "1.0.109"
+memory-stats = "1.2.0"
 substring = "1.4.5"
-tempfile = "3.6.0"
+tempfile = "3.10.1"
 test-temp-file = "0.1.2"
 type-layout = "0.2.0"
-ux = "0.1.5"
+ux = "0.1.6"
 anyhow = "1.0"
-tokenizers = { version = "0.15.2", default-features = false, features = ["progressbar", "http", "onig"] }
+tokenizers = { version = "0.19.1", default-features = false, features = ["progressbar", "http", "onig"] }
 unicode-segmentation = "1.10"
 openssl = { version = "0.10", features = ["vendored"] }
 fslock = "0.2.1"
-flate2 = "1.0.27"
+flate2 = "1.0.30"
 comparator = "0.3.0"
-lru = "0.12.2"
+lru = "0.12.3"
 memmap2 = "0.9.4"

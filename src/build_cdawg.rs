@@ -22,7 +22,7 @@ use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::token_backing::TokenBacking;
 use crate::cdawg::Cdawg;
 use crate::cdawg::TopologicalCounter;
-use crate::data_reader::{DataReader, PileReader, JsonlReader, TxtReader};
+use crate::data_reader::{DataReader, JsonlReader, PileReader, TxtReader};
 use crate::graph::avl_graph::edge::Edge;
 use crate::graph::avl_graph::node::Node;
 use crate::graph::indexing::DefaultIx;

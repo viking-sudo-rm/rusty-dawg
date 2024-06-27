@@ -3,4 +3,3 @@ pub mod avl_graph;
 pub mod indexing;
 
 pub use self::avl_graph::{EdgeRef, NodeRef};
-pub use self::indexing::NodeIndex;

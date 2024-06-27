@@ -2,7 +2,7 @@ use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::Cdawg;
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
-use crate::memory_backing::{DiskBacking, DiskVec, RamBacking};
+use crate::memory_backing::{DiskBacking, RamBacking};
 use crate::weight::Weight;
 use serde::de::DeserializeOwned;
 use std::error::Error;
@@ -27,6 +27,7 @@ where
         let save_file = fs::OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(save_path)?;
         serialize_into(&save_file, &self)?;
         Ok(())

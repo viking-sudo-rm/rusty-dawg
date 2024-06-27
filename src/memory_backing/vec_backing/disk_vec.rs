@@ -42,6 +42,7 @@ where
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&path)?;
         file.set_len((capacity * item_size) as u64)?;
         let mmap = unsafe { MmapOptions::new().map_mut(&file)? };
@@ -76,7 +77,7 @@ where
         let len = vec.len();
         let mut disk_vec = Self::new(path, len)?;
         for item in vec {
-            disk_vec.push(&item)?;
+            disk_vec.push(item)?;
         }
         disk_vec.make_read_only()
     }
