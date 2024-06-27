@@ -67,7 +67,6 @@ author = "William Merrill <willm@nyu.edu>",
 version, about, long_about = None,
 )]
 pub struct Args {
-
     /// Path to corpus DAWG is built on.
     #[arg(long)]
     train_path: String,
@@ -76,7 +75,7 @@ pub struct Args {
     #[arg(long, default_value = "")]
     test_path: String,
 
-    /// Where DAWG is saved. If saving to disk, will be treated as a directory; if 
+    /// Where DAWG is saved. If saving to disk, will be treated as a directory; if
     /// serializing a RAM data structure, will be treated as a file.
     #[arg(long, default_value = "")]
     save_path: String,
@@ -90,7 +89,7 @@ pub struct Args {
     #[arg(long, default_value = "gpt2")]
     tokenizer: String,
 
-    /// Specifies how to read data from `train_path`. This can be `txt`, `pile`, or 
+    /// Specifies how to read data from `train_path`. This can be `txt`, `pile`, or
     /// `jsonl`.
     #[arg(long, default_value = "txt")]
     data_reader: String,
@@ -120,17 +119,17 @@ pub struct Args {
     /// Path to save the DAWG. This is the same as `save_path`. We should fix that.
     #[arg(long)]
     disk_path: Option<String>,
-    
+
     /// Token used to split documents when `data_reader` is `txt`.
     #[arg(long)]
     split_token: Option<String>,
 
-    /// Estimate of the number of nodes to allocate, expressed as a ratio of the 
+    /// Estimate of the number of nodes to allocate, expressed as a ratio of the
     /// estimated total number of tokens (`n_tokens`).
     #[arg(long, default_value_t = 2.)]
     nodes_ratio: f64,
 
-    /// Estimate of the number of edges to allocate, expressed as a ratio of the 
+    /// Estimate of the number of edges to allocate, expressed as a ratio of the
     /// estimated total number of tokens (`n_tokens`).
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
@@ -143,7 +142,7 @@ pub struct Args {
     #[arg(long, default_value_t = 0)]
     cache_size: usize,
 
-    /// Amount of input to read, in bytes, at a time while consuming file. 
+    /// Amount of input to read, in bytes, at a time while consuming file.
     /// Defaults to 10 GB.
     #[arg(long, default_value_t = 10_000_000_000)]
     buf_size: usize,
@@ -153,7 +152,6 @@ pub struct Args {
     single_string: bool,
 
     // CDAWG args.
-
     /// Build CDAWG instead of DAWG.
     #[arg(long, short, action)]
     cdawg: bool,
@@ -181,13 +179,12 @@ pub struct Args {
     /// Build DAWG in RAM instead of on disk.
     #[arg(long)]
     ram: bool,
-
-               // FIXME: Below is causing issues, for whatever reason.
-               // Special arguments for JsonReader (not used for Pile).
-               // #[arg(long, default_value = "text")]
-               // jsonl_text_key: String,
-               // #[arg(long, default_value = "split")]
-               // jsonl_domain_key: String,
+    // FIXME: Below is causing issues, for whatever reason.
+    // Special arguments for JsonReader (not used for Pile).
+    // #[arg(long, default_value = "text")]
+    // jsonl_text_key: String,
+    // #[arg(long, default_value = "split")]
+    // jsonl_domain_key: String,
 }
 
 impl Args {
