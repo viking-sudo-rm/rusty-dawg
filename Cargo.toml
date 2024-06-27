@@ -18,7 +18,7 @@ substring = "1.4.5"
 tempfile = "3.10.1"
 test-temp-file = "0.1.2"
 type-layout = "0.2.0"
-ux = "0.1.5"
+ux = "0.1.6"
 anyhow = "1.0"
 tokenizers = { version = "0.19.1", default-features = false, features = ["progressbar", "http", "onig"] }
 unicode-segmentation = "1.10"
