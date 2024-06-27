@@ -12,7 +12,7 @@ bitvec = "1.0.1"
 clap = { version = "4.5.7", features = ["derive"] }
 kdam = "0.3.0"
 serde = "1.0.193"
-serde_json = "1.0.107"
+serde_json = "1.0.109"
 memory-stats = "1.2.0"
 substring = "1.4.5"
 tempfile = "3.10.1"
