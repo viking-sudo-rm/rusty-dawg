@@ -66,8 +66,7 @@ def main(args):
     
     arities = np.array(arities)
     print("=== Arity Stats ===")
-    print("  min:", np.min(arities))
-    for p in [50, 99, 99.9, 99.99]:
+    for p in [50, 75, 99, 99.9, 99.99]:
         print(f"  {p}%: {np.percentile(arities, p):.2f}")
     print("  max:", np.max(arities))
 
@@ -80,7 +79,7 @@ def main(args):
         sns.histplot(np.log10(arities), bins=20, kde=True)
         # plt.yscale("log")
         plt.xlabel("state arity")
-        xticks = [1e1, 1e2, 1e3, 1e4, 5e4]
+        xticks = [int(x) for x in [1e1, 1e2, 1e3, 1e4, 5e4]]
         plt.xticks(np.log10(xticks), xticks)
         plt.ylim(1, 5e5)
         sns.despine()
