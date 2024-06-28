@@ -20,7 +20,7 @@ from rusty_dawg import DiskCdawg
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--path", type=str, default="/tmp/wiki-cdawg", 
+    parser.add_argument("--path", type=str, default="/tmp/wikitext-2-raw", 
                         help="CDAWG path, defaults to path used by scripts/cdawg/run_local.sh")
     parser.add_argument("--load-path", type=str, default=None)
     parser.add_argument("--save-path", type=str, default=None)

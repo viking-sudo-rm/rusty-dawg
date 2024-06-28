@@ -1,21 +1,20 @@
 #!/bin/bash
-# ========================================================================================
-# Example usage: DATA=data/wikitext-2-raw N_TOKENS=2417786 source scripts/run_local.sh
-# ========================================================================================
+# Can call with no arguments, or like:
+# ```shell
+# scripts/cdawg/run_local.sh \
+#     data/wikitext-2-raw/wiki.train.raw \
+#     /tmp/wikitext-2-raw
+# ```
 # The number of tokens for Wikitext-2 is 2417786.
-# The number of tokens for Wikitext-103 is X (about 50x as many).
+# The number of tokens for Wikitext-103 is 120889300 (about 50x as many).
 # Larger datasets should be run with a different script most likely.
 
-DATA_PATH="${DATA:-data/wikitext-2-raw}"
-N_TOKENS="${N_TOKENS:-2417786}"
-RUN_DIR=${2:-"/tmp/wiki-cdawg"}
-
-# Currently need to do this in advance for the RAM -> disk case.
+RUN_DIR=${2:-"/tmp/wikitext-2-raw"}
 mkdir -p $RUN_DIR
 
 RUST_BACKTRACE=1 ./target/release/rusty-dawg \
-    --train-path "$DATA_PATH/$1/wiki.train.raw" \
-    --n-tokens $N_TOKENS \
+    --train-path ${1:-"data/wikitext-2-raw/wiki.train.raw"} \
+    --n-tokens "${N_TOKENS:-2417786}" \
     --nodes-ratio 0.20 \
     --edges-ratio 1.00 \
     --tokenizer gpt2 \
