@@ -55,7 +55,14 @@ DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
 
 The core functionality of Rusty-DAWG is to build DAWGs and CDAWGs, which are indexing structures for large corpora. The CDAWG is a strict improvement of the DAWG, so we recommend using the CDAWG if you are building a new index from scratch.
 
-To get started building a CDAWG on your corpus, we recommend adapting the [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script. This script was written to build a CDAWG (memory-efficient improvement of DAWG) on the Pile.
+To get started building a CDAWG on your corpus in a simple setup, refer to the instructions about downloading benchmarking data above and then run:
+
+```shell
+cargo build --release
+scripts/cdawg/run_local.sh
+```
+
+For a more complete real example, refer to [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh), which we used to build a CDAWG on the Pile.
 
 ## `DATA_PATH`
 
@@ -124,7 +131,45 @@ from rusty_dawg import Cdawg, DiskCdawg
 
 Refer to [scripts/cdawg/test_cdawg_matches_dawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_cdawg_matches_dawg.py) for an example of how to build and use a CDAWG in RAM with the Python bindings. To use a disk CDAWG instead, you can use `DiskCdawg` instead of `Cdawg`. [scripts/cdawg/test_load_cdawg.py](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/test_load_cdawg.py) shows an example of how to load a pre-built `DiskCdawg`.
 
-# Documentation
+# Contributions
+
+Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty-DAWG more efficient and scalable. Get in contact if you want to help out!
+
+## Code Style
+
+Before contributing code, make sure to run format and clippy:
+```shell
+cargo clippy --fix
+cargo fmt --
+```
+
+To test for possible other clippy issues, run:
+
+```shell
+cargo clippy --all-targets -- -D warnings \
+    -A clippy::comparison_chain \
+    -A clippy::upper-case-acronyms \
+    -A dead-code
+```
+
+## Publishing New Releases
+
+Follow these steps to create a new release of Rusty-DAWG.
+
+1. Install `toml-cli` if you haven't already (`cargo install toml-cli --version 0.2.3`).
+2. Run the script `./scripts/release.sh` and follow the prompts.
+
+### Fixing a Failed Release
+
+If for some reason the GitHub Actions release workflow failed with an error that needs to be fixed, you'll have to delete both the tag and corresponding release from GitHub. After you've pushed a fix, delete the tag from your local clone with
+
+```bash
+git tag -l | xargs git tag -d && git fetch -t
+```
+
+Then repeat the steps above.
+
+## Code Structure
 
 This library implements the construction of a suffix automaton (or Directed Acyclic Word Graph, i.e., DAWG) on a large corpus. The suffix automaton is a finite-state machine (really, a graph) that can be used for very fast substring matching over the corpus.
 
@@ -153,44 +198,6 @@ By default, main.rs will use `NullTokenIndex`, but you can pass `--tokenize` to 
 ### Other Modules
 
 Much of the other modules are for n-gram language modeling and can be ignored for our purposes. `src/lms` implements various types of n-gram language models on top of a DAWG. `src/evaluator` implements logic to evaluate these n-gram language models on a test set. `src/stat_utils` implements a library of basic statistical functions for n-gram language modeling.
-
-# Code style
-
-Before contributing code, make sure to run format and clippy:
-```shell
-cargo clippy --fix
-cargo fmt --
-```
-
-To test for possible other clippy issues, run:
-
-```shell
-cargo clippy --all-targets -- -D warnings \
-    -A clippy::comparison_chain \
-    -A clippy::upper-case-acronyms \
-    -A dead-code
-```
-
-# Publishing New Releases
-
-Follow these steps to create a new release of Rusty-DAWG.
-
-1. Install `toml-cli` if you haven't already (`cargo install toml-cli --version 0.2.3`).
-2. Run the script `./scripts/release.sh` and follow the prompts.
-
-## Fixing a Failed Release
-
-If for some reason the GitHub Actions release workflow failed with an error that needs to be fixed, you'll have to delete both the tag and corresponding release from GitHub. After you've pushed a fix, delete the tag from your local clone with
-
-```bash
-git tag -l | xargs git tag -d && git fetch -t
-```
-
-Then repeat the steps above.
-
-# Contributions
-
-Very welcome! There are lots of interesting algorithmic improvements under the hood to make Rusty-DAWG more efficient and scalable. Get in contact if you want to help out!
 
 # Citation
 

@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 use rusty_dawg::cdawg::cdawg_state;
-use rusty_dawg::graph::indexing::{DefaultIx, NodeIndex};
+use rusty_dawg::graph::indexing::DefaultIx;
 
 #[pyclass]
 #[derive(Clone)]
@@ -11,21 +11,6 @@ pub struct CdawgState {
 
 #[pymethods]
 impl CdawgState {
-    /// Used in hacky way to traverse states.
-    #[new]
-    pub fn new(q: usize, length: u64) -> Self {
-        let state = NodeIndex::new(q);
-        let cs = cdawg_state::CdawgState {
-            state,
-            edge_start: 0,
-            start: 0,
-            end: 0,
-            target: None,
-            length,
-        };
-        Self { cs }
-    }
-
     pub fn get_length(&self) -> u64 {
         self.cs.length
     }
