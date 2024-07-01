@@ -63,6 +63,12 @@ impl DiskCdawg {
         counter.fill_counts(&mut self.cdawg);
     }
 
+    /// Get list of arities for all nodes in CDAWG.
+    pub fn traverse_arities(&mut self, capacity: usize) -> Vec<usize> {
+        let mut traverser = cdawg::TraverseArity::new_ram(capacity);
+        traverser.traverse_arity(&mut self.cdawg)
+    }
+
     pub fn get_initial(&self) -> CdawgState {
         CdawgState {
             cs: self.cdawg.get_initial(),

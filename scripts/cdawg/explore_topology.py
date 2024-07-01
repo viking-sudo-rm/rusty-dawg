@@ -25,34 +25,17 @@ def parse_args():
     parser.add_argument("--load-path", type=str, default=None)
     parser.add_argument("--save-path", type=str, default=None)
     parser.add_argument("--plot-path", type=str, default=None)
+    parser.add_argument("--size", type=int, default=None)
     return parser.parse_args()
 
 def get_arities(args) -> list[int]:
     tokens_path = os.path.join(args.path, "train.vec")
     cdawg_path = os.path.join(args.path, "cdawg")
     cdawg = DiskCdawg.load(tokens_path, cdawg_path)
-
-    visited = set()
-    arities = []
-
-    pbar = tqdm(total=cdawg.node_count())
-    states = [0]
-    while len(states) > 0:
-        state = states.pop(0)
-        if state in visited:
-            continue
-
-        next_states = cdawg.neighbors(state)
-        arities.append(len(next_states))
-        for next_state in next_states:
-            if next_state in visited:
-                continue
-            states.append(next_state)
-        visited.add(state)
-        pbar.update()
-    pbar.close()
-
-    return arities
+    if args.size is None:
+        print("CDAWG size not provided; computing...")
+    size = args.size if args.size is not None else cdawg.node_count()
+    return cdawg.traverse_arities(size)
 
 def main(args):
     if not args.load_path:
