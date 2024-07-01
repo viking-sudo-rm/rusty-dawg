@@ -12,4 +12,3 @@ pub mod token_backing;
 // We will use the Inenaga implementation of the build algorithm.
 pub use self::inenaga::Cdawg;
 pub use self::topological_counter::TopologicalCounter;
-pub use self::traverse_arity::TraverseArity;

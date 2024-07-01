@@ -14,7 +14,7 @@ use crate::weight::Weight;
 /// TODO: Could standardize names and potentially generalize.
 pub struct TraverseArity<Sb> {
     stack: Sb,
-    visited: Vec<bool>,  // Only support RAM.
+    visited: Vec<bool>, // Only support RAM.
 }
 
 impl<Ix> TraverseArity<Vec<Ix>>
@@ -22,7 +22,10 @@ where
     Ix: IndexType + Serialize + for<'de> Deserialize<'de>,
 {
     pub fn new_ram(capacity: usize) -> Self {
-        Self { stack: Vec::new(), visited: vec![false; capacity] }
+        Self {
+            stack: Vec::new(),
+            visited: vec![false; capacity],
+        }
     }
 }
 
@@ -32,7 +35,10 @@ where
 {
     pub fn new_disk<P: AsRef<Path> + std::fmt::Debug>(path: P, capacity: usize) -> Result<Self> {
         let stack = DiskVec::new(path, capacity)?;
-        Ok(Self { stack, visited: vec![false; capacity] })
+        Ok(Self {
+            stack,
+            visited: vec![false; capacity],
+        })
     }
 }
 
@@ -60,7 +66,7 @@ impl<Sb> TraverseArity<Sb> {
                     continue;
                 }
                 self.stack.push(next_state.index());
-            self.visited[state] = true;
+                self.visited[state] = true;
             }
         }
         arities
@@ -82,6 +88,6 @@ mod tests {
         cdawg.build();
         let mut ta = TraverseArity::new_ram(20);
         let arities = ta.traverse_arity(&mut cdawg);
-        assert_eq!(arities, vec![4, 2, 1]);  // 4 at source, 1 at sink (self loop), 2 at internal
+        assert_eq!(arities, vec![4, 2, 1]); // 4 at source, 1 at sink (self loop), 2 at internal
     }
 }
