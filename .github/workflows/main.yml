@@ -109,7 +109,7 @@ jobs:
           override: true
 
       - name: Cache cargo registry and sccache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         continue-on-error: false
         with:
           path: |
@@ -305,7 +305,7 @@ jobs:
           python scripts/generate_release_notes.py > ${{ github.workspace }}-RELEASE_NOTES.md
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: ${{ github.workspace }}-RELEASE_NOTES.md
           prerelease: ${{ contains(env.TAG, '-rc') }}
