@@ -1,6 +1,6 @@
 pub mod cdawg_edge_weight; // Refered to in higher level types.
 mod topological_counter; // Traverses a built CDAWG to add counts to the states.
-mod traverse_arity;
+pub mod traverse_arity;
 
 pub mod cdawg_state;
 pub mod comparator;

@@ -65,7 +65,7 @@ impl DiskCdawg {
 
     /// Get list of arities for all nodes in CDAWG.
     pub fn traverse_arities(&mut self, capacity: usize) -> Vec<usize> {
-        let mut traverser = cdawg::TraverseArity::new_ram(capacity);
+        let mut traverser = cdawg::traverse_arity::TraverseArity::new_ram(capacity);
         traverser.traverse_arity(&mut self.cdawg)
     }
 

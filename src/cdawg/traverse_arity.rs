@@ -1,4 +1,5 @@
 use anyhow::Result;
+use kdam::{tqdm, BarExt};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -53,6 +54,8 @@ impl<Sb> TraverseArity<Sb> {
     {
         let mut arities = Vec::new();
         self.stack.push(cdawg.get_source().index());
+
+        let mut pb = tqdm!(total = self.visited.len());
         while let Some(state) = self.stack.pop() {
             if self.visited[state.index()] {
                 continue;
@@ -66,9 +69,11 @@ impl<Sb> TraverseArity<Sb> {
                     continue;
                 }
                 self.stack.push(next_state.index());
-                self.visited[state] = true;
             }
+            self.visited[state] = true;
+            let _ = pb.update(1);
         }
+        eprintln!();
         arities
     }
 }
