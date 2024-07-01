@@ -35,6 +35,7 @@ def get_arities(args) -> list[int]:
     if args.size is None:
         print("CDAWG size not provided; computing...")
     size = args.size if args.size is not None else cdawg.node_count()
+    print("Starting to traverse arities...")
     return cdawg.traverse_arities(size)
 
 def main(args):
