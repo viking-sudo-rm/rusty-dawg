@@ -52,7 +52,7 @@ impl<Sb> TraverseArity<Sb> {
         Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
         Sb: Stack<usize>,
     {
-        let mut arities = Vec::new();
+        let mut arities = Vec::with_capacity(self.visited.len());
         self.stack.push(cdawg.get_source().index());
 
         let mut pb = tqdm!(total = self.visited.len());
@@ -62,14 +62,14 @@ impl<Sb> TraverseArity<Sb> {
             }
 
             let idx = NodeIndex::new(state);
-            let next_states: Vec<NodeIndex<Ix>> = cdawg.get_graph().neighbors(idx).collect();
-            arities.push(next_states.len());
-            for next_state in next_states {
-                if self.visited[next_state.index()] {
-                    continue;
+            let mut arity = 0;
+            for next_state in cdawg.get_graph().neighbors(idx) {
+                arity += 1;
+                if !self.visited[next_state.index()] {
+                    self.stack.push(next_state.index());
                 }
-                self.stack.push(next_state.index());
             }
+            arities.push(arity);
             self.visited[state] = true;
             let _ = pb.update(1);
         }
