@@ -25,6 +25,6 @@ unicode-segmentation = "1.10"
 fslock = "0.2.1"
 flate2 = "1.0.30"
 comparator = "0.3.0"
-lru = "0.12.3"
+lru = "0.12.4"
 memmap2 = "0.9.4"
 openssl = { version = "0.10.64", features = ["vendored"] }
