@@ -23,7 +23,7 @@ anyhow = "1.0"
 tokenizers = { version = "0.19.1", default-features = false, features = ["progressbar", "http", "onig"] }
 unicode-segmentation = "1.10"
 fslock = "0.2.1"
-flate2 = "1.0.30"
+flate2 = "1.0.31"
 comparator = "0.3.0"
 lru = "0.12.3"
 memmap2 = "0.9.4"
