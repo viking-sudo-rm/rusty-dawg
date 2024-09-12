@@ -63,6 +63,12 @@ impl DiskCdawg {
         counter.fill_counts(&mut self.cdawg);
     }
 
+    /// Get list of arities for all nodes in CDAWG.
+    pub fn traverse_arities(&mut self, capacity: usize) -> Vec<usize> {
+        let mut traverser = cdawg::traverse_arity::TraverseArity::new_ram(capacity);
+        traverser.traverse_arity(&mut self.cdawg)
+    }
+
     pub fn get_initial(&self) -> CdawgState {
         CdawgState {
             cs: self.cdawg.get_initial(),
@@ -92,6 +98,20 @@ impl DiskCdawg {
 
     pub fn get_count(&self, state: usize) -> usize {
         self.cdawg.get_count(NodeIndex::new(state))
+    }
+
+    /// Get list of states that a state connects to. Useful for graph traversal.
+    pub fn neighbors(&self, state: usize) -> Vec<usize> {
+        let node = NodeIndex::new(state);
+        self.cdawg.get_graph().neighbors(node).map(|x| x.index()).collect()
+    }
+
+    pub fn node_count(&self) -> usize {
+        self.cdawg.node_count()
+    }
+
+    pub fn edge_count(&self) -> usize {
+        self.cdawg.edge_count()
     }
 
     // Methods for inference time.

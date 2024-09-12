@@ -67,79 +67,124 @@ author = "William Merrill <willm@nyu.edu>",
 version, about, long_about = None,
 )]
 pub struct Args {
+    /// Path to corpus DAWG is built on.
     #[arg(long)]
     train_path: String,
+
+    /// Path to evaluation data. Optional.
     #[arg(long, default_value = "")]
     test_path: String,
+
+    /// Where DAWG is saved. If saving to disk, will be treated as a directory; if
+    /// serializing a RAM data structure, will be treated as a file.
     #[arg(long, default_value = "")]
     save_path: String,
+
+    /// Path to save evaluation results.
     #[arg(long, default_value = "")]
     results_path: String,
 
-    // This value can take on the following values:
-    // `whitespace`, and every huggingface tokenizer, e.g. `gpt2`, `bert-base-uncased`, etc.
+    /// Tokenizer to use. This can be `whitespace` or any huggingface tokenizer, e.g.,
+    /// `gpt2`, `bert-base-uncased`, etc.
     #[arg(long, default_value = "gpt2")]
     tokenizer: String,
+
+    /// Specifies how to read data from `train_path`. This can be `txt`, `pile`, or
+    /// `jsonl`.
     #[arg(long, default_value = "txt")]
     data_reader: String,
 
-    #[arg(long, default_value = "u32")]
+    /// Datatype used to represent tokens in a DAWG (no effect for CDAWG). Can be
+    /// `u16`, `u32`, or `usize`.
+    #[arg(long, default_value = "u16")]
     utype: String,
 
+    /// Truncate evaluation data to this many tokens.
     #[arg(long, default_value_t = 0)]
     truncate_test: usize,
+
+    /// Number of tokens to wait before evaluating.
     #[arg(long, default_value_t = 0)]
     n_eval: usize,
+
+    /// Maximum suffix length to track when computing evaluation metrics.
     #[arg(long, default_value_t = 10)]
     max_length: u64,
-    // Max length of a state in the Dawg.
+
+    /// Max length of a state in the DAWG.
     #[arg(long, default_value_t = -1)]
     max_state_length: i64,
 
+    // todo: #112
+    /// Path to save the DAWG. This is the same as `save_path`. We should fix that.
     #[arg(long)]
     disk_path: Option<String>,
+
+    /// Token used to split documents when `data_reader` is `txt`.
     #[arg(long)]
     split_token: Option<String>,
 
+    /// Estimate of the number of nodes to allocate, expressed as a ratio of the
+    /// estimated total number of tokens (`n_tokens`).
     #[arg(long, default_value_t = 2.)]
     nodes_ratio: f64,
+
+    /// Estimate of the number of edges to allocate, expressed as a ratio of the
+    /// estimated total number of tokens (`n_tokens`).
     #[arg(long, default_value_t = 3.)]
     edges_ratio: f64,
-    // Estimate of the number of tokens, used to allocate DAWG.
+
+    /// Estimate of the number of tokens, used to allocate DAWG.
     #[arg(long, default_value_t = 200000000)]
     n_tokens: usize,
+
+    /// Number of states cached in RAM if building a DAWG on disk.
     #[arg(long, default_value_t = 0)]
     cache_size: usize,
 
-    // Amount of input to read at a time while consuming file. Defaults to 10 GB.
-    #[arg(long, default_value_t = 10000000000)]
+    /// Amount of input to read, in bytes, at a time while consuming file.
+    /// Defaults to 10 GB.
+    #[arg(long, default_value_t = 10_000_000_000)]
     buf_size: usize,
 
+    /// Don't add document boundaries between adjacent documents.
     #[arg(long, short, action)]
-    single_string: bool, // Don't end document between documents.
+    single_string: bool,
 
     // CDAWG args.
+    /// Build CDAWG instead of DAWG.
     #[arg(long, short, action)]
     cdawg: bool,
+
+    /// Path to store a vector of all tokens in training corpus.
     #[arg(long)]
     train_vec_path: Option<String>,
+
+    /// Number of tokens to wait before computing CDAWG statistics.
     #[arg(long)]
     stats_threshold: Option<usize>,
+
+    /// Path to save CDAWG computed statistics.
     #[arg(long)]
     stats_path: Option<String>,
-    #[arg(long)]
-    count_path: Option<String>, // DiskVec path to use while traversing graph.
-    #[arg(long)]
-    no_counts: bool, // Don't add counts.
-    #[arg(long)]
-    ram: bool, // Force build in RAM.
 
-               // FIXME: Below is causing issues, for whatever reason.
-               // Special arguments for JsonReader (not used for Pile).
-               // #[arg(long, default_value = "text")]
-               // jsonl_text_key: String,
-               // #[arg(long, default_value = "split")]
-               // jsonl_domain_key: String,
+    /// DiskVec path to use while traversing graph.
+    #[arg(long)]
+    count_path: Option<String>,
+
+    /// Don't add counts.
+    #[arg(long)]
+    no_counts: bool,
+
+    /// Build DAWG in RAM instead of on disk.
+    #[arg(long)]
+    ram: bool,
+    // FIXME: Below is causing issues, for whatever reason.
+    // Special arguments for JsonReader (not used for Pile).
+    // #[arg(long, default_value = "text")]
+    // jsonl_text_key: String,
+    // #[arg(long, default_value = "split")]
+    // jsonl_domain_key: String,
 }
 
 impl Args {
@@ -329,7 +374,7 @@ where
                 }
             }
             idx += 1;
-            pbar.update(1);
+            let _ = pbar.update(1);
         }
         (last, length) = dawg.end_document(last, doc_id_token, doc_id.try_into().unwrap());
     }
