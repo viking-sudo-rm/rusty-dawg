@@ -26,5 +26,5 @@ fslock = "0.2.1"
 flate2 = "1.0.33"
 comparator = "0.3.0"
 lru = "0.12.3"
-memmap2 = "0.9.4"
+memmap2 = "0.9.5"
 openssl = { version = "0.10.64", features = ["vendored"] }
