@@ -21,7 +21,7 @@ type-layout = "0.2.0"
 ux = "0.1.6"
 anyhow = "1.0"
 tokenizers = { version = "0.20.0", default-features = false, features = ["progressbar", "http", "onig"] }
-unicode-segmentation = "1.10"
+unicode-segmentation = "1.12"
 fslock = "0.2.1"
 flate2 = "1.0.33"
 comparator = "0.3.0"
