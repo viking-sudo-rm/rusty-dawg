@@ -6,8 +6,8 @@ use std::rc::Rc;
 use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
-use rusty_dawg::graph::NodeRef;
 use rusty_dawg::graph::indexing::{DefaultIx, EdgeIndex, NodeIndex};
+use rusty_dawg::graph::NodeRef;
 use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass(unsendable)]
@@ -82,13 +82,30 @@ impl Cdawg {
     /// gamma here is 0-indexed.
     pub fn implicitly_fail(&self, state: usize, gamma: (usize, usize)) -> CdawgState {
         CdawgState {
-            cs: self.cdawg.implicitly_fail(NodeIndex::new(state), gamma)
+            cs: self.cdawg.implicitly_fail(NodeIndex::new(state), gamma),
         }
     }
 
     /// Return the length associated with a node.
     pub fn get_length(&self, state: usize) -> u64 {
-        self.cdawg.get_graph().get_node(NodeIndex::new(state)).get_length()
+        self.cdawg
+            .get_graph()
+            .get_node(NodeIndex::new(state))
+            .get_length()
+    }
+
+    /// Get list of states that a state connects to. Useful for graph traversal.
+    pub fn neighbors(&self, state: usize) -> Vec<usize> {
+        let node = NodeIndex::new(state);
+        self.cdawg.get_graph().neighbors(node).map(|x| x.index()).collect()
+    }
+
+    pub fn node_count(&self) -> usize {
+        self.cdawg.node_count()
+    }
+
+    pub fn edge_count(&self) -> usize {
+        self.cdawg.edge_count()
     }
 
     // Methods for inference time.

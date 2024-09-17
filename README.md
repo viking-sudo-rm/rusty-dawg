@@ -1,15 +1,15 @@
 # Rusty-DAWG
 
-A library for building suffix automata for string indexing and searching in Rust.
+A library for building directed acyclic word graphs (DAWGs) or compacted DAWGS (CDAWGS) for string indexing and searching in Rust.
 
 The key features are:
-1. Built a DAWG on a corpus with a one-liner. The DAWG can be saved in two formats: a graph stored in RAM and a graph stored on disk.
-2. Use Python bindings to load a saved DAWG for doing fast n-gram search (you can also load it in Rust, but we recommend working with the Python API).
-3. A web demo for visualizing n-gram search results over a pre-built DAWG.
+1. Build a DAWG or CDAWG indexon a corpus with a one-liner. The (C)DAWG can be saved in two formats: a graph stored in RAM and a graph stored on disk.
+2. Use Python bindings to load a saved (C)DAWG for doing fast n-gram search (you can also load it in Rust, but we recommend working with the Python API).
+3. An API server and web demo for visualizing n-gram search results over a pre-built (C)DAWG.
 
 ## Authors
 
-This library was started by Will Merrill and Yanai Elazar as part of an internship project at AI2. Ananya Jha, Rodney Kinney, David Wadden, Pete Walsh have all since contributed core engineering features. We've also appreciated the support of Michal Guerquin, Johann Dahm, and other members of the Beaker team at AI2 for getting the library to run at very large scale.
+This library was started by Will Merrill and Yanai Elazar as part of an internship project at AI2. Ananya Jha, Rodney Kinney, David Wadden, Pete Walsh have all since contributed core engineering features. We've also appreciated the support of Michal Guerquin, Johann Dahm, and other members of the Beaker team at AI2 for getting the library to run at very large scale, as well as the data structures expertise of Shunsuke Inenaga.
 
 # Getting Started
 
