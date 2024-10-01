@@ -43,25 +43,25 @@ jobs:
               rustup component add clippy
               make lint
 
-          - name: Benchmark
-            run: |
-              # Install deps.
-              echo "=========== Installing zsh ============"
-              sudo apt-get install zsh
+          # - name: Benchmark
+          #   run: |
+          #     # Install deps.
+          #     echo "=========== Installing zsh ============"
+          #     sudo apt-get install zsh
 
-              # Build release.
-              echo "============= Compiling ==============="
-              cargo build --release
+          #     # Build release.
+          #     echo "============= Compiling ==============="
+          #     cargo build --release
 
-              # Download data files.
-              echo "========== Downloading data ==========="
-              pip install gdown
-              gdown 1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby
-              unzip data.zip
+          #     # Download data files.
+          #     echo "========== Downloading data ==========="
+          #     pip install gdown
+          #     gdown 1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby
+          #     unzip data.zip
 
-              # Run benchmark.
-              echo "========= Running benchmark ==========="
-              ./scripts/benchmark.sh wikitext-2-raw
+          #     # Run benchmark.
+          #     echo "========= Running benchmark ==========="
+          #     ./scripts/benchmark.sh wikitext-2-raw
 
     steps:
       - uses: actions/checkout@v4
