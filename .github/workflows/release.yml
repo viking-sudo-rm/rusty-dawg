@@ -121,9 +121,11 @@ jobs:
         with:
           rust-version: stable
 
+      # slightly modified version of rebuild_bindings.sh so it works on windows
       - name: Build wheels
         run: |
-          ./scripts/rebuild_bindings.sh --no-install
+          cd bindings/python
+          maturin build --release --out dist
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
@@ -133,8 +135,6 @@ jobs:
 
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
-
-
 
 
   # publish_crate:
