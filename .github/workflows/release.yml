@@ -109,43 +109,13 @@ jobs:
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
 
-  python_build_windows:
-    name: Python bindings (windows, ${{ matrix.target }})
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x64]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Rust and sccache
-        uses: ./.github/actions/rust-sccache-setup
-        with:
-          rust-version: stable
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build wheels
-        shell: bash
-        run: |
-          choco install strawberryperl openssl.light
-          ./scripts/rebuild_bindings.sh --no-install
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
-
-      - name: Save Rust and sccache cache
-        uses: ./.github/actions/rust-sccache-cache
-
-
-  # publish_crate:
-  #   name: Crates.io release
-  #   runs-on: ubuntu-latest
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   needs: [rust_checks]
+  # python_build_windows:
+  #   name: Python bindings (windows, ${{ matrix.target }})
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       target: [x64]
   #   steps:
   #     - uses: actions/checkout@v4
 
@@ -155,18 +125,47 @@ jobs:
   #         rust-version: stable
   #         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Log in to crates.io
-  #       uses: actions-rs/cargo@v1
-  #       with:
-  #         command: login
-  #         args: ${{ secrets.CRATES_TOKEN }}
-
-  #     - name: Publish to crates.io
+  #     - name: Build wheels
+  #       shell: bash
   #       run: |
-  #         cargo publish
+  #         choco install strawberryperl openssl.light
+  #         ./scripts/rebuild_bindings.sh --no-install
+
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: dist
 
   #     - name: Save Rust and sccache cache
   #       uses: ./.github/actions/rust-sccache-cache
+
+  publish_crate:
+    name: Crates.io release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [rust_checks]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust and sccache
+        uses: ./.github/actions/rust-sccache-setup
+        with:
+          rust-version: stable
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_TOKEN }}
+
+      - name: Publish to crates.io
+        run: |
+          cargo publish
+
+      - name: Save Rust and sccache cache
+        uses: ./.github/actions/rust-sccache-cache
 
   publish_python_bindings:
     name: PyPI release
