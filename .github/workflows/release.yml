@@ -29,6 +29,7 @@ jobs:
         uses: ./.github/actions/rust-sccache-setup
         with:
           rust-version: stable
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install 32bit version of libc
         if: ${{ matrix.target == 'x86' || contains(matrix.target, 'i686') }}
@@ -68,6 +69,7 @@ jobs:
         uses: ./.github/actions/rust-sccache-setup
         with:
           rust-version: stable
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build wheels
         run: |
@@ -92,6 +94,7 @@ jobs:
         uses: ./.github/actions/rust-sccache-setup
         with:
           rust-version: stable
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build sdist
         run: |
@@ -120,6 +123,7 @@ jobs:
         uses: ./.github/actions/rust-sccache-setup
         with:
           rust-version: stable
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # slightly modified version of rebuild_bindings.sh so it works on windows
       - name: Build wheels
@@ -149,6 +153,7 @@ jobs:
   #       uses: ./.github/actions/rust-sccache-setup
   #       with:
   #         rust-version: stable
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
 
   #     - name: Log in to crates.io
   #       uses: actions-rs/cargo@v1
