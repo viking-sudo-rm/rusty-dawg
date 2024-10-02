@@ -47,10 +47,10 @@ jobs:
           ./scripts/rebuild_bindings.sh --no-install
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
-          path: dist
+          name: linux-wheels
+          path: dist/*
 
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
@@ -76,10 +76,10 @@ jobs:
           ./scripts/rebuild_bindings.sh --no-install
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
-          path: dist
+          name: macos-wheels
+          path: dist/*
 
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
@@ -101,10 +101,10 @@ jobs:
           ./scripts/rebuild_bindings.sh --sdist --no-install
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
-          path: dist
+          name: sdist
+          path: dist/*
 
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
@@ -132,10 +132,10 @@ jobs:
   #         ./scripts/rebuild_bindings.sh --no-install
 
   #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v3
+  #       uses: actions/upload-artifact@v4
   #       with:
-  #         name: wheels
-  #         path: dist
+  #         name: windows-wheels
+  #         path: dist/*
 
   #     - name: Save Rust and sccache cache
   #       uses: ./.github/actions/rust-sccache-cache
@@ -172,16 +172,23 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [python_build_linux, python_build_macos, python_build_sdist]
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          name: wheels
+          python-version: '3.10'
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
           path: dist
-
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      - name: Prepare distribution files
+        run: |
+          mkdir combined-dist
+          cp dist/*/* combined-dist/
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.2
         with:
-          command: upload
-          args: --skip-existing *
-          working-directory: dist
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+          packages_dir: combined-dist/
+          skip-existing: true

@@ -52,3 +52,7 @@ venv.bak/
 .vscode/
 *.swp
 *~
+
+
+# Github Actions caches
+sccache/
