@@ -22,8 +22,10 @@ runs:
     - name: Download and install sccache
       shell: bash
       run: |
-        SCCACHE_VERSION=$(curl -s "https://api.github.com/repos/mozilla/sccache/releases/latest" | python -c "import sys, json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
+        SCCACHE_MANIFEST=$(curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36" -s "https://api.github.com/repos/mozilla/sccache/releases/latest")
+        echo "SCCACHE_MANIFEST: $SCCACHE_MANIFEST"
 
+        SCCACHE_VERSION=$(echo $SCCACHE_MANIFEST | python -c "import sys, json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
         echo "SCCACHE_VERSION: $SCCACHE_VERSION"
 
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -36,7 +38,6 @@ runs:
           echo "Unsupported operating system"
           exit 1
         fi
-
         echo "SCCACHE_FILE: $SCCACHE_FILE"
 
         curl -L "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_FILE}.tar.gz" | tar xz

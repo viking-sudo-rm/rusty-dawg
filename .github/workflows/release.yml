@@ -95,7 +95,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          ./scripts/rebuild_bindings.sh --sdist
+          ./scripts/rebuild_bindings.sh --sdist --no-install
 
       - name: Upload sdist
         uses: actions/upload-artifact@v3
