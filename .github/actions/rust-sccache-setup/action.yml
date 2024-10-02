@@ -22,7 +22,7 @@ runs:
     - name: Download and install sccache
       shell: bash
       run: |
-        SCCACHE_VERSION=$(curl -s "https://api.github.com/repos/mozilla/sccache/releases/latest" | import sys, json; print(json.loads(sys.stdin)['tag_name'].lstrip('v')))
+        SCCACHE_VERSION=$(curl -s "https://api.github.com/repos/mozilla/sccache/releases/latest" | python -c "import sys, json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
 
         echo "SCCACHE_VERSION: $SCCACHE_VERSION"
 
