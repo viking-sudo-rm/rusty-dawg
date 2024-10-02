@@ -30,7 +30,6 @@ runs:
           echo "Error: Failed to fetch sccache manifest"
           exit 1
         fi
-        echo "SCCACHE_MANIFEST: $SCCACHE_MANIFEST"
 
         SCCACHE_VERSION=$(echo $SCCACHE_MANIFEST | python -c "import sys, json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
         echo "SCCACHE_VERSION: $SCCACHE_VERSION"
@@ -76,9 +75,10 @@ runs:
       run: |
         sccache --start-server
 
-    - name: Display Rust and sccache versions
+    - name: Display Rust version
       shell: bash
       run: |
         rustc --version
         cargo --version
         sccache --version
+        maturin --version
