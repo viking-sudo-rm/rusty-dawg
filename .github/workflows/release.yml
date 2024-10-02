@@ -49,7 +49,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: linux-wheels
+          name: linux-wheels-${{ matrix.target }}
           path: dist/*
 
       - name: Save Rust and sccache cache
@@ -78,36 +78,12 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: macos-wheels
+          name: macos-wheels-${{ matrix.target }}
           path: dist/*
 
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
 
-  python_build_sdist:
-    name: Python bindings (sdist)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Rust and sccache
-        uses: ./.github/actions/rust-sccache-setup
-        with:
-          rust-version: stable
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build sdist
-        run: |
-          ./scripts/rebuild_bindings.sh --sdist --no-install
-
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist/*
-
-      - name: Save Rust and sccache cache
-        uses: ./.github/actions/rust-sccache-cache
 
   # python_build_windows:
   #   name: Python bindings (windows, ${{ matrix.target }})
@@ -139,6 +115,31 @@ jobs:
 
   #     - name: Save Rust and sccache cache
   #       uses: ./.github/actions/rust-sccache-cache
+
+  python_build_sdist:
+    name: Python bindings (sdist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust and sccache
+        uses: ./.github/actions/rust-sccache-setup
+        with:
+          rust-version: stable
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build sdist
+        run: |
+          ./scripts/rebuild_bindings.sh --sdist --no-install
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*
+
+      - name: Save Rust and sccache cache
+        uses: ./.github/actions/rust-sccache-cache
 
   publish_crate:
     name: Crates.io release
