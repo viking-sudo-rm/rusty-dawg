@@ -125,7 +125,7 @@ jobs:
       - name: Build wheels
         run: |
           cd bindings/python
-          maturin build --release --out dist --no-install
+          maturin build --release --out dist
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
