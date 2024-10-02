@@ -61,7 +61,7 @@ cp Cargo.toml Cargo.toml.bak
     fi
 
     if [ "$BUILD_SDIST" = true ]; then
-        python -m maturin sdist --out "$DIST_DIR" --find-interpreter
+        python -m maturin sdist --out "$DIST_DIR"
     fi
 
     if [ "$NO_INSTALL" = true ]; then

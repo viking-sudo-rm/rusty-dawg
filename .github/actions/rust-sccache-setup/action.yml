@@ -19,6 +19,8 @@ runs:
       run: |
         SCCACHE_VERSION=$(curl -s "https://api.github.com/repos/mozilla/sccache/releases/latest" | sed -n 's/.*"tag_name": "v\([0-9.]\+\)".*/\1/p')
 
+        echo "SCCACHE_VERSION: $SCCACHE_VERSION"
+
         if [ "$RUNNER_OS" == "Linux" ]; then
           SCCACHE_FILE="sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl"
         elif [ "$RUNNER_OS" == "macOS" ]; then
@@ -29,6 +31,8 @@ runs:
           echo "Unsupported operating system"
           exit 1
         fi
+
+        echo "SCCACHE_FILE: $SCCACHE_FILE"
 
         curl -L "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_FILE}.tar.gz" | tar xz
         mkdir -p "$HOME/.local/bin"
@@ -51,7 +55,7 @@ runs:
     - name: Install maturin
       shell: bash
       run: |
-        pip install maturin
+        pip install maturin tomli
         echo "Maturin version: $(maturin --version)"
 
     - name: Start sccache server
