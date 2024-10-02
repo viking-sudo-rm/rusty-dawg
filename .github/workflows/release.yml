@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64, aarch64, armv7]
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, i686-unknown-linux-gnu]
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install 32bit version of libc
-        if: ${{ matrix.target == 'x86' || contains(matrix.target, 'i686') }}
+        if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
         run: |
           sudo apt-get update
           sudo apt-get install --yes --upgrade libc6-dev-i386
@@ -44,7 +44,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          ./scripts/rebuild_bindings.sh --no-install
+          ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64, aarch64]
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +73,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          ./scripts/rebuild_bindings.sh --no-install
+          ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4

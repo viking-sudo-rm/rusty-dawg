@@ -3,20 +3,30 @@
 # Parse command-line arguments
 NO_INSTALL=false
 BUILD_SDIST=false
-for arg in "$@"
-do
-    case $arg in
+ARCH_TARGET=""
+while [ $# -gt 0 ]; do
+    case "$1" in
         --no-install)
-        NO_INSTALL=true
-        shift # Remove --no-install from processing
-        ;;
+            NO_INSTALL=true
+            shift
+            ;;
         --sdist)
-        BUILD_SDIST=true
-        shift # Remove --sdist from processing
-        ;;
+            BUILD_SDIST=true
+            shift
+            ;;
+        --target)
+            if [ -n "$2" ]; then
+                ARCH_TARGET="$2"
+                shift 2
+            else
+                echo "Error: --target requires an argument" >&2
+                exit 1
+            fi
+            ;;
         *)
-        # Unknown option
-        ;;
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
     esac
 done
 
@@ -45,6 +55,11 @@ cd "$SCRIPT_DIR/../bindings/python"
 # Create a backup of Cargo.toml
 cp Cargo.toml Cargo.toml.bak
 
+# Architecture target
+if [ -n "$ARCH_TARGET" ]; then
+    ARCH_TARGET="--target $ARCH_TARGET"
+fi
+
 # Wrap the operations in a try-catch-like block
 {
     # Add the version to Cargo.toml in the [package] section
@@ -56,16 +71,22 @@ cp Cargo.toml Cargo.toml.bak
     # Build the bindings; we operate slightly differently depending on whether we're building an sdist or not
     # and whether we're installing the wheel or not
     if [ "$NO_INSTALL" = false ]; then
+        set -x
         python -m maturin build --release
         python -m pip install target/wheels/* --ignore-installed
+        set +x
     fi
 
     if [ "$BUILD_SDIST" = true ]; then
+        set -x
         python -m maturin sdist --out "$DIST_DIR"
+        set +x
     fi
 
     if [ "$NO_INSTALL" = true ]; then
-        python -m maturin build --release --out "$DIST_DIR"
+        set -x
+        python -m maturin build --release --out "$DIST_DIR" $ARCH_TARGET
+        set +x
     fi
 } || {
     echo "An error occurred during the build process"
