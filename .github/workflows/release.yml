@@ -42,6 +42,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools pkg-config libudev-dev
 
+      - name: Add missing target
+        run: |
+          rustup target add ${{ matrix.target }}
+
       - name: Build wheels
         run: |
           ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
@@ -70,6 +74,10 @@ jobs:
         with:
           rust-version: stable
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add missing target
+        run: |
+          rustup target add ${{ matrix.target }}
 
       - name: Build wheels
         run: |
@@ -100,6 +108,10 @@ jobs:
   #       with:
   #         rust-version: stable
   #         github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: Add missing target
+  #       run: |
+  #         rustup target add ${{ matrix.target }}
 
   #     - name: Build wheels
   #       shell: bash

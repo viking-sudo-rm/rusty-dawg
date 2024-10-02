@@ -60,46 +60,35 @@ if [ -n "$ARCH_TARGET" ]; then
     ARCH_TARGET="--target $ARCH_TARGET"
 fi
 
-# Wrap the operations in a try-catch-like block
-{
-    # Add the version to Cargo.toml in the [package] section
-    sed -i.bak "/^\[package\]/a version = \"$VERSION\"" Cargo.toml
+# Add the version to Cargo.toml in the [package] section
+sed -i.bak "/^\[package\]/a version = \"$VERSION\"" Cargo.toml
 
-    # Flush the wheel cache
-    rm -rf target/wheels
+# Flush the wheel cache
+rm -rf target/wheels
 
-    # Build the bindings; we operate slightly differently depending on whether we're building an sdist or not
-    # and whether we're installing the wheel or not
-    if [ "$NO_INSTALL" = false ]; then
-        set -x
-        python -m maturin build --release
-        python -m pip install target/wheels/* --ignore-installed
-        set +x
-    fi
+# Build the bindings; we operate slightly differently depending on whether we're building an sdist or not
+# and whether we're installing the wheel or not
+if [ "$NO_INSTALL" = false ]; then
+    set -ex
+    python -m maturin build --release
+    python -m pip install target/wheels/* --ignore-installed
+    set +x
+fi
 
-    if [ "$BUILD_SDIST" = true ]; then
-        set -x
-        python -m maturin sdist --out "$DIST_DIR"
-        set +x
-    fi
+if [ "$BUILD_SDIST" = true ]; then
+    set -ex
+    python -m maturin sdist --out "$DIST_DIR"
+    set +x
+fi
 
-    if [ "$NO_INSTALL" = true ]; then
-        set -x
-        python -m maturin build --release --out "$DIST_DIR" $ARCH_TARGET
-        set +x
-    fi
-} || {
-    echo "An error occurred during the build process"
-    ERROR_OCCURRED=true
-}
+if [ "$NO_INSTALL" = true ]; then
+    set -ex
+    python -m maturin build --release --out "$DIST_DIR" $ARCH_TARGET
+    set +x
+fi
 
 # Ensure Cargo.toml is always restored, even if an error occurred
 mv Cargo.toml.bak Cargo.toml
 
 # Return to the original directory
 cd "$CURRENT_DIR"
-
-# Exit with error code 1 if an error occurred
-if [ "$ERROR_OCCURRED" = true ]; then
-    exit 1
-fi
