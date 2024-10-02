@@ -1,4 +1,4 @@
-name: CI
+name: Release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -128,8 +128,7 @@ jobs:
       - name: Build wheels
         shell: bash
         run: |
-          choco install strawberryperl
-          refreshenv
+          choco install strawberryperl openssl.light
           ./scripts/rebuild_bindings.sh --no-install
 
       - name: Upload wheels
