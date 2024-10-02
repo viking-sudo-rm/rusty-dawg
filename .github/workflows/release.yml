@@ -20,20 +20,26 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # fails to build on x86, so removing for now; low use anyway.
-        # target: [x86_64, x86, aarch64, armv7]
         target: [x86_64, aarch64, armv7]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust and sccache
+        uses: ./.github/actions/rust-sccache-setup
+        with:
+          rust-version: stable
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+
       - name: Install 32bit version of libc
         if: ${{ matrix.target == 'x86' || contains(matrix.target, 'i686') }}
         run: |
           sudo apt-get update
           sudo apt-get install --yes --upgrade libc6-dev-i386
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -45,41 +51,15 @@ jobs:
           before-script-linux: |
             sudo apt-get update
             sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools pkg-config libudev-dev
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
 
-
-  # python_build_windows:
-  #   name: Python bindings (windows, ${{ matrix.target }})
-  #   runs-on: windows-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       target: [x64]
-  #   steps:
-  #     - uses: actions/checkout@v4
-
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.10'
-  #         architecture: ${{ matrix.target }}
-
-  #     - name: Build wheels
-  #       uses: PyO3/maturin-action@v1
-  #       with:
-  #         target: ${{ matrix.target }}
-  #         args: --release --out dist --find-interpreter
-  #         sccache: 'true'
-  #         working-directory: bindings/python
-
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: wheels
-  #         path: bindings/python/dist
+      - name: Save Rust and sccache cache
+        uses: ./.github/actions/rust-sccache-cache
 
   python_build_macos:
     name: Python bindings (macos, ${{ matrix.target }})
@@ -91,71 +71,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.10'
+      - name: Setup Rust and sccache
+        uses: ./.github/actions/rust-sccache-setup
+        with:
+          rust-version: stable
 
-  #     - name: Build wheels
-  #       uses: PyO3/maturin-action@v1
-  #       with:
-  #         target: ${{ matrix.target }}
-  #         args: --release --out dist --find-interpreter
-  #         sccache: 'true'
-  #         working-directory: bindings/python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: wheels
-  #         path: bindings/python/dist
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+          working-directory: bindings/python
 
-  # python_build_sdist:
-  #   name: Python bindings (sdist)
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+      - name: Save Rust and sccache cache
+        uses: ./.github/actions/rust-sccache-cache
+
+  # publish_crate:
+  #   name: Crates.io release
   #   runs-on: ubuntu-latest
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: [rust_checks]
   #   steps:
   #     - uses: actions/checkout@v4
 
-  #     - name: Build sdist
-  #       uses: PyO3/maturin-action@v1
+  #     - name: Setup Rust and sccache
+  #       uses: ./.github/actions/rust-sccache-setup
   #       with:
-  #         command: sdist
-  #         args: --out dist
-  #         working-directory: bindings/python
+  #         rust-version: stable
 
-  #     - name: Upload sdist
-  #       uses: actions/upload-artifact@v3
+  #     - name: Log in to crates.io
+  #       uses: actions-rs/cargo@v1
   #       with:
-  #         name: wheels
-  #         path: bindings/python/dist
+  #         command: login
+  #         args: ${{ secrets.CRATES_TOKEN }}
 
-  publish_crate:
-    name: Crates.io release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [rust_checks]
-    steps:
-      - uses: actions/checkout@v4
+  #     - name: Publish to crates.io
+  #       run: |
+  #         cargo publish
 
-      - name: Install rust stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Log in to crates.io
-        uses: actions-rs/cargo@v1
-        with:
-          command: login
-          args: ${{ secrets.CRATES_TOKEN }}
-
-      - name: Publish to crates.io
-        run: |
-          cargo publish
+  #     - name: Save Rust and sccache cache
+  #       uses: ./.github/actions/rust-sccache-cache
 
   publish_python_bindings:
     name: PyPI release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [python_build_linux, python_build_windows, python_build_macos]
+    needs: [python_build_linux, python_build_macos]
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -169,34 +141,3 @@ jobs:
           command: upload
           args: --skip-existing *
           working-directory: bindings/python
-
-  # publish_github_release:
-  #   name: Publish github release
-  #   runs-on: ubuntu-latest
-  #   needs: [publish_crate, publish_python_bindings]
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-
-  #     - name: Prepare environment
-  #       run: |
-  #         echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV;
-
-  #     - name: Setup Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.10'
-
-  #     - name: Generate release notes
-  #       run: |
-  #         python scripts/generate_release_notes.py > ${{ github.workspace }}-RELEASE_NOTES.md
-
-  #     - name: Release
-  #       uses: softprops/action-gh-release@v2
-  #       with:
-  #         body_path: ${{ github.workspace }}-RELEASE_NOTES.md
-  #         prerelease: ${{ contains(env.TAG, '-rc') }}
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
