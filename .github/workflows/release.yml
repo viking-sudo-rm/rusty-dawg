@@ -106,6 +106,37 @@ jobs:
       - name: Save Rust and sccache cache
         uses: ./.github/actions/rust-sccache-cache
 
+  python_build_windows:
+    name: Python bindings (windows, ${{ matrix.target }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust and sccache
+        uses: ./.github/actions/rust-sccache-setup
+        with:
+          rust-version: stable
+
+      - name: Build wheels
+        run: |
+          ./scripts/rebuild_bindings.sh --no-install
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+      - name: Save Rust and sccache cache
+        uses: ./.github/actions/rust-sccache-cache
+
+
+
+
   # publish_crate:
   #   name: Crates.io release
   #   runs-on: ubuntu-latest
