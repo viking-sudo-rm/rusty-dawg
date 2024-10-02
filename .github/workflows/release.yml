@@ -127,10 +127,9 @@ jobs:
 
       - name: Build wheels
         shell: bash
-        # run: |
-        #   cd bindings/python
-        #   maturin build --release --out dist
         run: |
+          choco install strawberryperl
+          refreshenv
           ./scripts/rebuild_bindings.sh --no-install
 
       - name: Upload wheels
