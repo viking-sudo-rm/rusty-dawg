@@ -21,8 +21,14 @@ runs:
 
     - name: Download and install sccache
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        SCCACHE_MANIFEST=$(curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36" -s "https://api.github.com/repos/mozilla/sccache/releases/latest")
+        SCCACHE_MANIFEST=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/mozilla/sccache/releases/latest")
+        if [ $? -ne 0 ]; then
+          echo "Error: Failed to fetch sccache manifest"
+          exit 1
+        fi
         echo "SCCACHE_MANIFEST: $SCCACHE_MANIFEST"
 
         SCCACHE_VERSION=$(echo $SCCACHE_MANIFEST | python -c "import sys, json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
