@@ -1,0 +1,168 @@
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+    tags:
+    - 'v*.*.*'
+
+jobs:
+  setup:
+    name: Setup Rust and sccache
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+          else
+            echo "SCCACHE_DIR=$HOME/Library/Caches/Mozilla.sccache" >> $GITHUB_ENV
+          fi
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Cache cargo registry and sccache
+        uses: actions/cache@v4
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SCCACHE_DIR }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Start sccache server
+        run: sccache --start-server
+
+  rust_checks:
+    name: ${{ matrix.task.name }} (${{ matrix.os }})
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+      SCCACHE_CACHE_SIZE: 1G
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        task:
+          - name: Test
+            run: cargo test
+
+          - name: Format
+            run: |
+              rustup component add rustfmt
+              cargo fmt -- --check
+
+          - name: Lint
+            run: |
+              rustup component add clippy
+              make lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Rust and sccache setup
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SCCACHE_DIR }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: ${{ matrix.task.name }}
+        run: ${{ matrix.task.run }}
+
+      - name: Stop sccache server
+        run: sccache --stop-server || true
+
+  python_build_macos:
+    name: Python bindings (macos, ${{ matrix.target }})
+    needs: setup
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Rust and sccache setup
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SCCACHE_DIR }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+  publish_crate:
+    name: Crates.io release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [rust_checks]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Rust and sccache setup
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SCCACHE_DIR }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Log in to crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_TOKEN }}
+
+      - name: Publish to crates.io
+        run: |
+          cargo publish
+
+  publish_python_bindings:
+    name: PyPI release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [python_build_macos]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing *
+          working-directory: bindings/python

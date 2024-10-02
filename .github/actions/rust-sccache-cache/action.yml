@@ -1,0 +1,50 @@
+name: 'Save Rust and sccache cache'
+description: 'Saves Rust and sccache-related caches at the end of a job'
+inputs:
+  cache-prefix:
+    description: 'Prefix for the cache key'
+    required: false
+    default: 'v1'
+runs:
+  using: "composite"
+  steps:
+    - name: Stop sccache server
+      shell: bash
+      run: sccache --stop-server || true
+
+    - name: Get OS-specific cache paths
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          echo "SCCACHE_DIR=$HOME/Library/Caches/Mozilla.sccache" >> $GITHUB_ENV
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          echo "SCCACHE_DIR=$LOCALAPPDATA\\Mozilla\\sccache" >> $GITHUB_ENV
+        fi
+
+    - name: Generate cache key
+      shell: bash
+      run: |
+        RUST_VERSION=$(rustc -V | awk '{print $2}')
+        echo "CACHE_KEY=${{ inputs.cache-prefix }}-${{ runner.os }}-rust-$RUST_VERSION-${{ hashFiles('**/Cargo.lock') }}" >> $GITHUB_ENV
+
+    - name: Save cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+          ${{ env.SCCACHE_DIR }}
+        key: ${{ env.CACHE_KEY }}
+        restore-keys: |
+          ${{ inputs.cache-prefix }}-${{ runner.os }}-rust-
+
+    - name: Display cache statistics
+      shell: bash
+      run: |
+        echo "sccache statistics:"
+        sccache --show-stats
+        echo "Cargo cache size:"
+        du -sh ~/.cargo/registry ~/.cargo/git || true

@@ -1104,7 +1104,7 @@ dependencies = [
 
 [[package]]
 name = "rusty-dawg"
-version = "0.2.1-rc.2"
+version = "0.2.1+p1"
 dependencies = [
  "anyhow",
  "bincode",

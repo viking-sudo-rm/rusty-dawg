@@ -1,0 +1,61 @@
+name: 'Setup Rust and sccache'
+description: 'Installs Rust and sccache from scratch'
+inputs:
+  rust-version:
+    description: 'Rust version to install'
+    required: false
+    default: 'stable'
+runs:
+  using: "composite"
+  steps:
+    - name: Download and install Rust
+      shell: bash
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ inputs.rust-version }}
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Download and install sccache
+      shell: bash
+      run: |
+        SCCACHE_VERSION=$(curl -s "https://api.github.com/repos/mozilla/sccache/releases/latest" | grep -Po '"tag_name": "v\K[0-9.]+')
+
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          SCCACHE_FILE="sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl"
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          SCCACHE_FILE="sccache-v${SCCACHE_VERSION}-x86_64-apple-darwin"
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          SCCACHE_FILE="sccache-v${SCCACHE_VERSION}-x86_64-pc-windows-msvc"
+        else
+          echo "Unsupported operating system"
+          exit 1
+        fi
+
+        curl -L "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_FILE}.tar.gz" | tar xz
+        mkdir -p "$HOME/.local/bin"
+        mv "${SCCACHE_FILE}/sccache" "$HOME/.local/bin/sccache"
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure sccache
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          echo "SCCACHE_DIR=$HOME/Library/Caches/Mozilla.sccache" >> $GITHUB_ENV
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          echo "SCCACHE_DIR=$LOCALAPPDATA\\Mozilla\\sccache" >> $GITHUB_ENV
+        fi
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        echo "SCCACHE_CACHE_SIZE=1G" >> $GITHUB_ENV
+
+    - name: Start sccache server
+      shell: bash
+      run: |
+        sccache --start-server
+
+    - name: Display Rust and sccache versions
+      shell: bash
+      run: |
+        rustc --version
+        cargo --version
+        sccache --version
