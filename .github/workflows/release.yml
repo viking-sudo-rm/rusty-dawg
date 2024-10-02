@@ -48,7 +48,6 @@ jobs:
       - name: Build wheels
         run: |
           ./scripts/rebuild_bindings.sh --no-install
-        working-directory: ${{ github.workspace }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
@@ -79,14 +78,38 @@ jobs:
           python-version: '3.10'
 
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-          working-directory: bindings/python
+        run: |
+          ./scripts/rebuild_bindings.sh --no-install
 
       - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+      - name: Save Rust and sccache cache
+        uses: ./.github/actions/rust-sccache-cache
+
+  python_build_sdist:
+    name: Python bindings (sdist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust and sccache
+        uses: ./.github/actions/rust-sccache-setup
+        with:
+          rust-version: stable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build sdist
+        run: |
+          ./scripts/rebuild_bindings.sh --sdist
+
+      - name: Upload sdist
         uses: actions/upload-artifact@v3
         with:
           name: wheels
