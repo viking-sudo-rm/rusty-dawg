@@ -30,10 +30,6 @@ jobs:
         with:
           rust-version: stable
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
       - name: Install 32bit version of libc
         if: ${{ matrix.target == 'x86' || contains(matrix.target, 'i686') }}
         run: |
@@ -72,10 +68,6 @@ jobs:
         uses: ./.github/actions/rust-sccache-setup
         with:
           rust-version: stable
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
 
       - name: Build wheels
         run: |

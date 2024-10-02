@@ -69,6 +69,7 @@ cp Cargo.toml Cargo.toml.bak
     fi
 } || {
     echo "An error occurred during the build process"
+    ERROR_OCCURRED=true
 }
 
 # Ensure Cargo.toml is always restored, even if an error occurred
@@ -76,3 +77,8 @@ mv Cargo.toml.bak Cargo.toml
 
 # Return to the original directory
 cd "$CURRENT_DIR"
+
+# Exit with error code 1 if an error occurred
+if [ "$ERROR_OCCURRED" = true ]; then
+    exit 1
+fi
