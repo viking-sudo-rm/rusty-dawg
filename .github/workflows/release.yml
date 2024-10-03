@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64, aarch64, armv7]
+        target: [x86_64, aarch64]
 
     steps:
       - uses: actions/checkout@v4
@@ -29,12 +29,6 @@ jobs:
       #   uses: ./.github/actions/rust-sccache-setup
       #   with:
       #     github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install 32bit version of libc
-        if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --upgrade libc6-dev-i386
 
       - name: Propagate version
         uses: ./.github/actions/propagate-version
@@ -165,9 +159,11 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
-          working-directory: bindings/python
+          # working-directory: bindings/python
           sccache: true
           args: --out ../../dist
+          before-script-linux: |
+            cd bindings/python
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
