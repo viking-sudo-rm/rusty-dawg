@@ -25,11 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - name: Setup sccache
-      #   uses: ./.github/actions/rust-sccache-setup
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Propagate version
         uses: ./.github/actions/propagate-version
 
@@ -47,27 +42,12 @@ jobs:
             sudo apt-get update
             sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools
 
-      # - name: Install dependencies
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools pkg-config libudev-dev
-
-      # - name: Add missing target
-      #   run: |
-      #     rustup target add ${{ matrix.target }}
-
-      # - name: Build wheels
-      #   run: |
-      #     ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
-
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: linux-wheels-${{ matrix.target }}
           path: dist/*
 
-      # - name: Save sccache
-      #   uses: ./.github/actions/rust-sccache-cache
 
   python_build_macos:
     name: Python bindings (macos, ${{ matrix.target }})
@@ -78,11 +58,6 @@ jobs:
         target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
-
-      # - name: Setup sccache
-      #   uses: ./.github/actions/rust-sccache-setup
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Propagate version
         uses: ./.github/actions/propagate-version
@@ -102,44 +77,35 @@ jobs:
           name: macos-wheels-${{ matrix.target }}
           path: dist/*
 
-      # - name: Save Rust and sccache cache
-      #   uses: ./.github/actions/rust-sccache-cache
 
+  python_build_windows:
+    name: Python bindings (windows, ${{ matrix.target }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x64]
+    steps:
+      - uses: actions/checkout@v4
 
-  # python_build_windows:
-  #   name: Python bindings (windows, ${{ matrix.target }})
-  #   runs-on: windows-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       target: [x64]
-  #   steps:
-  #     - uses: actions/checkout@v4
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
 
-  #     - name: Setup s
-  #       uses: ./.github/actions/rust-sccache-setup
-  #       with:
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist --find-interpreter
+          working-directory: bindings/python
+          sccache: true
 
-  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-wheels
+          path: dist/*
 
-  #     - name: Add missing target
-  #       run: |
-  #         rustup target add ${{ matrix.target }}
-
-  #     - name: Build wheels
-  #       shell: bash
-  #       run: |
-  #         choco install strawberryperl openssl.light
-  #         ./scripts/rebuild_bindings.sh --no-install
-
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: windows-wheels
-  #         path: dist/*
-
-  #     - name: Save Rust and sccache cache
-  #       uses: ./.github/actions/rust-sccache-cache
 
   python_build_sdist:
     name: Python bindings (sdist)
@@ -194,10 +160,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup sccache
-        uses: ./.github/actions/rust-sccache-setup
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download and install Rust
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Log in to crates.io
         uses: actions-rs/cargo@v1
@@ -209,8 +176,6 @@ jobs:
         run: |
           cargo publish
 
-      - name: Save sccache cache
-        uses: ./.github/actions/rust-sccache-cache
 
   publish_python_bindings:
     name: PyPI release
