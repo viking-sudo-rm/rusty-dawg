@@ -155,12 +155,28 @@ jobs:
       - name: Propagate version
         uses: ./.github/actions/propagate-version
 
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
+      - name: Download and install Rust
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ inputs.rust-version }}
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          command: sdist
-          sccache: true
-          args: --out dist --manifest-path bindings/python/Cargo.toml
+          python-version: '3.10'
+
+      - name: Install maturin
+        shell: bash
+        run: |
+          pip install maturin
+          echo "Maturin version: $(maturin --version)"
+
+      - name: Build sdist
+        shell: bash
+        run: |
+          cd bindings/python
+          maturin sdist --out ../../dist
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
