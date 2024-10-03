@@ -159,11 +159,8 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
-          # working-directory: bindings/python
           sccache: true
-          args: --out ../../dist
-          before-script-linux: |
-            cd bindings/python
+          args: --out dist --manifest-path bindings/python/Cargo.toml
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
