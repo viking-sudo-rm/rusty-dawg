@@ -1,5 +1,5 @@
-name: 'Save Rust and sccache cache'
-description: 'Saves Rust and sccache-related caches at the end of a job'
+name: 'Save sccache cache'
+description: 'Saves sccache cache at the end of a job'
 inputs:
   cache-prefix:
     description: 'Prefix for the cache key'

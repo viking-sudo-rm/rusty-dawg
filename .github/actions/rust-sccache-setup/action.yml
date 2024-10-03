@@ -1,26 +1,22 @@
-name: 'Setup Rust and sccache'
-description: 'Installs Rust and sccache from scratch'
+name: 'Setup sccache'
+description: 'Installs sccache'
 inputs:
-  rust-version:
-    description: 'Rust version to install'
-    required: false
-    default: 'stable'
   github-token:
     description: 'GitHub token for API access'
     required: true
 runs:
   using: "composite"
   steps:
-    - name: Download and install Rust
-      shell: bash
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ inputs.rust-version }}
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    # - name: Download and install Rust
+    #   shell: bash
+    #   run: |
+    #     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ inputs.rust-version }}
+    #     echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+    # - name: Set up Python
+    #   uses: actions/setup-python@v4
+    #   with:
+    #     python-version: '3.10'
 
     - name: Download and install sccache
       shell: bash
@@ -64,21 +60,21 @@ runs:
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
         echo "SCCACHE_CACHE_SIZE=1G" >> $GITHUB_ENV
 
-    - name: Install maturin
-      shell: bash
-      run: |
-        pip install maturin tomli
-        echo "Maturin version: $(maturin --version)"
+    # - name: Install maturin
+    #   shell: bash
+    #   run: |
+    #     pip install maturin tomli
+    #     echo "Maturin version: $(maturin --version)"
 
     - name: Start sccache server
       shell: bash
       run: |
         sccache --start-server
 
-    - name: Display Rust version
-      shell: bash
-      run: |
-        rustc --version
-        cargo --version
-        sccache --version
-        maturin --version
+    # - name: Display Rust version
+    #   shell: bash
+    #   run: |
+    #     rustc --version
+    #     cargo --version
+    #     sccache --version
+    #     maturin --version
