@@ -11,7 +11,7 @@ runs:
     - name: Install tomli
       shell: bash
       run: |
-        pip install tomli
+        pip install tomli tomli-w
 
     - name: Propagate version
       shell: bash
