@@ -153,10 +153,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup s
-        uses: ./.github/actions/rust-sccache-setup
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Setup s
+      #   uses: ./.github/actions/rust-sccache-setup
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Propagate version
         uses: ./.github/actions/propagate-version
@@ -166,6 +166,7 @@ jobs:
         with:
           command: sdist
           working-directory: bindings/python
+          sccache: true
           args: --out ../../dist
 
       - name: Upload sdist
@@ -174,8 +175,8 @@ jobs:
           name: sdist
           path: dist/*
 
-      - name: Save sccache cache
-        uses: ./.github/actions/rust-sccache-cache
+      # - name: Save sccache cache
+      #   uses: ./.github/actions/rust-sccache-cache
 
   publish_crate:
     name: Crates.io release
