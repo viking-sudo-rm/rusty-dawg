@@ -176,7 +176,7 @@ jobs:
         run: |
           mv README.md README.txt
           cd bindings/python
-          maturin sdist --release --out ../../dist
+          maturin sdist --out ../../dist
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
