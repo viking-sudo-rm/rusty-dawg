@@ -25,10 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup s
-        uses: ./.github/actions/rust-sccache-setup
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Setup sccache
+      #   uses: ./.github/actions/rust-sccache-setup
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install 32bit version of libc
         if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
@@ -42,11 +42,13 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
+          command: build
           target: ${{ matrix.target }}
           args: --release --out ../../dist --find-interpreter
           manylinux: manylinux_2_28
           container: "ghcr.io/rust-cross/manylinux_2_28-cross:${{ matrix.target }}"
           working-directory: bindings/python
+          sccache: true
           before-script-linux: |
             sudo apt-get update
             sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools
@@ -70,8 +72,8 @@ jobs:
           name: linux-wheels-${{ matrix.target }}
           path: dist/*
 
-      - name: Save sccache
-        uses: ./.github/actions/rust-sccache-cache
+      # - name: Save sccache
+      #   uses: ./.github/actions/rust-sccache-cache
 
   python_build_macos:
     name: Python bindings (macos, ${{ matrix.target }})
@@ -83,10 +85,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup sccache
-        uses: ./.github/actions/rust-sccache-setup
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Setup sccache
+      #   uses: ./.github/actions/rust-sccache-setup
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Propagate version
         uses: ./.github/actions/propagate-version
@@ -94,9 +96,11 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
+          command: build
           target: ${{ matrix.target }}
           args: --release --out ../../dist --find-interpreter
           working-directory: bindings/python
+          sccache: true
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -104,8 +108,8 @@ jobs:
           name: macos-wheels-${{ matrix.target }}
           path: dist/*
 
-      - name: Save Rust and sccache cache
-        uses: ./.github/actions/rust-sccache-cache
+      # - name: Save Rust and sccache cache
+      #   uses: ./.github/actions/rust-sccache-cache
 
 
   # python_build_windows:
