@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, i686-unknown-linux-gnu]
+        target: [x86_64, aarch64, armv7]
 
     steps:
       - uses: actions/checkout@v4
@@ -37,18 +37,30 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --upgrade libc6-dev-i386
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools pkg-config libudev-dev
-
-      - name: Add missing target
-        run: |
-          rustup target add ${{ matrix.target }}
-
       - name: Build wheels
-        run: |
-          ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist --find-interpreter
+          manylinux: manylinux_2_28
+          container: "ghcr.io/rust-cross/manylinux_2_28-cross:${{ matrix.target }}"
+          working-directory: bindings/python
+          before-script-linux: |
+            sudo apt-get update
+            sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools
+
+      # - name: Install dependencies
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools pkg-config libudev-dev
+
+      # - name: Add missing target
+      #   run: |
+      #     rustup target add ${{ matrix.target }}
+
+      # - name: Build wheels
+      #   run: |
+      #     ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -65,7 +77,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+        target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
 
@@ -75,13 +87,12 @@ jobs:
           rust-version: stable
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add missing target
-        run: |
-          rustup target add ${{ matrix.target }}
-
       - name: Build wheels
-        run: |
-          ./scripts/rebuild_bindings.sh --no-install --target ${{ matrix.target }}
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist --find-interpreter
+          working-directory: bindings/python
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -141,8 +152,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build sdist
-        run: |
-          ./scripts/rebuild_bindings.sh --sdist --no-install
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          working-directory: bindings/python
+          args: --out ../../dist
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
