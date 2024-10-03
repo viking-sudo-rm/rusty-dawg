@@ -37,6 +37,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --upgrade libc6-dev-i386
 
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -86,6 +89,9 @@ jobs:
         with:
           rust-version: stable
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -150,6 +156,9 @@ jobs:
         with:
           rust-version: stable
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
 
       - name: Build sdist
         uses: PyO3/maturin-action@v1
