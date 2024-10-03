@@ -152,8 +152,8 @@ jobs:
       #   with:
       #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Propagate version
-        uses: ./.github/actions/propagate-version
+      # - name: Propagate version
+      #   uses: ./.github/actions/propagate-version
 
       - name: Download and install Rust
         shell: bash
@@ -175,8 +175,7 @@ jobs:
       - name: Build sdist
         shell: bash
         run: |
-          cd bindings/python
-          maturin sdist --out ../../dist
+          ./scripts/rebuild_bindings.sh --sdist --no-install
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
