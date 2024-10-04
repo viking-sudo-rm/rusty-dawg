@@ -1,0 +1,46 @@
+name: 'Propagate version'
+description: 'Propagate the version Rusty DAWG version to the Python bindings'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install tomli
+      shell: bash
+      run: |
+        pip install tomli tomli-w
+
+    - name: Propagate version
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE
+
+        python3 << EOF
+        import tomli
+        import tomli_w
+        import os
+
+        # Read the root Cargo.toml
+        with open('Cargo.toml', 'rb') as f:
+            root_cargo = tomli.load(f)
+
+        # Extract the version
+        version = root_cargo['package']['version']
+
+        # Read the Python bindings Cargo.toml
+        python_cargo_path = os.path.join('bindings', 'python', 'Cargo.toml')
+        with open(python_cargo_path, 'rb') as f:
+            python_cargo = tomli.load(f)
+
+        # Update the version
+        python_cargo.setdefault('package', {})['version'] = version
+
+        # Write the updated Python bindings Cargo.toml
+        with open(python_cargo_path, 'wb') as f:
+            tomli_w.dump(python_cargo, f)
+
+        print(f"Version {version} propagated to {python_cargo_path}")
+        EOF

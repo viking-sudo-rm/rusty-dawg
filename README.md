@@ -123,12 +123,12 @@ Refer to [scripts/cdawg/test_cdawg_matches_dawg.py](https://github.com/viking-su
 
 ```bibtex
 @misc{merrill2024evaluatingngramnoveltylanguage,
-      title={Evaluating $n$-Gram Novelty of Language Models Using Rusty-DAWG}, 
+      title={Evaluating $n$-Gram Novelty of Language Models Using Rusty-DAWG},
       author={William Merrill and Noah A. Smith and Yanai Elazar},
       year={2024},
       eprint={2406.13069},
       archivePrefix={arXiv},
       primaryClass={cs.CL}
-      url={https://arxiv.org/abs/2406.13069}, 
+      url={https://arxiv.org/abs/2406.13069},
 }
 ```

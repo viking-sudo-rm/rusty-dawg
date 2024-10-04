@@ -4,12 +4,10 @@ build-backend = "maturin"
 
 [project]
 name = "rusty-dawg"
-requires-python = ">=3.7"
-classifiers = [
-    "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
-]
+dynamic = ["version"]
+description = "A Rust library for building and querying Directed Acyclic Word Graphs (DAWGs) and Compacted DAWGs (CDAWGs) for efficient string indexing and searching."
+authors = [{name = "lambdaviking"}]
+requires-python = ">=3.10"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
