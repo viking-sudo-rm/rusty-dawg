@@ -158,7 +158,7 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
@@ -187,7 +187,7 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
@@ -215,29 +215,29 @@ jobs:
           working-directory: bindings/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: bindings/python/dist
 
-  # python_build_sdist:
-  #   name: Python bindings (sdist)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
+#   python_build_sdist:
+#     name: Python bindings (sdist)
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
 
-  #     - name: Build sdist
-  #       uses: PyO3/maturin-action@v1
-  #       with:
-  #         command: sdist
-  #         args: --out dist
-  #         working-directory: bindings/python
+#       - name: Build sdist
+#         uses: PyO3/maturin-action@v1
+#         with:
+#           command: sdist
+#           args: --out dist
+#           working-directory: bindings/python
 
-  #     - name: Upload sdist
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: wheels
-  #         path: bindings/python/dist
+#       - name: Upload sdist
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: wheels
+#           path: bindings/python/dist
 
   publish_crate:
     name: Publish crate
