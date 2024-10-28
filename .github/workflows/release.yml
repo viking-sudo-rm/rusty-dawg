@@ -1,0 +1,205 @@
+name: Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+    tags:
+    - 'v*.*.*'
+
+jobs:
+  python_build_linux:
+    name: Python bindings (linux, ${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64, aarch64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist --find-interpreter
+          manylinux: manylinux_2_28
+          container: "ghcr.io/rust-cross/manylinux_2_28-cross:${{ matrix.target }}"
+          working-directory: bindings/python
+          sccache: true
+          before-script-linux: |
+            sudo apt-get update
+            sudo apt-get install --yes --upgrade build-essential cmake protobuf-compiler libssl-dev glibc-source musl-tools
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-wheels-${{ matrix.target }}
+          path: dist/*
+
+
+  python_build_macos:
+    name: Python bindings (macos, ${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist --find-interpreter
+          working-directory: bindings/python
+          sccache: true
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-wheels-${{ matrix.target }}
+          path: dist/*
+
+
+  python_build_windows:
+    name: Python bindings (windows, ${{ matrix.target }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist --find-interpreter
+          working-directory: bindings/python
+          sccache: true
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-wheels-${{ matrix.target }}
+          path: dist/*
+
+
+  python_build_sdist:
+    name: Python bindings (sdist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # - name: Setup s
+      #   uses: ./.github/actions/rust-sccache-setup
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Propagate version
+        uses: ./.github/actions/propagate-version
+
+      - name: Download and install Rust
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install maturin
+        shell: bash
+        run: |
+          pip install maturin tomli
+          echo "Maturin version: $(maturin --version)"
+
+      - name: Build sdist
+        shell: bash
+        run: |
+          mv README.md README.txt
+          cd bindings/python
+          maturin sdist --out ../../dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*
+
+      # - name: Save sccache cache
+      #   uses: ./.github/actions/rust-sccache-cache
+
+  publish_crate:
+    name: Crates.io release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and install Rust
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Log in to crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_TOKEN }}
+
+      - name: Publish to crates.io
+        run: |
+          cargo publish
+
+
+  publish_python_bindings:
+    name: PyPI release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [python_build_linux, python_build_macos, python_build_windows, python_build_sdist]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Prepare distribution files
+        run: |
+          mkdir combined-dist
+          cp dist/*/* combined-dist/
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+          packages_dir: combined-dist/
+          skip-existing: true

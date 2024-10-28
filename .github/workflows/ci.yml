@@ -1,0 +1,62 @@
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+
+jobs:
+  rust_checks:
+    name: ${{ matrix.task.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        rust: [stable]
+        task:
+          - name: Test
+            run: cargo test
+
+          - name: Format
+            run: |
+              rustup component add rustfmt
+              cargo fmt -- --check
+
+          - name: Lint
+            run: |
+              rustup component add clippy
+              make lint
+
+          - name: Benchmark
+            run: |
+              # Install deps.
+              echo "=========== Installing zsh ============"
+              sudo apt-get install zsh
+
+              # Build release.
+              echo "============= Compiling ==============="
+              cargo build --release
+
+              # Download data files.
+              echo "========== Downloading data ==========="
+              pip install gdown
+              gdown 1XRZA2eki_Z8M0QrYN4BrbN7dghMYqYby
+              unzip data.zip
+
+              # Run benchmark.
+              echo "========= Running benchmark ==========="
+              ./scripts/benchmark.sh wikitext-2-raw
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ${{ matrix.task.name }}
+        run: ${{ matrix.task.run }}

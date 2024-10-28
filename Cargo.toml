@@ -1,9 +1,13 @@
 [package]
 name = "rusty-dawg"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["lambdaviking"]
 repository = "https://github.com/viking-sudo-rm/rusty-dawg"
 edition = "2021"
+description = "A Rust library for building and querying Directed Acyclic Word Graphs (DAWGs) and Compacted DAWGs (CDAWGs) for efficient string indexing and searching."
+license = "MIT"
+
+
 
 [dependencies]
 bincode = "1.3.3"
