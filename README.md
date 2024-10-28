@@ -1,15 +1,20 @@
 # Rusty-DAWG
 
-A library for building directed acyclic word graphs (DAWGs) or compacted DAWGS (CDAWGS) for string indexing and searching in Rust.
+Have you ever wanted to quickly search for text in a massive corpus of text, such as a language model pretraining dataset? Now you can, using the magic of **directed acyclic word graphs** (DAWGs) implemented in Rust.
+Some ways where the Rusty-DAWG library could be directly useful:
+1. Check which substrings of some text occurred in a pretraining corpus, and how often
+2. Deduplicate or decontaminate a pretraining corpus
+3. Build an unbounded-length n-gram model
+4. Build a retrieval language model
 
-The key features are:
+The key features of the Rusty-DAWG library are:
 1. Build a DAWG or CDAWG indexon a corpus with a one-liner. The (C)DAWG can be saved in two formats: a graph stored in RAM and a graph stored on disk.
 2. Use Python bindings to load a saved (C)DAWG for doing fast n-gram search (you can also load it in Rust, but we recommend working with the Python API).
 3. An API server and web demo for visualizing n-gram search results over a pre-built (C)DAWG.
 
 ## Authors
 
-This library was started by Will Merrill and Yanai Elazar as part of an internship project at AI2. Ananya Jha, Rodney Kinney, David Wadden, Pete Walsh have all since contributed core engineering features. We've also appreciated the support of Michal Guerquin, Johann Dahm, and other members of the Beaker team at AI2 for getting the library to run at very large scale, as well as the data structures expertise of Shunsuke Inenaga.
+This library was started by Will Merrill and Yanai Elazar as part of an internship project at AI2. Ananya Jha, Rodney Kinney, Jackson Petty, Luca Soldaini, David Wadden, Pete Walsh have all since contributed. We've also appreciated the support of Michal Guerquin, Johann Dahm, and other members of the Beaker team at AI2 for getting the library to run at very large scale, as well as the data structures expertise of Shunsuke Inenaga.
 
 # Getting Started
 
