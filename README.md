@@ -8,7 +8,7 @@ Some ways where the Rusty-DAWG library could be directly useful:
 4. Build a retrieval language model
 
 The key features of the Rusty-DAWG library are:
-1. Build a DAWG or CDAWG indexon a corpus with a one-liner. The (C)DAWG can be saved in two formats: a graph stored in RAM and a graph stored on disk.
+1. Build a DAWG or CDAWG index on a corpus with a one-liner. The (C)DAWG can be saved in two formats: a graph stored in RAM and a graph stored on disk.
 2. Use Python bindings to load a saved (C)DAWG for doing fast n-gram search (you can also load it in Rust, but we recommend working with the Python API).
 3. An API server and web demo for visualizing n-gram search results over a pre-built (C)DAWG.
 
