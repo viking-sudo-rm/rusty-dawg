@@ -130,7 +130,7 @@ If you found Rusty-DAWG useful, please cite it with either the ACL Anthology cit
 
 ```bibtex
 @inproceedings{merrill-etal-2024-evaluating,
-      title = "Effects of Parameter Norm Growth During Transformer Training: Inductive Bias from Gradient Descent",
+      title = "Evaluating $n$-Gram Novelty of Language Models Using Rusty-DAWG",
       author={William Merrill and Noah A. Smith and Yanai Elazar},
       booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing",
       month = nov,
