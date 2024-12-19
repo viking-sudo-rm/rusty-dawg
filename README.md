@@ -60,7 +60,7 @@ DATA=/home/willm/splits ./scripts/benchmark.sh wikitext-2-raw
 
 The core functionality of Rusty-DAWG is to build DAWGs and CDAWGs, which are indexing structures for large corpora. The CDAWG is a strict improvement of the DAWG, so we recommend using the CDAWG if you are building a new index from scratch.
 
-To get started building a CDAWG on your corpus, we recommend adapting the [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script. This script was written to build a CDAWG (memory-efficient improvement of DAWG) on the Pile. It could be run as follows:
+To get started building a CDAWG on your corpus, we recommend adapting the [scripts/cdawg/run_pile.sh](https://github.com/viking-sudo-rm/rusty-dawg/blob/main/scripts/cdawg/run_pile.sh) script. This script was written to build a CDAWG on the Pile. Assuming you have access to the Pile in `.jsonl.gz` format (ask William Merrill), the script can be run as follows:
 
 ```bash
 scripts/cdawg/run_pile.sh /home/willm/data/pile/00_0.json.gz /home/willm/cdawgs/00_0
@@ -126,14 +126,17 @@ Refer to [scripts/cdawg/test_cdawg_matches_dawg.py](https://github.com/viking-su
 
 # Citation
 
+If you found Rusty-DAWG useful, please cite it with either the ACL Anthology citation or the following:
+
 ```bibtex
-@misc{merrill2024evaluatingngramnoveltylanguage,
-      title={Evaluating $n$-Gram Novelty of Language Models Using Rusty-DAWG},
+@inproceedings{merrill-etal-2024-evaluating,
+      title = "Effects of Parameter Norm Growth During Transformer Training: Inductive Bias from Gradient Descent",
       author={William Merrill and Noah A. Smith and Yanai Elazar},
-      year={2024},
-      eprint={2406.13069},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
-      url={https://arxiv.org/abs/2406.13069},
+      booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing",
+      month = nov,
+      year = "2024",
+      address = "Miami, Florida, USA",
+      publisher = "Association for Computational Linguistics",
+      url = "https://openreview.net/forum?id=NgWSakw55z",
 }
 ```

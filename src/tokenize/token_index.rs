@@ -51,7 +51,7 @@ where
             let usize_index: usize = index.try_into().unwrap_or_else(|_| panic!("Err!!!"));
             return self.index_to_token[usize_index].as_str();
         }
-        return self.token(self.unk);
+        self.token(self.unk)
     }
 
     pub fn eos(&self) -> E {

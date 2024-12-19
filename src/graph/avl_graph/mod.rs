@@ -569,7 +569,7 @@ where
     edges: Edges<'a, N, E, Ix, Mb>,
 }
 
-impl<'a, N, E, Ix, Mb> Iterator for Neighbors<'a, N, E, Ix, Mb>
+impl<N, E, Ix, Mb> Iterator for Neighbors<'_, N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
@@ -601,7 +601,7 @@ where
     stack: Vec<EdgeIndex<Ix>>,
 }
 
-impl<'a, N, E, Ix, Mb> Iterator for Edges<'a, N, E, Ix, Mb>
+impl<N, E, Ix, Mb> Iterator for Edges<'_, N, E, Ix, Mb>
 where
     Mb: MemoryBacking<N, E, Ix>,
     Ix: IndexType,
