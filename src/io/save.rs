@@ -1,4 +1,3 @@
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::Cdawg;
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
@@ -45,20 +44,20 @@ where
     }
 }
 
-impl<W> Save for Cdawg<W, DefaultIx, DiskBacking<W, CdawgEdgeWeight<DefaultIx>, DefaultIx>>
+impl<W> Save for Cdawg<W, DefaultIx, DiskBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
 where
     W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
-    CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
+    (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
         Ok(Cdawg::save_metadata(self, save_path)?)
     }
 }
 
-impl<W> Save for Cdawg<W, DefaultIx, RamBacking<W, CdawgEdgeWeight<DefaultIx>, DefaultIx>>
+impl<W> Save for Cdawg<W, DefaultIx, RamBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
 where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
-    CdawgEdgeWeight<DefaultIx>: Serialize + for<'de> Deserialize<'de>,
+    (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
         // unimplemented!("Can't yet save CDAWGs on RAM");

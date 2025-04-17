@@ -6,7 +6,6 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::Path;
 
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::Cdawg;
 use crate::graph::indexing::IndexType;
 use crate::memory_backing::MemoryBacking;
@@ -32,7 +31,7 @@ impl BuildStats {
     where
         W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
         Ix: IndexType,
-        Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
+        Mb: MemoryBacking<W, (Ix, Ix), Ix>,
     {
         Self {
             n_tokens,
