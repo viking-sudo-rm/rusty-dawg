@@ -3,7 +3,6 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::inenaga::Cdawg;
 use crate::cdawg::stack::Stack;
 use crate::graph::indexing::{IndexType, NodeIndex};
@@ -56,7 +55,7 @@ impl<Sb> TopologicalCounter<Sb> {
     where
         Ix: IndexType + Serialize + for<'de> Deserialize<'de>,
         W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
-        Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
+        Mb: MemoryBacking<W, (Ix, Ix), Ix>,
         Sb: Stack<StackOp<Ix>>,
     {
         self.stack.push(StackOp::open(cdawg.get_source()));

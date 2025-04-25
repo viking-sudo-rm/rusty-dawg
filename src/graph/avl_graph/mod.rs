@@ -653,7 +653,6 @@ where
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
     use crate::cdawg::comparator::CdawgComparator;
     use crate::graph::avl_graph::edge::EdgeRef;
     use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
@@ -745,20 +744,32 @@ mod tests {
         let tokens = Rc::new(RefCell::new(vec![10, 11]));
 
         let weight = DefaultWeight::new(0, None, 0);
-        let mut graph: AvlGraph<DefaultWeight, CdawgEdgeWeight<DefaultIx>> = AvlGraph::new();
+        let mut graph: AvlGraph<DefaultWeight, (DefaultIx, DefaultIx)> = AvlGraph::new();
         let source = graph.add_node(weight);
         let sink = graph.add_node(weight);
 
         let cmp0 = CdawgComparator::new_with_token(tokens.clone(), 10);
-        graph.add_balanced_edge_cmp(source, sink, CdawgEdgeWeight::new(0, 2), Box::new(cmp0));
+        graph.add_balanced_edge_cmp(
+            source,
+            sink,
+            (DefaultIx::new(0), DefaultIx::new(2)),
+            Box::new(cmp0),
+        );
 
         let cmp1 = CdawgComparator::new_with_token(tokens.clone(), 11);
-        graph.add_balanced_edge_cmp(source, sink, CdawgEdgeWeight::new(1, 2), Box::new(cmp1));
+        graph.add_balanced_edge_cmp(
+            source,
+            sink,
+            (DefaultIx::new(1), DefaultIx::new(2)),
+            Box::new(cmp1),
+        );
         let edge1 = graph.get_edge(graph.get_node(source).get_first_edge());
-        assert_eq!(edge1.get_weight().get_span(), (0, 2));
+        assert_eq!(edge1.get_weight().0.index(), 0);
+        assert_eq!(edge1.get_weight().1.index(), 2);
         assert_eq!(edge1.get_left(), EdgeIndex::end());
         let edge2 = graph.get_edge(edge1.get_right());
-        assert_eq!(edge2.get_weight().get_span(), (1, 2));
+        assert_eq!(edge2.get_weight().0.index(), 1);
+        assert_eq!(edge2.get_weight().1.index(), 2);
     }
 
     #[test]

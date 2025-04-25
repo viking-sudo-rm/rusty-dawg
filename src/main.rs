@@ -53,8 +53,6 @@ use crate::graph::indexing::DefaultIx;
 use crate::memory_backing::{CacheConfig, DiskBacking, MemoryBacking, RamBacking};
 
 use crate::data_reader::{DataReader, PileReader, TxtReader};
-
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 use crate::weight::DefaultWeight;
 
@@ -207,18 +205,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(path) => {
                 if args.ram {
                     println!("Building CDAWG in RAM but saving on disk...");
-                    type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                    type Mb = RamBacking<N, (DefaultIx, DefaultIx), DefaultIx>;
                     let mb = Mb::default();
                     return Ok(build_cdawg::<Mb>(args, mb)?);
                 }
                 println!("Building CDAWG on disk...");
-                type Mb = DiskBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                type Mb = DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>;
                 let mb = Mb::new(path);
                 Ok(build_cdawg::<Mb>(args, mb)?)
             }
             None => {
                 println!("Building CDAWG in RAM...");
-                type Mb = RamBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+                type Mb = RamBacking<N, (DefaultIx, DefaultIx), DefaultIx>;
                 let mb = Mb::default();
                 Ok(build_cdawg::<Mb>(args, mb)?)
             }

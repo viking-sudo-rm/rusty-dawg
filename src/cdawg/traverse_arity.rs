@@ -4,7 +4,6 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::inenaga::Cdawg;
 use crate::cdawg::stack::Stack;
 use crate::graph::indexing::{IndexType, NodeIndex};
@@ -49,7 +48,7 @@ impl<Sb> TraverseArity<Sb> {
     where
         Ix: IndexType + Serialize + for<'de> Deserialize<'de>,
         W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
-        Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
+        Mb: MemoryBacking<W, (Ix, Ix), Ix>,
         Sb: Stack<usize>,
     {
         let mut arities = Vec::with_capacity(self.visited.len());
