@@ -197,7 +197,7 @@ jobs:
           mkdir combined-dist
           cp dist/*/* combined-dist/
       - name: Upload to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.10.2
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
