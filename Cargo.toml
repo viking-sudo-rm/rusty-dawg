@@ -27,7 +27,7 @@ anyhow = "1.0"
 tokenizers = { version = "0.20.3", default-features = false, features = ["progressbar", "http", "onig"] }
 unicode-segmentation = "1.12"
 fslock = "0.2.1"
-flate2 = "1.1.0"
+flate2 = "1.1.2"
 comparator = "0.3.0"
 lru = "0.14.0"
 memmap2 = "0.9.5"
