@@ -7,12 +7,11 @@ use std::rc::Rc;
 use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
-use rusty_dawg::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use rusty_dawg::graph::indexing::{DefaultIx, EdgeIndex, NodeIndex};
 use rusty_dawg::memory_backing::{CacheConfig, DiskBacking, DiskVec};
 use rusty_dawg::weight::DefaultWeight;
 
-type Mb = DiskBacking<DefaultWeight, CdawgEdgeWeight<DefaultIx>, DefaultIx>;
+type Mb = DiskBacking<DefaultWeight, (DefaultIx, DefaultIx), DefaultIx>;
 
 #[pyclass(unsendable)]
 pub struct DiskCdawg {

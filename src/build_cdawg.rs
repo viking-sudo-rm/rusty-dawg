@@ -18,7 +18,6 @@ use kdam::{tqdm, BarExt};
 use super::Args;
 
 use crate::build_stats::BuildStats;
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::token_backing::TokenBacking;
 use crate::cdawg::Cdawg;
 use crate::cdawg::TopologicalCounter;
@@ -32,11 +31,10 @@ use crate::memory_backing::{DiskVec, MemoryBacking};
 use crate::tokenize::{NullTokenIndex, PretrainedTokenizer, TokenIndex, Tokenize};
 
 type N = super::N;
-type E = CdawgEdgeWeight<DefaultIx>;
 
 pub fn build_cdawg<Mb>(args: Args, mb: Mb) -> Result<()>
 where
-    Mb: MemoryBacking<N, CdawgEdgeWeight<DefaultIx>, DefaultIx>,
+    Mb: MemoryBacking<N, (DefaultIx, DefaultIx), DefaultIx>,
     Cdawg<N, DefaultIx, Mb>: io::Save,
 {
     // TODO: Support token types with more bits?
@@ -55,9 +53,12 @@ where
     println!("==========");
     println!("  Ix: {}B", size_of::<DefaultIx>());
     println!("  N: {}B", size_of::<N>());
-    println!("  E: {}B", size_of::<E>());
+    println!("  E: {}B", size_of::<(DefaultIx, DefaultIx)>());
     println!("  Node: {}B", size_of::<Node<N, DefaultIx>>());
-    println!("  Edge: {}B", size_of::<Edge<E, DefaultIx>>());
+    println!(
+        "  Edge: {}B",
+        size_of::<Edge<(DefaultIx, DefaultIx), DefaultIx>>()
+    );
     println!();
 
     println!("Opening train file...");

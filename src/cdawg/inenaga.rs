@@ -29,7 +29,6 @@ use std::convert::TryInto;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::cdawg::cdawg_edge_weight::CdawgEdgeWeight;
 use crate::cdawg::cdawg_state::CdawgState;
 use crate::cdawg::comparator::CdawgComparator;
 use crate::cdawg::metadata::CdawgMetadata;
@@ -44,14 +43,14 @@ use crate::weight::{DefaultWeight, Weight};
 
 // TODO: Add TokenBacking for tokens
 
-pub struct Cdawg<W = DefaultWeight, Ix = DefaultIx, Mb = RamBacking<W, CdawgEdgeWeight<Ix>, Ix>>
+pub struct Cdawg<W = DefaultWeight, Ix = DefaultIx, Mb = RamBacking<W, (Ix, Ix), Ix>>
 where
     Ix: IndexType,
     W: Weight + Clone,
-    Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
+    Mb: MemoryBacking<W, (Ix, Ix), Ix>,
 {
     tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
-    graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb>,
+    graph: AvlGraph<W, (Ix, Ix), Ix, Mb>,
     source: NodeIndex<Ix>,
     sink: NodeIndex<Ix>,
     end_position: usize, // End position of current document.
@@ -63,16 +62,16 @@ where
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
 {
     pub fn new(tokens: Rc<RefCell<dyn TokenBacking<u16>>>) -> Self {
-        let mb: RamBacking<W, CdawgEdgeWeight<Ix>, Ix> = RamBacking::default();
+        let mb: RamBacking<W, (Ix, Ix), Ix> = RamBacking::default();
         Self::new_mb(tokens, mb)
     }
 }
 
-impl<W, Ix> Cdawg<W, Ix, DiskBacking<W, CdawgEdgeWeight<Ix>, Ix>>
+impl<W, Ix> Cdawg<W, Ix, DiskBacking<W, (Ix, Ix), Ix>>
 where
     Ix: IndexType + Serialize + for<'de> serde::Deserialize<'de>,
     W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
-    CdawgEdgeWeight<Ix>: Serialize + for<'de> Deserialize<'de>,
+    (Ix, Ix): Serialize + for<'de> Deserialize<'de>,
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
         tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
@@ -111,11 +110,11 @@ impl<W, Ix, Mb> Cdawg<W, Ix, Mb>
 where
     Ix: IndexType,
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
-    Mb: MemoryBacking<W, CdawgEdgeWeight<Ix>, Ix>,
+    Mb: MemoryBacking<W, (Ix, Ix), Ix>,
     Mb::EdgeRef: Copy,
 {
     pub fn new_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, mb: Mb) -> Cdawg<W, Ix, Mb> {
-        let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> = AvlGraph::new_mb(mb);
+        let mut graph: AvlGraph<W, (Ix, Ix), Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
         // FIXME: Hacky type conversion for sink failure.
         let sink = graph.add_node(W::new(0, Some(NodeIndex::new(source.index())), 1));
@@ -135,7 +134,7 @@ where
         n_edges: usize,
         cache_config: CacheConfig,
     ) -> Cdawg<W, Ix, Mb> {
-        let mut graph: AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> =
+        let mut graph: AvlGraph<W, (Ix, Ix), Ix, Mb> =
             AvlGraph::with_capacity_mb(mb, n_nodes, n_edges, cache_config);
         let source = graph.add_node(W::new(0, None, 0));
         // FIXME: Hacky type conversion for sink failure.
@@ -291,7 +290,7 @@ where
         // let edge_idx = self.get_edge_by_token(q, token);
         let edge_idx = self.get_edge_by_token_index(q, gamma.0 - 1);
         let edge = self.graph.get_edge(edge_idx.unwrap());
-        let (mut start, end) = edge.get_weight().get_span(); // We DON'T call get_span because we want to keep end pointers.
+        let (mut start, end) = (edge.get_weight().0.index(), edge.get_weight().1.index()); // We DON'T call get_span because we want to keep end pointers.
         start += 1; // Map back to Inenaga 1-indexed!
         let target = edge.get_target();
 
@@ -464,17 +463,17 @@ where
     // Add a new edge with appropriate weight.
     // Take in indices with paper's conventions and return ours.
     // Maybe make this a macro?
-    fn _new_edge_weight(&mut self, start: usize, end: usize) -> CdawgEdgeWeight<Ix> {
-        CdawgEdgeWeight::new(
-            start - 1, // Map start to 0-indexed
-            end,       // Keep end as 1-indexed
-        )
+    fn _new_edge_weight(&mut self, start: usize, end: usize) -> (Ix, Ix) {
+        (
+            Ix::new(start - 1), // Map start to 0-indexed
+            Ix::new(end),
+        ) // Keep end as 1-indexed
     }
 
     // Get the Inenaga-indexed span associated with an edge.
     // Maybe make this a macro?
-    fn get_span(&self, weight: CdawgEdgeWeight<Ix>, target: NodeIndex<Ix>) -> (usize, usize) {
-        let (start, end) = weight.get_span();
+    fn get_span(&self, weight: (Ix, Ix), target: NodeIndex<Ix>) -> (usize, usize) {
+        let (start, end) = (weight.0.index(), weight.1.index());
         // Shift to 1-indexed and retrieve value of end pointer.
         if end < Ix::max_value().index() {
             (start + 1, end)
@@ -486,7 +485,8 @@ where
                 (start + 1, self.end_position)
             } else {
                 // We are at the sink for a different document.
-                let (e, _) = self.graph.get_edge(edge_idx).get_weight().get_span();
+                let weight = self.graph.get_edge(edge_idx).get_weight();
+                let (e, _) = (weight.0.index(), weight.1.index());
                 (start + 1, e + 1) // Adjust both to be 1-indexed.
             }
             // let e = self.graph.get_node(target).get_length();
@@ -506,7 +506,7 @@ where
 
     // Convenience methods.
 
-    pub fn get_graph(&self) -> &AvlGraph<W, CdawgEdgeWeight<Ix>, Ix, Mb> {
+    pub fn get_graph(&self) -> &AvlGraph<W, (Ix, Ix), Ix, Mb> {
         &self.graph
     }
 
@@ -536,7 +536,7 @@ where
     // Only well-defined when token is not end-of-text.
     pub fn get_edge_by_token(&self, state: NodeIndex<Ix>, token: u16) -> Option<EdgeIndex<Ix>> {
         if token != u16::MAX {
-            let weight = CdawgEdgeWeight::new(0, 0); // Doesn't matter.
+            let weight = (Ix::new(0), Ix::new(0)); // Doesn't matter.
             let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
             self.graph
                 .get_edge_by_weight_cmp(state, weight, Box::new(cmp))
@@ -551,7 +551,7 @@ where
         state: NodeIndex<Ix>,
         token_idx: usize,
     ) -> Option<EdgeIndex<Ix>> {
-        let weight = CdawgEdgeWeight::new(token_idx, token_idx + 1);
+        let weight = (Ix::new(token_idx), Ix::new(token_idx + 1));
         let token = self.tokens.borrow().get(token_idx);
         let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
         self.graph
@@ -902,12 +902,14 @@ mod tests {
         let idx1 = cdawg.graph.get_node(cdawg.source).get_first_edge();
         let edge1 = cdawg.graph.get_edge(idx1);
         assert_eq!(edge1.get_target().index(), v.index());
-        assert_eq!(edge1.get_weight().get_span(), (0, 1));
+        assert_eq!(edge1.get_weight().0.index(), 0);
+        assert_eq!(edge1.get_weight().1.index(), 1);
 
         let idx2 = cdawg.graph.get_node(v).get_first_edge();
         let edge2 = cdawg.graph.get_edge(idx2);
         assert_eq!(edge2.get_target().index(), cdawg.sink.index());
-        assert_eq!(edge2.get_weight().get_span(), (1, 3));
+        assert_eq!(edge2.get_weight().0.index(), 1);
+        assert_eq!(edge2.get_weight().1.index(), 3);
 
         let target1 = cdawg.extension(cdawg.source, to_inenaga((0, 1)));
         assert_eq!(target1.index(), v.index());
@@ -923,9 +925,12 @@ mod tests {
         cdawg.redirect_edge(cdawg.source, to_inenaga((0, 2)), target); // Arguments are 1-indexed
 
         let idx = cdawg.graph.get_node(cdawg.source).get_first_edge();
-        let edge: *const crate::graph::avl_graph::Edge<CdawgEdgeWeight> = cdawg.graph.get_edge(idx);
+        let edge: *const crate::graph::avl_graph::Edge<(DefaultIx, DefaultIx)> =
+            cdawg.graph.get_edge(idx);
         assert_eq!(edge.get_target().index(), target.index());
-        assert_eq!(edge.get_weight().get_span(), (0, 2)); // Graph is 0-indexed
+        // Graph is 0-indexed
+        assert_eq!(edge.get_weight().0.index(), 0);
+        assert_eq!(edge.get_weight().1.index(), 2);
     }
 
     #[test]
@@ -1195,7 +1200,7 @@ mod tests {
     }
 
     type DiskW = DefaultWeight;
-    type DiskE = CdawgEdgeWeight<DefaultIx>;
+    type DiskE = (DefaultIx, DefaultIx);
     type DiskCdawg = Cdawg<DiskW, DefaultIx, DiskBacking<DiskW, DiskE, DefaultIx>>;
 
     #[test]
@@ -1334,14 +1339,14 @@ mod tests {
         let cmp0 = CdawgComparator::new(train.clone());
         let doc0 = cdawg.graph.get_edge_by_weight_cmp(
             cdawg.source,
-            CdawgEdgeWeight::new(3, 0),
+            (DefaultIx::new(3), DefaultIx::new(0)),
             Box::new(cmp0),
         );
         assert_eq!(cdawg.graph.get_edge(doc0.unwrap()).get_target().index(), 1);
         let cmp1 = CdawgComparator::new(train.clone());
         let doc1 = cdawg.graph.get_edge_by_weight_cmp(
             cdawg.source,
-            CdawgEdgeWeight::new(7, 0),
+            (DefaultIx::new(7), DefaultIx::new(0)),
             Box::new(cmp1),
         );
         assert_eq!(cdawg.graph.get_edge(doc1.unwrap()).get_target().index(), 2);
@@ -1411,7 +1416,7 @@ mod tests {
         let cmp0 = CdawgComparator::new(train.clone());
         let doc0 = cdawg.graph.get_edge_by_weight_cmp(
             cdawg.source,
-            CdawgEdgeWeight::new(1, 2),
+            (DefaultIx::new(1), DefaultIx::new(2)),
             Box::new(cmp0),
         );
         assert_eq!(
@@ -1421,7 +1426,7 @@ mod tests {
         let cmp1 = CdawgComparator::new(train.clone());
         let doc1 = cdawg.graph.get_edge_by_weight_cmp(
             cdawg.source,
-            CdawgEdgeWeight::new(3, 4),
+            (DefaultIx::new(3), DefaultIx::new(4)),
             Box::new(cmp1),
         );
         assert_eq!(
