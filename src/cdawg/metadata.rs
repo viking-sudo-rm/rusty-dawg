@@ -12,6 +12,13 @@ pub struct CdawgMetadata {
     pub end_position: usize, // End position of active document.
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct ImmutableCdawgMetadata {
+    pub source: usize,       // Index of source node.
+    pub sink: usize,         // Index of sink node.
+    pub end_position: usize, // End position of active document.
+}
+
 impl CdawgMetadata {
     pub fn load_json<P: AsRef<Path>>(file_path: P) -> Result<Self> {
         let mut file = File::open(file_path)?;
