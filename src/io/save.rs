@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Eq;
 use std::fmt::Debug;
 
+use crate::cdawg::immutable_cdawg::ImmutableCdawg;
 use bincode::serialize_into;
 
 pub trait Save {
@@ -66,6 +67,31 @@ where
         self.get_graph().save_to_disk(save_path)?;
         // Then generate metadata as we would normally.
         Cdawg::save_metadata(self, save_path)?;
+        Ok(())
+    }
+}
+
+impl<W> Save for ImmutableCdawg<W, DefaultIx, DiskBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
+where
+    W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
+{
+    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+        Ok(ImmutableCdawg::save_metadata(self, save_path)?)
+    }
+}
+
+impl<W> Save for ImmutableCdawg<W, DefaultIx, RamBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
+where
+    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
+{
+    fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
+        println!("Saving RAM -> disk...");
+        // First save whatever is in RAM to disk.
+        self.get_graph().save_to_disk(save_path)?;
+        // Then generate metadata as we would normally.
+        ImmutableCdawg::save_metadata(self, save_path)?;
         Ok(())
     }
 }
