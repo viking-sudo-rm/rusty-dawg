@@ -24,15 +24,13 @@
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
 use std::convert::TryInto;
 use std::path::Path;
-use std::rc::Rc;
 
 use crate::cdawg::cdawg_state::CdawgState;
 use crate::cdawg::comparator::CdawgComparator;
 use crate::cdawg::metadata::CdawgMetadata;
-use crate::cdawg::token_backing::TokenBacking;
+use crate::cdawg::TokenBackingReference;
 use crate::graph::avl_graph::edge::EdgeMutRef;
 use crate::graph::avl_graph::node::NodeMutRef;
 use crate::graph::avl_graph::AvlGraph;
@@ -49,7 +47,7 @@ where
     W: Weight + Clone,
     Mb: MemoryBacking<W, (Ix, Ix), Ix>,
 {
-    tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
+    tokens: TokenBackingReference,
     graph: AvlGraph<W, (Ix, Ix), Ix, Mb>,
     source: NodeIndex<Ix>,
     sink: NodeIndex<Ix>,
@@ -61,7 +59,7 @@ where
     Ix: IndexType,
     W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
 {
-    pub fn new(tokens: Rc<RefCell<dyn TokenBacking<u16>>>) -> Self {
+    pub fn new(tokens: TokenBackingReference) -> Self {
         let mb: RamBacking<W, (Ix, Ix), Ix> = RamBacking::default();
         Self::new_mb(tokens, mb)
     }
@@ -74,7 +72,7 @@ where
     (Ix, Ix): Serialize + for<'de> Deserialize<'de>,
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
-        tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
+        tokens: TokenBackingReference,
         path: P,
         cache_config: CacheConfig,
     ) -> Result<Self> {
@@ -113,7 +111,7 @@ where
     Mb: MemoryBacking<W, (Ix, Ix), Ix>,
     Mb::EdgeRef: Copy,
 {
-    pub fn new_mb(tokens: Rc<RefCell<dyn TokenBacking<u16>>>, mb: Mb) -> Cdawg<W, Ix, Mb> {
+    pub fn new_mb(tokens: TokenBackingReference, mb: Mb) -> Cdawg<W, Ix, Mb> {
         let mut graph: AvlGraph<W, (Ix, Ix), Ix, Mb> = AvlGraph::new_mb(mb);
         let source = graph.add_node(W::new(0, None, 0));
         // FIXME: Hacky type conversion for sink failure.
@@ -128,7 +126,7 @@ where
     }
 
     pub fn with_capacity_mb(
-        tokens: Rc<RefCell<dyn TokenBacking<u16>>>,
+        tokens: TokenBackingReference,
         mb: Mb,
         n_nodes: usize,
         n_edges: usize,
@@ -510,6 +508,31 @@ where
         &self.graph
     }
 
+    /*
+     * Dump all of this cdawg's data.
+     *
+     * Ignoring the lint because while it is a very complex type it
+     * exists very briefly as a vehicle to dump the entire state of the CDAWG.
+     */
+    #[allow(clippy::type_complexity)]
+    pub fn get_data_ownership(
+        self,
+    ) -> (
+        TokenBackingReference,
+        AvlGraph<W, (Ix, Ix), Ix, Mb>,
+        NodeIndex<Ix>,
+        NodeIndex<Ix>,
+        usize,
+    ) {
+        (
+            self.tokens,
+            self.graph,
+            self.source,
+            self.sink,
+            self.end_position,
+        )
+    }
+
     pub fn get_source(&self) -> NodeIndex<Ix> {
         self.source
     }
@@ -790,8 +813,11 @@ where
 #[allow(unused_assignments)]
 mod tests {
     use super::*;
+    use crate::cdawg::token_backing::TokenBacking;
     use crate::cdawg::TopologicalCounter;
     use crate::memory_backing::DiskVec;
+    use std::cell::RefCell;
+    use std::rc::Rc;
     use tempfile::tempdir;
 
     macro_rules! get_edge {

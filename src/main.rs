@@ -154,6 +154,10 @@ pub struct Args {
     #[arg(long, short, action)]
     cdawg: bool,
 
+    /// Make CDAWG immutable after building. Only works with CDAWG, not DAWG
+    #[arg(long, short, action)]
+    immutable: bool,
+
     /// Path to store a vector of all tokens in training corpus.
     #[arg(long)]
     train_vec_path: Option<String>,
@@ -199,6 +203,10 @@ impl Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    if args.immutable && !args.cdawg {
+        panic!("--immutable can only be used with --cdawg");
+    }
 
     if args.cdawg {
         return match args.disk_path.clone() {

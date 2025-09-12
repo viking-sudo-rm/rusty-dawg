@@ -1,7 +1,7 @@
 // Implement the VecBacking interface for DiskVec.
 
 use super::disk_mut_refs::{DiskVecItem, MutRef};
-use crate::memory_backing::{CachedDiskVec, VecBacking};
+use crate::memory_backing::{CachedDiskVec, InternallyImmutableVecBacking, VecBacking};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -18,7 +18,7 @@ where
 
 impl<T> Vec<T>
 where
-    T: DiskVecItem + Default + Serialize + DeserializeOwned + Copy,
+    T: Default + Serialize + DeserializeOwned + Copy,
 {
     pub fn new<P: AsRef<Path> + std::fmt::Debug>(
         path: P,
@@ -39,24 +39,34 @@ where
     }
 }
 
-impl<T> VecBacking<T> for Vec<T>
+impl<T> InternallyImmutableVecBacking<T> for Vec<T>
 where
-    T: DiskVecItem + Default + Serialize + DeserializeOwned + Copy,
+    T: Default + Serialize + DeserializeOwned + Copy,
 {
     type TRef = T;
-    type TMutRef = T::MutRef;
 
     fn len(&self) -> usize {
         self.disk_vec.borrow().len()
     }
 
-    fn push(&mut self, item: T) {
-        let _ = self.disk_vec.borrow_mut().push(&item);
-    }
-
     fn index(&self, index: usize) -> T {
         self.disk_vec.borrow_mut().get(index).unwrap()
     }
+
+    fn set(&mut self, index: usize, value: Self::TRef) {
+        let _ = self.disk_vec.borrow_mut().set(index, &value);
+    }
+
+    fn push(&mut self, item: T) {
+        let _ = self.disk_vec.borrow_mut().push(&item);
+    }
+}
+
+impl<T> VecBacking<T> for Vec<T>
+where
+    T: DiskVecItem + Default + Serialize + DeserializeOwned + Copy,
+{
+    type TMutRef = T::MutRef;
 
     fn index_mut(&mut self, index: usize) -> T::MutRef {
         T::MutRef::new(self.disk_vec.clone(), index)
@@ -69,7 +79,6 @@ mod tests {
     use super::*;
     use crate::memory_backing::disk_backing::disk_mut_refs::MutRef;
     use crate::memory_backing::VecBacking;
-    use serde::Deserialize;
     use std::cell::RefCell;
     use std::rc::Rc;
     use tempfile::tempdir;
