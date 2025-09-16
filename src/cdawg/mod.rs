@@ -1,11 +1,12 @@
 mod topological_counter; // Traverses a built CDAWG to add counts to the states.
 pub mod traverse_arity;
 
+pub mod array_cdawg;
 pub mod cdawg_state;
 pub mod comparator;
-pub mod immutable_cdawg;
 mod inenaga; // Algo from "On-line construction of compact directed acyclic word graphs"
 mod metadata;
+pub mod readable_cdawg;
 mod stack;
 pub mod token_backing;
 

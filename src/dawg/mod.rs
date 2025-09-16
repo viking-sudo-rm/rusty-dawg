@@ -22,7 +22,8 @@ use crate::graph::indexing::{DefaultIx, IndexType};
 use crate::memory_backing::{CacheConfig, DiskBacking, MemoryBacking, RamBacking};
 use crate::serde::de::DeserializeOwned; // The global serde, not the submodule
 
-use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
+use crate::graph::avl_graph::node::AvlNodeMutRef;
+use crate::graph::traits::NodeRef;
 
 pub struct Dawg<E, W, Ix = DefaultIx, Mb = RamBacking<W, E, Ix>>
 where

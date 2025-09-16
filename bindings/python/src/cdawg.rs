@@ -1,4 +1,6 @@
 use pyo3::prelude::*;
+use rusty_dawg::cdawg::readable_cdawg::ReadableCdawg;
+use rusty_dawg::graph::traits::NodeRef;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -7,7 +9,6 @@ use crate::cdawg_state::CdawgState;
 
 use rusty_dawg::cdawg;
 use rusty_dawg::graph::indexing::{DefaultIx, EdgeIndex, NodeIndex};
-use rusty_dawg::graph::NodeRef;
 use rusty_dawg::weight::DefaultWeight;
 
 #[pyclass(unsendable)]
@@ -97,7 +98,11 @@ impl Cdawg {
     /// Get list of states that a state connects to. Useful for graph traversal.
     pub fn neighbors(&self, state: usize) -> Vec<usize> {
         let node = NodeIndex::new(state);
-        self.cdawg.get_graph().neighbors(node).map(|x| x.index()).collect()
+        self.cdawg
+            .get_graph()
+            .neighbors(node)
+            .map(|x| x.index())
+            .collect()
     }
 
     pub fn node_count(&self) -> usize {

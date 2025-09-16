@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::graph::avl_graph::AvlGraph;
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
-use crate::graph::{EdgeRef, NodeRef};
+use crate::graph::traits::{EdgeRef, NodeRef};
 use crate::memory_backing::{
     ArrayMemoryBacking, CacheConfig, DiskVec, InternallyImmutableVecBacking, MemoryBacking,
 };
@@ -18,10 +18,11 @@ use crate::weight::Weight;
 use std::fmt::Debug;
 
 pub mod edge;
+mod graph_impl;
 pub mod node;
 mod serde;
 
-pub use self::edge::{ArrayEdge, ArrayEdgeRef};
+pub use self::edge::ArrayEdge;
 pub use self::node::{ArrayNode, ArrayNodeRef};
 
 use crate::memory_backing::RamBacking;
@@ -74,7 +75,7 @@ where
     N: Weight + Copy + Clone + Serialize + DeserializeOwned + Default,
     Ix: IndexType + Serialize + DeserializeOwned,
 {
-    pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
+    pub fn load<P: AsRef<Path> + Clone + Debug>(
         path: P,
         cache_config: CacheConfig,
     ) -> Result<Self> {
@@ -310,10 +311,11 @@ where
 #[allow(unused_variables)]
 #[allow(unused_imports)]
 mod tests {
-    use crate::graph::array_graph::{ArrayEdgeRef, ArrayGraph};
+    use crate::graph::array_graph::ArrayGraph;
     use crate::graph::avl_graph::AvlGraph;
     use crate::graph::comparator::DEFAULT_CMP;
     use crate::graph::indexing::{EdgeIndex, NodeIndex};
+    use crate::graph::traits::EdgeRef;
     use crate::weight::{DefaultWeight, Weight};
 
     fn generate_avl_graph() -> AvlGraph<DefaultWeight, u16> {

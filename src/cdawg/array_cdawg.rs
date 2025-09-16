@@ -1,10 +1,11 @@
 // An immutable version of CDawg
 
 use crate::cdawg::cdawg_state::CdawgState;
-use crate::cdawg::comparator::CdawgComparator;
 use crate::cdawg::metadata::CdawgMetadata;
+use crate::cdawg::readable_cdawg::ReadableCdawg;
+use crate::cdawg::token_backing::TokenBacking;
 use crate::cdawg::{Cdawg, TokenBackingReference};
-use crate::graph::array_graph::{ArrayEdgeRef, ArrayGraph, ArrayNodeRef};
+use crate::graph::array_graph::ArrayGraph;
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
 use crate::memory_backing::{
     ArrayMemoryBacking, CacheConfig, DiskBacking, MemoryBacking, RamBacking,
@@ -12,36 +13,37 @@ use crate::memory_backing::{
 use crate::weight::{DefaultWeight, Weight};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::cell::Ref;
 use std::path::Path;
 
 // TODO: Add method to convert icdawg->cdawg
 /*
- * In general this class is mainly copied from cdawg (inenga.rs), but I don't think it's smart to
+ * In general this class is mainly copied from cdawg (inenaga), but I don't think it's smart to
  * built too many abstractions before the structure of what you want to build is solidified -- so
  * I'd rather merge this first and then refactor out the duplicate methods later.
  */
-pub struct ImmutableCdawg<W = DefaultWeight, Ix = DefaultIx, Mb = RamBacking<W, (Ix, Ix), Ix>>
+pub struct ArrayCdawg<N = DefaultWeight, Ix = DefaultIx, Mb = RamBacking<N, (Ix, Ix), Ix>>
 where
     Ix: IndexType,
-    W: Weight + Clone,
-    Mb: ArrayMemoryBacking<W, (Ix, Ix), Ix>,
+    N: Weight + Clone,
+    Mb: ArrayMemoryBacking<N, (Ix, Ix), Ix>,
 {
     tokens: TokenBackingReference,
-    graph: ArrayGraph<W, (Ix, Ix), Ix, Mb>,
+    graph: ArrayGraph<N, (Ix, Ix), Ix, Mb>,
     source: NodeIndex<Ix>,
     sink: NodeIndex<Ix>, // We don't use the sink, but we'd like the be able to convert back to mutable in the future
     end_position: usize, // End position of current document.
 }
 
-impl<W, Ix> ImmutableCdawg<W, Ix>
+impl<N, Ix> ArrayCdawg<N, Ix>
 where
     Ix: IndexType,
-    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
+    N: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Copy,
 {
-    pub fn new<SourceMb: MemoryBacking<W, (Ix, Ix), Ix>>(
-        mutable_cdawg: Cdawg<W, Ix, SourceMb>,
+    pub fn new<SourceMb: MemoryBacking<N, (Ix, Ix), Ix>>(
+        mutable_cdawg: Cdawg<N, Ix, SourceMb>,
     ) -> Self {
-        let mb: RamBacking<W, (Ix, Ix), Ix> = RamBacking::default();
+        let mb: RamBacking<N, (Ix, Ix), Ix> = RamBacking::default();
         Self::new_mb(
             mutable_cdawg,
             mb,
@@ -53,10 +55,10 @@ where
     }
 }
 
-impl<W, Ix> ImmutableCdawg<W, Ix, DiskBacking<W, (Ix, Ix), Ix>>
+impl<N, Ix> ArrayCdawg<N, Ix, DiskBacking<N, (Ix, Ix), Ix>>
 where
     Ix: IndexType + Serialize + for<'de> serde::Deserialize<'de>,
-    W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    N: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     (Ix, Ix): Serialize + for<'de> Deserialize<'de>,
 {
     pub fn load<P: AsRef<Path> + Clone + std::fmt::Debug>(
@@ -92,20 +94,21 @@ where
     }
 }
 
-impl<W, Ix, Mb> ImmutableCdawg<W, Ix, Mb>
+impl<N, Ix, Mb> ArrayCdawg<N, Ix, Mb>
 where
     Ix: IndexType,
-    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
-    Mb: ArrayMemoryBacking<W, (Ix, Ix), Ix>,
+    N: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Copy,
+    Mb: ArrayMemoryBacking<N, (Ix, Ix), Ix>,
+    Mb::ArrayNodeRef: Copy,
     Mb::ArrayEdgeRef: Copy,
 {
-    pub fn new_mb<SourceMb: MemoryBacking<W, (Ix, Ix), Ix>>(
-        mutable_cdawg: Cdawg<W, Ix, SourceMb>,
+    pub fn new_mb<SourceMb: MemoryBacking<N, (Ix, Ix), Ix>>(
+        mutable_cdawg: Cdawg<N, Ix, SourceMb>,
         mb: Mb,
         cache_config: CacheConfig,
-    ) -> ImmutableCdawg<W, Ix, Mb> {
+    ) -> ArrayCdawg<N, Ix, Mb> {
         let (tokens, old_graph, source, sink, end_position) = mutable_cdawg.get_data_ownership();
-        let graph: ArrayGraph<W, (Ix, Ix), Ix, Mb> =
+        let graph: ArrayGraph<N, (Ix, Ix), Ix, Mb> =
             ArrayGraph::new_mb(old_graph, mb, cache_config);
         // TODO: Need to make sure the mutable cdawg is deleted here -- maybe implement the drop trait
         Self {
@@ -117,186 +120,61 @@ where
         }
     }
 
-    // Get start, end, target associated with an edge.
-    // This is 1-indexed for legacy reasons!
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    pub fn get_start_end_target(&self, edge_idx: EdgeIndex<Ix>) -> (usize, usize, NodeIndex<Ix>) {
-        let edge_ref = self.graph.get_edge(edge_idx);
-        let target = edge_ref.get_target();
-        let span = self.get_span(edge_ref.get_weight(), target);
-        // Shift to 1-indexed and retrieve value of end pointer.
-        (span.0, span.1, target)
+    // Local calls to immutable cdawg functions for convenience
+    #[allow(clippy::type_complexity)]
+    fn as_immutable_cdawg(
+        &self,
+    ) -> &dyn ReadableCdawg<
+        N,
+        Ix,
+        ArrayGraph<N, (Ix, Ix), Ix, Mb>,
+        Mb::ArrayNodeRef,
+        Mb::ArrayEdgeRef,
+    > {
+        self
     }
-
-    // Convenience methods.
-
-    pub fn get_graph(&self) -> &ArrayGraph<W, (Ix, Ix), Ix, Mb> {
-        &self.graph
-    }
-
     pub fn node_count(&self) -> usize {
-        self.graph.node_count()
+        self.as_immutable_cdawg().node_count()
+    }
+    pub fn get_count(&self, state: NodeIndex<Ix>) -> usize {
+        self.as_immutable_cdawg().get_count(state)
+    }
+    pub fn get_initial(&self) -> CdawgState<Ix> {
+        self.as_immutable_cdawg().get_initial()
+    }
+    pub fn transition_and_count(&self, cs: CdawgState<Ix>, token: u16) -> CdawgState<Ix> {
+        self.as_immutable_cdawg().transition_and_count(cs, token)
     }
 
-    pub fn get_source(&self) -> NodeIndex<Ix> {
-        self.source
+    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> usize {
+        self.as_immutable_cdawg().get_suffix_count(cs)
     }
-
-    // Get the Inenaga-indexed span associated with an edge.
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    fn get_span(&self, weight: (Ix, Ix), target: NodeIndex<Ix>) -> (usize, usize) {
-        let (start, end) = (weight.0.index(), weight.1.index());
-        // Shift to 1-indexed and retrieve value of end pointer.
-        if end < Ix::max_value().index() {
-            (start + 1, end)
-        } else {
-            // If there is a self-loop, we are at a different document.
-            let edge_idx = self.graph.get_node(target).get_first_edge();
-            if edge_idx == EdgeIndex::end() {
-                // We are in the active document.
-                (start + 1, self.end_position)
-            } else {
-                // We are at the sink for a different document.
-                let e = self.graph.get_edge(edge_idx).get_weight().0.index();
-                (start + 1, e + 1) // Adjust both to be 1-indexed.
-            }
-        }
+    pub fn get_entropy(&self, cs: CdawgState<Ix>) -> f64 {
+        self.as_immutable_cdawg().get_entropy(cs)
     }
-
-    // Only well-defined when token is not end-of-text.
-    // TODO: Refactor some of the duplicate code between this and cdawg
+    pub fn get_next_tokens(&self, cs: CdawgState<Ix>) -> Vec<(u16, f64)> {
+        self.as_immutable_cdawg().get_next_tokens(cs)
+    }
     pub fn get_edge_by_token(&self, state: NodeIndex<Ix>, token: u16) -> Option<EdgeIndex<Ix>> {
-        if token != u16::MAX {
-            let weight = (Ix::new(0), Ix::new(0)); // Doesn't matter.
-            let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
-            self.graph
-                .get_edge_by_weight_cmp(state, weight, Box::new(cmp))
-        } else {
-            None
-        }
+        self.as_immutable_cdawg().get_edge_by_token(state, token)
     }
-
-    // Handle end-of-text tokens correctly.
-    // TODO: Refactor some of the duplicate code between this and cdawg
+    pub fn implicitly_fail(&self, state: NodeIndex<Ix>, gamma: (usize, usize)) -> CdawgState<Ix> {
+        self.as_immutable_cdawg().implicitly_fail(state, gamma)
+    }
     pub fn get_edge_by_token_index(
         &self,
         state: NodeIndex<Ix>,
         token_idx: usize,
     ) -> Option<EdgeIndex<Ix>> {
-        let weight = (Ix::new(token_idx), Ix::new(token_idx + 1));
-        let token = self.tokens.borrow().get(token_idx);
-        let cmp = CdawgComparator::new_with_token(self.tokens.clone(), token);
-        self.graph
-            .get_edge_by_weight_cmp(state, weight, Box::new(cmp))
-    }
-
-    // Generalizes failure transition for when we have state + gamma.
-    // This is 0-indexed since we use it at inference time.
-    // Gamma represents a path of tokens we want to follow from fstate.
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    pub fn implicitly_fail(&self, state: NodeIndex<Ix>, gamma: (usize, usize)) -> CdawgState<Ix> {
-        let (start, end) = gamma;
-        let fstate = self.graph.get_node(state).get_failure();
-
-        // Is it cleaner to just rewrite this manually?
-        let (opt_state, mut new_start, opt_target, mut found_start, found_end) =
-            self.inference_canonize(fstate, (start + 1, end));
-        new_start -= 1;
-        found_start -= 1;
-        match opt_state {
-            Some(q) => {
-                // Canonize has gotten to a state.
-                if new_start == end {
-                    CdawgState {
-                        state: q,
-                        edge_start: found_start,
-                        start: found_end,
-                        end: found_end,
-                        target: opt_state,
-                        length: self.graph.get_node(q).get_length(),
-                    }
-                } else {
-                    let progress = end - new_start;
-                    CdawgState {
-                        state: q,
-                        edge_start: found_start,
-                        start: found_start + progress,
-                        end: found_end,
-                        target: opt_target,
-                        // FIXME: Why do we potentially get overflow here?
-                        length: self.graph.get_node(q).get_length() + progress as u64,
-                    }
-                }
-            }
-            // We failed from initial state.
-            None => CdawgState {
-                state: self.source,
-                edge_start: 0,
-                start: 0,
-                end: 0,
-                target: None,
-                length: 0, // Actually -1 but unsigned.
-            },
-        }
-    }
-
-    // Methods for inference with the CDAWG.
-
-    // Get the source state and initial values for transition quantities.
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    pub fn get_initial(&self) -> CdawgState<Ix> {
-        CdawgState {
-            state: self.source,
-            edge_start: 0,
-            start: 0,
-            end: 0,
-            target: Some(self.source),
-            length: 0,
-        }
-    }
-
-    // Transition and track length analogously to the DAWG.
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    pub fn transition_and_count(&self, mut cs: CdawgState<Ix>, token: u16) -> CdawgState<Ix> {
-        if cs.target.is_none() {
-            // Corresponds to the case where we are in the null state after failing.
-            self.get_initial()
-        } else if cs.start == cs.end {
-            // We are at a state. Analogous to DAWG case.
-            let e = self.get_edge_by_token(cs.target.unwrap(), token);
-            if let Some(e_val) = e {
-                let edge = self.graph.get_edge(e_val);
-                let gamma = self.get_span(edge.get_weight(), edge.get_target());
-                return CdawgState {
-                    state: cs.target.unwrap(),
-                    edge_start: gamma.0 - 1, // -1 for 0-indexing
-                    start: gamma.0,          // -1 for 0-indexing, +1 to increment
-                    end: gamma.1,
-                    target: Some(edge.get_target()),
-                    length: cs.length + 1,
-                };
-            }
-            let fail_cs = self.implicitly_fail(cs.target.unwrap(), (cs.end, cs.end));
-            self.transition_and_count(fail_cs, token)
-        } else {
-            // We are on an edge.
-            let cur_token = self.tokens.borrow().get(cs.start);
-            if token == cur_token {
-                cs.start += 1;
-                cs.length += 1;
-                return cs;
-            }
-            let fail_cs = self.implicitly_fail(cs.state, (cs.edge_start, cs.start));
-            self.transition_and_count(fail_cs, token)
-        }
+        self.as_immutable_cdawg()
+            .get_edge_by_token_index(state, token_idx)
     }
 
     // Inference-time version of canonize. Crucially:
     //   1. returns target state.
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    fn inference_canonize(
+    pub fn inference_canonize(
         &self,
-        mut state: Option<NodeIndex<Ix>>,
+        state: Option<NodeIndex<Ix>>,
         gamma: (usize, usize),
     ) -> (
         Option<NodeIndex<Ix>>,
@@ -305,91 +183,15 @@ where
         usize,
         usize,
     ) {
-        let (mut start, end) = gamma;
-        if start > end {
-            // Means we are at a state.
-            return (state, start, state, start, end);
-        }
-
-        let mut found_start: usize;
-        let mut found_end: usize;
-        let mut found_state: NodeIndex<Ix>;
-        match state {
-            Some(q) => {
-                let token = self.tokens.borrow().get(start - 1);
-                let edge_idx = self.get_edge_by_token(q, token).unwrap();
-                (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
-            }
-            None => {
-                // Changed these to (1, 1) to avoid subtraction overflow issue.
-                (found_start, found_end, found_state) = (1, 1, self.source);
-            }
-        }
-
-        while found_end + start <= end + found_start {
-            // Written this way to avoid overflow.
-            start += found_end + 1 - found_start; // Written this way to avoid overflow.
-            state = Some(found_state);
-            if start <= end {
-                let token = self.tokens.borrow().get(start - 1);
-                let edge_idx = self.get_edge_by_token(found_state, token).unwrap();
-                (found_start, found_end, found_state) = self.get_start_end_target(edge_idx);
-            }
-        }
-        // Map found_start to 1-indexed when we return it.
-        (state, start, Some(found_state), found_start, found_end)
+        self.as_immutable_cdawg().inference_canonize(state, gamma)
     }
-
-    // TODO: Refactor some of the duplicate code between this and cdawg
-    pub fn get_next_tokens(&self, cs: CdawgState<Ix>) -> Vec<(u16, f64)> {
-        let (state, gamma) = cs.get_state_and_gamma();
-        if gamma.0 != gamma.1 {
-            let token = self.tokens.borrow().get(gamma.1);
-            return vec![(token, 1.)];
-        }
-
-        let q = state.unwrap();
-        let denom = self.get_count(q);
-        let mut tokens = Vec::new();
-        for edge in self.get_graph().edges(q) {
-            // let edge_ref = self.graph.get_edge(edge_idx);
-            let next_state = edge.get_target();
-            let span = self.get_span(edge.get_weight(), next_state);
-            let token = self.tokens.borrow().get(span.0 - 1); // Shift to 0 indexing.
-            let prob = (self.get_count(next_state) as f64) / (denom as f64);
-            tokens.push((token, prob));
-        }
-        tokens
+    // Get start, end, target associated with an edge.
+    // This is 1-indexed for legacy reasons!
+    pub fn get_start_end_target(&self, edge_idx: EdgeIndex<Ix>) -> (usize, usize, NodeIndex<Ix>) {
+        self.as_immutable_cdawg().get_start_end_target(edge_idx)
     }
-
-    // Methods for inference with the CDAWG.
-
-    // TODO(#100): Refactor these into an Infinigram class that wraps a Cdawg
-
-    /// Get the count of the suffix matched by a CdawgState.
-    pub fn get_suffix_count(&self, cs: CdawgState<Ix>) -> usize {
-        self.get_count(cs.target.unwrap())
-    }
-
-    /// Get the entropy of a CDAWG state in bits.
-    pub fn get_entropy(&self, cs: CdawgState<Ix>) -> f64 {
-        let (state, gamma) = cs.get_state_and_gamma();
-        if gamma.0 != gamma.1 {
-            return 0.;
-        }
-
-        let q = state.unwrap();
-        let denom = self.get_count(q);
-        let mut sum = 0.;
-        for next_state in self.get_graph().neighbors(q) {
-            let prob = (self.get_count(next_state) as f64) / (denom as f64);
-            sum -= prob * f64::log2(prob);
-        }
-        sum
-    }
-
-    pub fn get_count(&self, state: NodeIndex<Ix>) -> usize {
-        self.graph.get_node(state).get_count()
+    pub fn get_span(&self, weight: (Ix, Ix), target: NodeIndex<Ix>) -> (usize, usize) {
+        self.as_immutable_cdawg().get_span(weight, target)
     }
 
     pub fn save_metadata<P: AsRef<Path> + Clone>(&self, path: P) -> Result<()> {
@@ -402,6 +204,40 @@ where
         };
         config.save_json(config_path)
     }
+
+    pub fn get_graph(&self) -> &ArrayGraph<N, (Ix, Ix), Ix, Mb> {
+        &self.graph
+    }
+}
+
+// Implement the ImmutableCdawg trait for ArrayCdawg
+impl<N, Ix, Mb>
+    ReadableCdawg<N, Ix, ArrayGraph<N, (Ix, Ix), Ix, Mb>, Mb::ArrayNodeRef, Mb::ArrayEdgeRef>
+    for ArrayCdawg<N, Ix, Mb>
+where
+    Ix: IndexType,
+    N: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
+    Mb: ArrayMemoryBacking<N, (Ix, Ix), Ix>,
+    Mb::ArrayEdgeRef: Copy,
+    Mb::ArrayNodeRef: Copy,
+{
+    fn get_graph(&self) -> &ArrayGraph<N, (Ix, Ix), Ix, Mb> {
+        &self.graph
+    }
+    fn get_source(&self) -> NodeIndex<Ix> {
+        self.source
+    }
+    fn get_tokens_borrow(&self) -> Ref<'_, dyn TokenBacking<u16>> {
+        self.tokens.borrow()
+    }
+
+    fn get_tokens_clone(&self) -> TokenBackingReference {
+        self.tokens.clone()
+    }
+
+    fn get_end_position(&self) -> usize {
+        self.end_position
+    }
 }
 
 #[cfg(test)]
@@ -409,11 +245,11 @@ where
 #[allow(unused_imports)]
 #[allow(unused_assignments)]
 mod tests {
+    use crate::cdawg::array_cdawg::ArrayCdawg;
     use crate::cdawg::comparator::CdawgComparator;
-    use crate::cdawg::immutable_cdawg::ImmutableCdawg;
     use crate::cdawg::{Cdawg, TopologicalCounter};
-    use crate::graph::array_graph::ArrayEdgeRef;
     use crate::graph::indexing::{DefaultIx, IndexType, NodeIndex};
+    use crate::graph::traits::EdgeRef;
     use crate::memory_backing::{CacheConfig, DiskBacking};
     use crate::weight::DefaultWeight;
     use std::cell::RefCell;
@@ -434,7 +270,7 @@ mod tests {
         let train = Rc::new(RefCell::new(vec![a, b, c, b, c, a]));
         let mut cdawg: Cdawg = Cdawg::new(train);
         cdawg.build();
-        let icdawg = ImmutableCdawg::new(cdawg);
+        let icdawg = ArrayCdawg::new(cdawg);
 
         let mut lengths = Vec::new();
         let mut cs = icdawg.get_initial();
@@ -451,7 +287,7 @@ mod tests {
         let train = Rc::new(RefCell::new(vec![a, b, c, a, b, c, a, b, a]));
         let mut cdawg: Cdawg = Cdawg::new(train);
         cdawg.build();
-        let icdawg = ImmutableCdawg::new(cdawg);
+        let icdawg = ArrayCdawg::new(cdawg);
 
         let mut lengths = Vec::new();
         let mut cs = icdawg.get_initial();
@@ -477,7 +313,7 @@ mod tests {
         let train = Rc::new(RefCell::new(vec![a, b, c, b, d]));
         let mut cdawg: Cdawg = Cdawg::new(train);
         cdawg.build();
-        let icdawg = ImmutableCdawg::new(cdawg);
+        let icdawg = ArrayCdawg::new(cdawg);
 
         let mut lengths = Vec::new();
         let mut cs = icdawg.get_initial();
@@ -493,7 +329,7 @@ mod tests {
         let train = Rc::new(RefCell::new(vec![0, u16::MAX, 1, u16::MAX]));
         let mut cdawg: Cdawg = Cdawg::new(train.clone());
         cdawg.build();
-        let icdawg = ImmutableCdawg::new(cdawg);
+        let icdawg = ArrayCdawg::new(cdawg);
 
         assert_eq!(icdawg.node_count(), 4); // 3 real nodes + new sink
 
@@ -549,7 +385,7 @@ mod tests {
 
         let mut counter = TopologicalCounter::new_ram();
         counter.fill_counts(&mut cdawg);
-        let icdawg = ImmutableCdawg::new(cdawg);
+        let icdawg = ArrayCdawg::new(cdawg);
 
         let mut entropies = Vec::new();
         let mut cs = icdawg.get_initial();
@@ -580,7 +416,7 @@ mod tests {
 
         let mut counter = TopologicalCounter::new_ram();
         counter.fill_counts(&mut cdawg);
-        let icdawg = ImmutableCdawg::new(cdawg);
+        let icdawg = ArrayCdawg::new(cdawg);
 
         let mut next_tokens = Vec::new();
         let mut cs = icdawg.get_initial();
@@ -611,7 +447,7 @@ mod tests {
     type DiskW = DefaultWeight;
     type DiskE = (DefaultIx, DefaultIx);
     type DiskCdawg = Cdawg<DiskW, DefaultIx, DiskBacking<DiskW, DiskE, DefaultIx>>;
-    type DiskICdawg = ImmutableCdawg<DiskW, DefaultIx, DiskBacking<DiskW, DiskE, DefaultIx>>;
+    type DiskICdawg = ArrayCdawg<DiskW, DefaultIx, DiskBacking<DiskW, DiskE, DefaultIx>>;
 
     #[test]
     fn test_save_metadata_load_null() {
@@ -625,7 +461,7 @@ mod tests {
         let mut cdawg: DiskCdawg = Cdawg::new_mb(Rc::new(RefCell::new(tokens)), cdawg_mb);
         cdawg.add_balanced_edge(cdawg.get_source(), NodeIndex::new(1), (1, 1));
         let icdawg_mb = DiskBacking::new(icdawg_path);
-        let icdawg = ImmutableCdawg::new_mb(
+        let icdawg = ArrayCdawg::new_mb(
             cdawg,
             icdawg_mb,
             CacheConfig {
@@ -636,7 +472,7 @@ mod tests {
         icdawg.save_metadata(icdawg_path).unwrap();
 
         let tokens2: Vec<u16> = vec![10, 11, 12];
-        let icdawg2: DiskICdawg = ImmutableCdawg::load(
+        let icdawg2: DiskICdawg = ArrayCdawg::load(
             Rc::new(RefCell::new(tokens2)),
             icdawg_path,
             CacheConfig::none(),

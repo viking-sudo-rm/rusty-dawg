@@ -22,16 +22,16 @@ pub struct BuildStats {
 }
 
 impl BuildStats {
-    pub fn from_cdawg<W, Ix, Mb>(
-        cdawg: &Cdawg<W, Ix, Mb>,
+    pub fn from_cdawg<N, Ix, Mb>(
+        cdawg: &Cdawg<N, Ix, Mb>,
         n_tokens: usize,
         n_bytes: u64,
         elapsed_time: f32,
     ) -> Self
     where
-        W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
+        N: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Copy,
         Ix: IndexType,
-        Mb: MemoryBacking<W, (Ix, Ix), Ix>,
+        Mb: MemoryBacking<N, (Ix, Ix), Ix>,
     {
         Self {
             n_tokens,

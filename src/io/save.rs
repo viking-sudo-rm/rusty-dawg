@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Eq;
 use std::fmt::Debug;
 
-use crate::cdawg::immutable_cdawg::ImmutableCdawg;
+use crate::cdawg::array_cdawg::ArrayCdawg;
 use bincode::serialize_into;
 
 pub trait Save {
@@ -45,9 +45,9 @@ where
     }
 }
 
-impl<W> Save for Cdawg<W, DefaultIx, DiskBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
+impl<N> Save for Cdawg<N, DefaultIx, DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>>
 where
-    W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    N: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
@@ -55,9 +55,9 @@ where
     }
 }
 
-impl<W> Save for Cdawg<W, DefaultIx, RamBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
+impl<N> Save for Cdawg<N, DefaultIx, RamBacking<N, (DefaultIx, DefaultIx), DefaultIx>>
 where
-    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    N: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default + Copy,
     (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
@@ -71,19 +71,19 @@ where
     }
 }
 
-impl<W> Save for ImmutableCdawg<W, DefaultIx, DiskBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
+impl<N> Save for ArrayCdawg<N, DefaultIx, DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>>
 where
-    W: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    N: Weight + Copy + Serialize + for<'de> Deserialize<'de> + Clone + Default,
     (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
-        Ok(ImmutableCdawg::save_metadata(self, save_path)?)
+        Ok(ArrayCdawg::save_metadata(self, save_path)?)
     }
 }
 
-impl<W> Save for ImmutableCdawg<W, DefaultIx, RamBacking<W, (DefaultIx, DefaultIx), DefaultIx>>
+impl<N> Save for ArrayCdawg<N, DefaultIx, RamBacking<N, (DefaultIx, DefaultIx), DefaultIx>>
 where
-    W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default,
+    N: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Default + Copy,
     (DefaultIx, DefaultIx): Serialize + for<'de> Deserialize<'de>,
 {
     fn save(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
@@ -91,7 +91,7 @@ where
         // First save whatever is in RAM to disk.
         self.get_graph().save_to_disk(save_path)?;
         // Then generate metadata as we would normally.
-        ImmutableCdawg::save_metadata(self, save_path)?;
+        ArrayCdawg::save_metadata(self, save_path)?;
         Ok(())
     }
 }

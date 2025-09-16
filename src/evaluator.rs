@@ -1,5 +1,6 @@
 use crate::dawg::Dawg;
 use crate::graph::indexing::DefaultIx;
+use crate::graph::traits::NodeRef;
 use crate::memory_backing::MemoryBacking;
 use crate::stat_utils::get_entropy;
 use crate::weight::Weight;
@@ -11,8 +12,6 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::marker::Copy;
-
-use crate::graph::avl_graph::node::NodeRef;
 
 #[derive(Serialize)]
 pub struct Evaluator<'a, E>

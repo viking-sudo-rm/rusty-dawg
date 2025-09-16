@@ -7,25 +7,25 @@ pub use self::ram_backing::RamBacking;
 pub use self::vec_backing::{CacheConfig, CachedDiskVec, DiskVec};
 use crate::graph::array_graph::{ArrayEdge, ArrayNode};
 
-use crate::graph::array_graph::edge::ArrayEdgeRef;
 use crate::graph::array_graph::node::ArrayNodeRef;
-use crate::graph::avl_graph::edge::{Edge, EdgeMutRef, EdgeRef};
-use crate::graph::avl_graph::node::{Node, NodeMutRef, NodeRef};
-
+use crate::graph::avl_graph::edge::{AvlEdge, AvlEdgeMutRef, AvlEdgeRef};
+use crate::graph::avl_graph::node::{AvlNode, AvlNodeMutRef};
+use crate::graph::traits::{EdgeRef, NodeRef};
 // Define the traits that submodules will implement in various ways.
 
 pub trait MemoryBacking<N, E, Ix>
 where
     Self: Clone,
+    Self::NodeRef: Copy,
     Self::EdgeRef: Copy,
 {
     type NodeRef: NodeRef<N, Ix>;
-    type EdgeRef: EdgeRef<E, Ix>;
-    type NodeMutRef: NodeMutRef<Ix>;
-    type EdgeMutRef: EdgeMutRef<E, Ix>;
+    type EdgeRef: AvlEdgeRef<E, Ix>;
+    type NodeMutRef: AvlNodeMutRef<Ix>;
+    type EdgeMutRef: AvlEdgeMutRef<E, Ix>;
 
-    type VecN: VecBacking<Node<N, Ix>, TRef = Self::NodeRef, TMutRef = Self::NodeMutRef>;
-    type VecE: VecBacking<Edge<E, Ix>, TRef = Self::EdgeRef, TMutRef = Self::EdgeMutRef>;
+    type VecN: VecBacking<AvlNode<N, Ix>, TRef = Self::NodeRef, TMutRef = Self::NodeMutRef>;
+    type VecE: VecBacking<AvlEdge<E, Ix>, TRef = Self::EdgeRef, TMutRef = Self::EdgeMutRef>;
 
     fn new_node_vec(&self, capacity: Option<usize>, cache_size: usize) -> Self::VecN;
 
@@ -64,7 +64,7 @@ where
     Self::ArrayEdgeRef: Copy,
 {
     type ArrayNodeRef: ArrayNodeRef<N, Ix>;
-    type ArrayEdgeRef: ArrayEdgeRef<E, Ix>;
+    type ArrayEdgeRef: EdgeRef<E, Ix>;
 
     type ArrayVecN: InternallyImmutableVecBacking<ArrayNode<N, Ix>, TRef = Self::ArrayNodeRef>;
     type ArrayVecE: InternallyImmutableVecBacking<ArrayEdge<E, Ix>, TRef = Self::ArrayEdgeRef>;

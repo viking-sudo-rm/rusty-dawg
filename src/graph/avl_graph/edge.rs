@@ -2,9 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use crate::graph::traits::EdgeRef;
 
 #[derive(Serialize, Deserialize, Default, Copy)]
-pub struct Edge<E, Ix = DefaultIx> {
+pub struct AvlEdge<E, Ix = DefaultIx> {
     #[serde(bound(
         serialize = "E: Serialize, Ix: Serialize",
         deserialize = "E: Deserialize<'de>, Ix: Deserialize<'de>",
@@ -16,13 +17,13 @@ pub struct Edge<E, Ix = DefaultIx> {
     pub balance_factor: i8,
 }
 
-impl<E, Ix> Clone for Edge<E, Ix>
+impl<E, Ix> Clone for AvlEdge<E, Ix>
 where
     E: Clone,
     Ix: Clone,
 {
     fn clone(&self) -> Self {
-        Edge {
+        AvlEdge {
             weight: self.weight.clone(),
             target: self.target.clone(),
             left: self.left.clone(),
@@ -32,7 +33,7 @@ where
     }
 }
 
-impl<E, Ix> Edge<E, Ix>
+impl<E, Ix> AvlEdge<E, Ix>
 where
     Ix: IndexType + Copy,
     E: Copy,
@@ -48,20 +49,13 @@ where
     }
 }
 
-pub trait EdgeRef<E, Ix> {
-    fn get_weight(self) -> E;
-    fn get_target(self) -> NodeIndex<Ix>;
+pub trait AvlEdgeRef<E, Ix>: EdgeRef<E, Ix> {
     fn get_left(self) -> EdgeIndex<Ix>;
     fn get_right(self) -> EdgeIndex<Ix>;
     fn get_balance_factor(self) -> i8;
 }
 
-// We can use an Edge object as a "reference" to data on disk.
-impl<E, Ix> EdgeRef<E, Ix> for Edge<E, Ix>
-where
-    Ix: IndexType + Copy,
-    E: Copy,
-{
+impl<E, Ix> EdgeRef<E, Ix> for AvlEdge<E, Ix> {
     fn get_weight(self) -> E {
         self.weight
     }
@@ -69,7 +63,13 @@ where
     fn get_target(self) -> NodeIndex<Ix> {
         self.target
     }
-
+}
+// We can use an Edge object as a "reference" to data on disk.
+impl<E, Ix> AvlEdgeRef<E, Ix> for AvlEdge<E, Ix>
+where
+    Ix: IndexType + Copy,
+    E: Copy,
+{
     fn get_left(self) -> EdgeIndex<Ix> {
         self.left
     }
@@ -83,9 +83,8 @@ where
     }
 }
 
-// We can use a pointer to an Edge object as a reference to data in RAM.
 // FIXME(#52): Probably should not be allowing unsafe pointer derefs
-impl<E, Ix> EdgeRef<E, Ix> for *const Edge<E, Ix>
+impl<E, Ix> EdgeRef<E, Ix> for *const AvlEdge<E, Ix>
 where
     Ix: IndexType + Copy,
     E: Copy,
@@ -99,7 +98,14 @@ where
     fn get_target(self) -> NodeIndex<Ix> {
         unsafe { (*self).target }
     }
-
+}
+// We can use a pointer to an Edge object as a reference to data in RAM.
+// FIXME(#52): Probably should not be allowing unsafe pointer derefs
+impl<E, Ix> AvlEdgeRef<E, Ix> for *const AvlEdge<E, Ix>
+where
+    Ix: IndexType + Copy,
+    E: Copy,
+{
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_left(self) -> EdgeIndex<Ix> {
         unsafe { (*self).left }
@@ -116,7 +122,7 @@ where
     }
 }
 
-pub trait EdgeMutRef<E, Ix> {
+pub trait AvlEdgeMutRef<E, Ix> {
     fn set_weight(self, weight: E);
     fn set_target(self, target: NodeIndex<Ix>);
     fn set_left(self, left: EdgeIndex<Ix>);
@@ -124,7 +130,7 @@ pub trait EdgeMutRef<E, Ix> {
     fn set_balance_factor(self, bf: i8);
 }
 
-impl<E, Ix> EdgeMutRef<E, Ix> for *mut Edge<E, Ix>
+impl<E, Ix> AvlEdgeMutRef<E, Ix> for *mut AvlEdge<E, Ix>
 where
     E: Copy,
     Ix: IndexType + Copy,
@@ -165,7 +171,7 @@ where
     }
 }
 
-impl<E, Ix> EdgeMutRef<E, Ix> for &mut Edge<E, Ix>
+impl<E, Ix> AvlEdgeMutRef<E, Ix> for &mut AvlEdge<E, Ix>
 where
     E: Copy,
     Ix: IndexType + Copy,
