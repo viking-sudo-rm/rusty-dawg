@@ -3,11 +3,17 @@ pub mod traverse_arity;
 
 pub mod cdawg_state;
 pub mod comparator;
+pub mod immutable_cdawg;
 mod inenaga; // Algo from "On-line construction of compact directed acyclic word graphs"
 mod metadata;
 mod stack;
 pub mod token_backing;
 
+use crate::cdawg::token_backing::TokenBacking;
+use std::cell::RefCell;
+use std::rc::Rc;
 // We will use the Inenaga implementation of the build algorithm.
 pub use self::inenaga::Cdawg;
 pub use self::topological_counter::TopologicalCounter;
+
+pub type TokenBackingReference = Rc<RefCell<dyn TokenBacking<u16>>>;
