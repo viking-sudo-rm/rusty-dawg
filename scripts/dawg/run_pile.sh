@@ -8,7 +8,7 @@
 #     --utype u16 \
 #     --tokenizer "gpt2" \
 #     --data-reader "pile" \
-#     --disk-path "$2"
+#     --save-path "$2"
 
 DATA_PATH=${1:-"/net/nfs.cirrascale/allennlp/willm/data/pile/00_0.json.gz"}
 RUN_DIR=${2:-"/home/willm/pile-run"}
@@ -28,4 +28,4 @@ N_TOKENS=12603116665 # 2520623333
     --tokenizer "EleutherAI/pythia-12b" \
     --data-reader "pile" \
     --utype u16 \
-    --disk-path "$RUN_DIR/dawg"
+    --save-path "$RUN_DIR/dawg"

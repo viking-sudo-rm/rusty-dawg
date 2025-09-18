@@ -24,5 +24,5 @@ RUST_BACKTRACE=1 ./target/release/rusty-dawg \
     --stats-threshold 10000000 \
     --stats-path "$RUN_DIR/stats.jsonl" \
     --train-vec-path "$RUN_DIR/train.vec" \
-    --disk-path "$RUN_DIR/cdawg" \
+    --save-path "$RUN_DIR/cdawg" \
     --ram

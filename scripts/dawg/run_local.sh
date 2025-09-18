@@ -17,4 +17,4 @@ RUST_BACKTRACE=1 ./target/release/rusty-dawg \
     --tokenizer gpt2 \
     --utype u16 \
     --buf-size 1000000000 \
-    --disk-path "/Users/willm/Desktop/run-local/dawg"
+    --save-path "/Users/willm/Desktop/run-local/dawg"

@@ -176,29 +176,22 @@ where
     println!("  balance ratio: {:.2}", stats.balance_ratio);
     println!();
 
-    // TODO: Simplify this logic and the associated flags.
-    let mut path = args.save_path.clone();
-    if path.is_empty() && args.disk_path.is_some() {
-        path = args.disk_path.clone().unwrap();
-    }
-    if !path.is_empty() {
-        if args.immutable {
-            println!("Building immutable copy of CDAWG on disk...");
-            let mb: DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx> =
-                DiskBacking::new(path.clone());
-            let cache_config = args.get_cache_config();
+    let path = args.save_path.clone();
+    if args.immutable {
+        println!("Building immutable copy of CDAWG on disk...");
+        let mb: DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx> = DiskBacking::new(path.clone());
+        let cache_config = args.get_cache_config();
 
-            let icdawg = ImmutableCdawg::<
-                N,
-                DefaultIx,
-                DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>,
-            >::new_mb(cdawg, mb, cache_config);
-            let _ = icdawg.save(path.as_str());
-        } else {
-            println!("Saving CDAWG...");
-            let _ = cdawg.save(path.as_str());
-            println!("Successfully saved CDAWG to {}!", path);
-        }
+        let icdawg = ImmutableCdawg::<
+            N,
+            DefaultIx,
+            DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>,
+        >::new_mb(cdawg, mb, cache_config);
+        let _ = icdawg.save(path.as_str());
+    } else {
+        println!("Saving CDAWG...");
+        let _ = cdawg.save(path.as_str());
+        println!("Successfully saved CDAWG to {}!", path);
     }
     Ok(())
 }
