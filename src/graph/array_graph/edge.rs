@@ -1,4 +1,5 @@
 use crate::graph::indexing::{DefaultIx, IndexType, NodeIndex};
+use crate::graph::traits::EdgeRef;
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 
@@ -35,13 +36,8 @@ where
     }
 }
 
-pub trait ArrayEdgeRef<E, Ix> {
-    fn get_weight(self) -> E;
-    fn get_target(self) -> NodeIndex<Ix>;
-}
-
 // We can use an Edge object as a "reference" to data on disk.
-impl<E, Ix> ArrayEdgeRef<E, Ix> for ArrayEdge<E, Ix>
+impl<E, Ix> EdgeRef<E, Ix> for ArrayEdge<E, Ix>
 where
     Ix: IndexType + Copy,
     E: Copy,
@@ -57,7 +53,7 @@ where
 
 // We can use a pointer to an Edge object as a reference to data in RAM.
 // FIXME(#52): Probably should not be allowing unsafe pointer derefs
-impl<E, Ix> ArrayEdgeRef<E, Ix> for *const ArrayEdge<E, Ix>
+impl<E, Ix> EdgeRef<E, Ix> for *const ArrayEdge<E, Ix>
 where
     Ix: IndexType + Copy,
     E: Copy,

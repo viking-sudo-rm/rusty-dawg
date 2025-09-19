@@ -51,11 +51,11 @@ where
 
 impl<Sb> TopologicalCounter<Sb> {
     /// DFS implementation of graph traversal.
-    pub fn fill_counts<Ix, W, Mb>(&mut self, cdawg: &mut Cdawg<W, Ix, Mb>)
+    pub fn fill_counts<Ix, N, Mb>(&mut self, cdawg: &mut Cdawg<N, Ix, Mb>)
     where
         Ix: IndexType + Serialize + for<'de> Deserialize<'de>,
-        W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
-        Mb: MemoryBacking<W, (Ix, Ix), Ix>,
+        N: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Copy,
+        Mb: MemoryBacking<N, (Ix, Ix), Ix>,
         Sb: Stack<StackOp<Ix>>,
     {
         self.stack.push(StackOp::open(cdawg.get_source()));

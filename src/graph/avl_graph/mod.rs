@@ -21,13 +21,14 @@ use crate::memory_backing::{CacheConfig, DiskVec, InternallyImmutableVecBacking}
 use crate::weight::Weight;
 
 pub mod edge;
+mod graph_impl;
 pub mod node;
 mod serde;
 
-pub use self::edge::{Edge, EdgeMutRef, EdgeRef};
-pub use self::node::{Node, NodeMutRef, NodeRef};
+pub use self::edge::{AvlEdge, AvlEdgeMutRef, AvlEdgeRef};
+pub use self::node::{AvlNode, AvlNodeMutRef};
 use crate::graph::comparator::DEFAULT_CMP;
-
+use crate::graph::traits::{EdgeRef, NodeRef};
 use crate::memory_backing::{disk_backing, DiskBacking, MemoryBacking};
 use crate::memory_backing::{RamBacking, VecBacking};
 
@@ -130,7 +131,7 @@ where
     Ix: IndexType,
 {
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
-        let node = Node::new(weight);
+        let node = AvlNode::new(weight);
         let node_idx = NodeIndex::new(self.nodes.len());
         assert!(<Ix as IndexType>::max_value().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
@@ -145,7 +146,7 @@ where
         }
 
         let edge_to_clone = &self.edges.index(first_source_idx.index());
-        let first_clone_edge = Edge::new(edge_to_clone.get_weight(), edge_to_clone.get_target());
+        let first_clone_edge = AvlEdge::new(edge_to_clone.get_weight(), edge_to_clone.get_target());
         let first_clone_idx = EdgeIndex::new(self.edges.len());
         self.edges.push(first_clone_edge);
         self.nodes
@@ -165,7 +166,7 @@ where
         if left != EdgeIndex::end() {
             let left_weight = self.edges.index(left.index()).get_weight();
             let left_target = self.edges.index(left.index()).get_target();
-            let new_left_edge = Edge::new(left_weight, left_target);
+            let new_left_edge = AvlEdge::new(left_weight, left_target);
             let new_left = EdgeIndex::new(self.edges.len());
             self.edges.push(new_left_edge);
             // FIXME: Handle case where
@@ -176,7 +177,7 @@ where
         if right != EdgeIndex::end() {
             let right_weight = self.edges.index(right.index()).get_weight();
             let right_target = self.edges.index(right.index()).get_target();
-            let new_right_edge = Edge::new(right_weight, right_target);
+            let new_right_edge = AvlEdge::new(right_weight, right_target);
             let new_right = EdgeIndex::new(self.edges.len());
             self.edges.push(new_right_edge);
             self.edges.index_mut(new.index()).set_right(new_right);
@@ -251,7 +252,7 @@ where
     ) -> EdgeIndex<Ix> {
         // if we encounter null ptr, we add edge into AVL tree
         if root_edge_idx == EdgeIndex::end() {
-            let edge = Edge::new(weight, b);
+            let edge = AvlEdge::new(weight, b);
             self.edges.push(edge);
             return EdgeIndex::new(self.edges.len() - 1);
         }
@@ -533,7 +534,7 @@ where
 
     // DONT USE THIS, here for legacy test reasons
     fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> Option<EdgeIndex<Ix>> {
-        let edge = Edge::new(weight, b);
+        let edge = AvlEdge::new(weight, b);
         let edge_idx = EdgeIndex::new(self.edges.len());
 
         // look for root, simple case where no root handled
@@ -726,10 +727,11 @@ where
 #[allow(unused_imports)]
 mod tests {
     use crate::cdawg::comparator::CdawgComparator;
-    use crate::graph::avl_graph::edge::EdgeRef;
-    use crate::graph::avl_graph::node::{NodeMutRef, NodeRef};
+    use crate::graph::avl_graph::edge::AvlEdgeRef;
+    use crate::graph::avl_graph::node::AvlNodeMutRef;
     use crate::graph::avl_graph::AvlGraph;
     use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+    use crate::graph::traits::{EdgeRef, NodeRef};
     use crate::weight::{DefaultWeight, Weight};
     use std::cell::RefCell;
     use std::convert::TryInto;

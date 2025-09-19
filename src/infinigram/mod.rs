@@ -1,4 +1,4 @@
-use crate::cdawg::Cdawg;
+use crate::cdawg::MutableCdawg;
 
 struct Infinigram {
 

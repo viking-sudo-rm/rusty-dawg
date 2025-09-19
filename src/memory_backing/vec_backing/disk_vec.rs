@@ -187,12 +187,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::graph::avl_graph::AvlNode;
+    use crate::graph::indexing::{DefaultIx, NodeIndex};
+    use crate::graph::traits::NodeRef;
+    use crate::weight::{DefaultWeight, Weight};
     use serde::Deserialize;
     use tempfile::tempdir;
-
-    use crate::graph::avl_graph::node::{Node, NodeRef};
-    use crate::graph::indexing::{DefaultIx, NodeIndex};
-    use crate::weight::{DefaultWeight, Weight};
 
     #[derive(Serialize, Deserialize, Default, Debug)]
     struct Foo {
@@ -223,17 +223,17 @@ mod tests {
 
     #[test]
     fn test_node_disk_vec_push_set_get() {
-        type T = Node<DefaultWeight, DefaultIx>;
+        type T = AvlNode<DefaultWeight, DefaultIx>;
         let tmp_dir = tempdir().unwrap();
 
         let mut disk_vec: DiskVec<T> = DiskVec::new(tmp_dir.path().join("nodes.vec"), 8).unwrap();
         assert_eq!(disk_vec.len(), 0);
 
-        let node: T = Node::new(DefaultWeight::new(32, Some(NodeIndex::new(2)), 2));
+        let node: T = AvlNode::new(DefaultWeight::new(32, Some(NodeIndex::new(2)), 2));
         let _ = disk_vec.push(&node);
         assert_eq!(disk_vec.get(0).unwrap().get_length(), 32);
 
-        let new_node: T = Node::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
+        let new_node: T = AvlNode::new(DefaultWeight::new(42, Some(NodeIndex::new(2)), 2));
         let _ = disk_vec.set(0, &new_node);
         assert_eq!(disk_vec.get(0).unwrap().get_length(), 42);
     }

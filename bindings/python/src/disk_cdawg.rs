@@ -102,7 +102,11 @@ impl DiskCdawg {
     /// Get list of states that a state connects to. Useful for graph traversal.
     pub fn neighbors(&self, state: usize) -> Vec<usize> {
         let node = NodeIndex::new(state);
-        self.cdawg.get_graph().neighbors(node).map(|x| x.index()).collect()
+        self.cdawg
+            .get_graph()
+            .neighbors(node)
+            .map(|x| x.index())
+            .collect()
     }
 
     pub fn node_count(&self) -> usize {

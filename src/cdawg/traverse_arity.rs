@@ -47,7 +47,7 @@ impl<Sb> TraverseArity<Sb> {
     pub fn traverse_arity<Ix, W, Mb>(&mut self, cdawg: &mut Cdawg<W, Ix, Mb>) -> Vec<usize>
     where
         Ix: IndexType + Serialize + for<'de> Deserialize<'de>,
-        W: Weight + Serialize + for<'de> Deserialize<'de> + Clone,
+        W: Weight + Serialize + for<'de> Deserialize<'de> + Clone + Copy,
         Mb: MemoryBacking<W, (Ix, Ix), Ix>,
         Sb: Stack<usize>,
     {

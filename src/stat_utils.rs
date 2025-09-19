@@ -3,16 +3,16 @@ use std::cmp::Ord;
 use std::fmt::Debug;
 
 use crate::dawg::Dawg;
-use crate::graph::avl_graph::node::NodeRef;
 use crate::graph::indexing::{DefaultIx, NodeIndex};
+use crate::graph::traits::NodeRef;
 use crate::memory_backing::MemoryBacking;
 use crate::weight::Weight;
 
-pub fn get_entropy<E, W, Mb>(dawg: &Dawg<E, W, DefaultIx, Mb>, state: NodeIndex) -> f64
+pub fn get_entropy<E, N, Mb>(dawg: &Dawg<E, N, DefaultIx, Mb>, state: NodeIndex) -> f64
 where
     E: Eq + Ord + Serialize + for<'a> Deserialize<'a> + Copy + Debug,
-    W: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
-    Mb: MemoryBacking<W, E, DefaultIx>,
+    N: Weight + Serialize + for<'a> Deserialize<'a> + Clone,
+    Mb: MemoryBacking<N, E, DefaultIx>,
 {
     let denom = dawg.get_node(state).get_count();
     let mut sum_num = 0;

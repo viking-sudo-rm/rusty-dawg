@@ -7,8 +7,8 @@ use std::marker::PhantomData;
 
 use crate::graph::array_graph::edge::ArrayEdge;
 use crate::graph::array_graph::node::ArrayNode;
-use crate::graph::avl_graph::edge::Edge;
-use crate::graph::avl_graph::node::Node;
+use crate::graph::avl_graph::edge::AvlEdge;
+use crate::graph::avl_graph::node::AvlNode;
 
 #[derive(Clone)]
 pub struct RamBacking<N, E, Ix> {
@@ -21,13 +21,13 @@ where
     N: Weight + Clone,
     E: Copy,
 {
-    type NodeRef = *const Node<N, Ix>;
-    type EdgeRef = *const Edge<E, Ix>;
-    type NodeMutRef = *mut Node<N, Ix>;
-    type EdgeMutRef = *mut Edge<E, Ix>;
+    type NodeRef = *const AvlNode<N, Ix>;
+    type EdgeRef = *const AvlEdge<E, Ix>;
+    type NodeMutRef = *mut AvlNode<N, Ix>;
+    type EdgeMutRef = *mut AvlEdge<E, Ix>;
 
-    type VecN = Vec<Node<N, Ix>>;
-    type VecE = Vec<Edge<E, Ix>>;
+    type VecN = Vec<AvlNode<N, Ix>>;
+    type VecE = Vec<AvlEdge<E, Ix>>;
 
     // The disk-backed implementations of new_node_vec and new_edge_vec will presumably pass a file/path.
 

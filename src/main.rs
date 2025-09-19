@@ -47,8 +47,8 @@ use crate::build_cdawg::build_cdawg;
 use crate::dawg::Dawg;
 use crate::evaluator::Evaluator;
 
-use crate::graph::avl_graph::edge::Edge;
-use crate::graph::avl_graph::node::Node;
+use crate::graph::avl_graph::edge::AvlEdge;
+use crate::graph::avl_graph::node::AvlNode;
 use crate::graph::indexing::DefaultIx;
 use crate::memory_backing::{CacheConfig, DiskBacking, MemoryBacking, RamBacking};
 
@@ -278,8 +278,8 @@ where
     println!("sizeof(Ix) {}B", size_of::<DefaultIx>());
     println!("sizeof(N) {}B", size_of::<N>());
     println!("sizeof(E) {}B", size_of::<E>());
-    println!("sizeof(Node): {}B", size_of::<Node<N, DefaultIx>>());
-    println!("sizeof(Edge): {}B", size_of::<Edge<E, DefaultIx>>());
+    println!("sizeof(Node): {}B", size_of::<AvlNode<N, DefaultIx>>());
+    println!("sizeof(Edge): {}B", size_of::<AvlEdge<E, DefaultIx>>());
 
     let mut index: Box<dyn Tokenize<E>> = if args.tokenizer == "whitespace" {
         Box::new(TokenIndex::new())

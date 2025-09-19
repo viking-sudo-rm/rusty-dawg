@@ -1,4 +1,5 @@
 use crate::graph::indexing::{DefaultIx, EdgeIndex, IndexType, NodeIndex};
+use crate::graph::traits::NodeRef;
 use crate::weight::Weight;
 use serde::{Deserialize, Serialize};
 use std::clone::Clone;
@@ -44,19 +45,12 @@ where
     }
 }
 
-pub trait ArrayNodeRef<N, Ix> {
-    fn get_weight(self) -> N
-    where
-        N: Clone;
-    fn get_length(self) -> u64;
-    fn get_failure(self) -> Option<NodeIndex<Ix>>;
-    fn get_count(self) -> usize;
-    fn get_first_edge(self) -> EdgeIndex<Ix>;
+pub trait ArrayNodeRef<N, Ix>: NodeRef<N, Ix> {
     fn get_num_edges(self) -> u16;
 }
 
 // We can use a Node object as a "reference" to data on disk.
-impl<N, Ix> ArrayNodeRef<N, Ix> for ArrayNode<N, Ix>
+impl<N, Ix> NodeRef<N, Ix> for ArrayNode<N, Ix>
 where
     Ix: IndexType,
     N: Weight,
@@ -86,14 +80,20 @@ where
     fn get_first_edge(self) -> EdgeIndex<Ix> {
         self.first_edge
     }
+}
 
+impl<N, Ix> ArrayNodeRef<N, Ix> for ArrayNode<N, Ix>
+where
+    Ix: IndexType,
+    N: Weight,
+{
     fn get_num_edges(self) -> u16 {
         self.num_edges
     }
 }
 
 // FIXME(#52): We probably should not be allowing these clippy warnings but works for now :/
-impl<N, Ix> ArrayNodeRef<N, Ix> for *const ArrayNode<N, Ix>
+impl<N, Ix> NodeRef<N, Ix> for *const ArrayNode<N, Ix>
 where
     Ix: IndexType,
     N: Weight,
@@ -130,7 +130,14 @@ where
     fn get_first_edge(self) -> EdgeIndex<Ix> {
         unsafe { (*self).first_edge }
     }
+}
 
+// FIXME(#52): We probably should not be allowing these clippy warnings but works for now :/
+impl<N, Ix> ArrayNodeRef<N, Ix> for *const ArrayNode<N, Ix>
+where
+    Ix: IndexType,
+    N: Weight,
+{
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn get_num_edges(self) -> u16 {
         unsafe { (*self).num_edges }

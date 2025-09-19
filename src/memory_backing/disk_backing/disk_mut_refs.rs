@@ -1,5 +1,5 @@
-use crate::graph::avl_graph::edge::{Edge, EdgeMutRef};
-use crate::graph::avl_graph::node::{Node, NodeMutRef};
+use crate::graph::avl_graph::edge::{AvlEdge, AvlEdgeMutRef};
+use crate::graph::avl_graph::node::{AvlNode, AvlNodeMutRef};
 use crate::memory_backing::disk_backing::{EdgeIndex, IndexType, NodeIndex};
 use crate::memory_backing::CachedDiskVec;
 use crate::weight::Weight;
@@ -13,22 +13,22 @@ pub trait MutRef<T> {
 }
 
 pub struct DiskNodeMutRef<N, Ix> {
-    disk_vec: Rc<RefCell<CachedDiskVec<Node<N, Ix>>>>,
+    disk_vec: Rc<RefCell<CachedDiskVec<AvlNode<N, Ix>>>>,
     index: usize,
 }
 
-impl<N, Ix> MutRef<Node<N, Ix>> for DiskNodeMutRef<N, Ix> {
-    fn new(disk_vec: Rc<RefCell<CachedDiskVec<Node<N, Ix>>>>, index: usize) -> Self {
+impl<N, Ix> MutRef<AvlNode<N, Ix>> for DiskNodeMutRef<N, Ix> {
+    fn new(disk_vec: Rc<RefCell<CachedDiskVec<AvlNode<N, Ix>>>>, index: usize) -> Self {
         Self { disk_vec, index }
     }
 }
 
 // TODO: Only overwrite the specific field in the DiskVec rather than read/write.
-impl<N, Ix> NodeMutRef<Ix> for DiskNodeMutRef<N, Ix>
+impl<N, Ix> AvlNodeMutRef<Ix> for DiskNodeMutRef<N, Ix>
 where
     Ix: IndexType,
     N: Weight,
-    Node<N, Ix>: Serialize + DeserializeOwned + Default + Copy,
+    AvlNode<N, Ix>: Serialize + DeserializeOwned + Default + Copy,
 {
     fn set_length(self, length: u64) {
         let mut disk_vec = self.disk_vec.borrow_mut();
@@ -69,20 +69,20 @@ where
 }
 
 pub struct DiskEdgeMutRef<E, Ix> {
-    disk_vec: Rc<RefCell<CachedDiskVec<Edge<E, Ix>>>>,
+    disk_vec: Rc<RefCell<CachedDiskVec<AvlEdge<E, Ix>>>>,
     index: usize,
 }
 
-impl<E, Ix> MutRef<Edge<E, Ix>> for DiskEdgeMutRef<E, Ix> {
-    fn new(disk_vec: Rc<RefCell<CachedDiskVec<Edge<E, Ix>>>>, index: usize) -> Self {
+impl<E, Ix> MutRef<AvlEdge<E, Ix>> for DiskEdgeMutRef<E, Ix> {
+    fn new(disk_vec: Rc<RefCell<CachedDiskVec<AvlEdge<E, Ix>>>>, index: usize) -> Self {
         Self { disk_vec, index }
     }
 }
 
-impl<E, Ix> EdgeMutRef<E, Ix> for DiskEdgeMutRef<E, Ix>
+impl<E, Ix> AvlEdgeMutRef<E, Ix> for DiskEdgeMutRef<E, Ix>
 where
     Ix: IndexType + Copy,
-    Edge<E, Ix>: Serialize + DeserializeOwned + Default,
+    AvlEdge<E, Ix>: Serialize + DeserializeOwned + Default,
     E: Copy,
 {
     fn set_weight(self, weight: E) {
@@ -125,10 +125,10 @@ pub trait DiskVecItem: Sized {
     type MutRef: MutRef<Self>;
 }
 
-impl<N, Ix> DiskVecItem for Node<N, Ix> {
+impl<N, Ix> DiskVecItem for AvlNode<N, Ix> {
     type MutRef = DiskNodeMutRef<N, Ix>;
 }
 
-impl<E, Ix> DiskVecItem for Edge<E, Ix> {
+impl<E, Ix> DiskVecItem for AvlEdge<E, Ix> {
     type MutRef = DiskEdgeMutRef<E, Ix>;
 }

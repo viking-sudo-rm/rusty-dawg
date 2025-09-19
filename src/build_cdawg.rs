@@ -18,12 +18,12 @@ use kdam::{tqdm, BarExt};
 use super::Args;
 
 use crate::build_stats::BuildStats;
-use crate::cdawg::immutable_cdawg::ImmutableCdawg;
+use crate::cdawg::array_cdawg::ArrayCdawg;
 use crate::cdawg::TopologicalCounter;
 use crate::cdawg::{Cdawg, TokenBackingReference};
 use crate::data_reader::{DataReader, JsonlReader, PileReader, TxtReader};
-use crate::graph::avl_graph::edge::Edge;
-use crate::graph::avl_graph::node::Node;
+use crate::graph::avl_graph::edge::AvlEdge;
+use crate::graph::avl_graph::node::AvlNode;
 use crate::graph::indexing::DefaultIx;
 use crate::io;
 use crate::io::Save;
@@ -54,10 +54,10 @@ where
     println!("  Ix: {}B", size_of::<DefaultIx>());
     println!("  N: {}B", size_of::<N>());
     println!("  E: {}B", size_of::<(DefaultIx, DefaultIx)>());
-    println!("  Node: {}B", size_of::<Node<N, DefaultIx>>());
+    println!("  Node: {}B", size_of::<AvlNode<N, DefaultIx>>());
     println!(
         "  Edge: {}B",
-        size_of::<Edge<(DefaultIx, DefaultIx), DefaultIx>>()
+        size_of::<AvlEdge<(DefaultIx, DefaultIx), DefaultIx>>()
     );
     println!();
 
@@ -182,11 +182,12 @@ where
         let mb: DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx> = DiskBacking::new(path.clone());
         let cache_config = args.get_cache_config();
 
-        let icdawg = ImmutableCdawg::<
-            N,
-            DefaultIx,
-            DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>,
-        >::new_mb(cdawg, mb, cache_config);
+        let icdawg =
+            ArrayCdawg::<N, DefaultIx, DiskBacking<N, (DefaultIx, DefaultIx), DefaultIx>>::new_mb(
+                cdawg,
+                mb,
+                cache_config,
+            );
         let _ = icdawg.save(path.as_str());
     } else {
         println!("Saving CDAWG...");
