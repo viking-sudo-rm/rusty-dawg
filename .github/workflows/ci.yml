@@ -56,7 +56,7 @@ jobs:
               ./scripts/benchmark.sh wikitext-2-raw
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: ${{ matrix.task.name }}
         run: ${{ matrix.task.run }}
